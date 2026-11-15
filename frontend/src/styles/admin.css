@@ -155,6 +155,21 @@
   vertical-align: middle;
 }
 
+.admin-pedidos-table th,
+.admin-pedidos-table td {
+  padding: 12px 10px;
+}
+
+.admin-pedidos-table th:first-child,
+.admin-pedidos-table td:first-child {
+  padding-left: 14px;
+}
+
+.admin-pedidos-table th:last-child,
+.admin-pedidos-table td:last-child {
+  padding-right: 20px;
+}
+
 .admin-table tbody tr:last-child td {
   border-bottom: none;
 }

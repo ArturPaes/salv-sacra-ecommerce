@@ -30,6 +30,7 @@ import CategoriasDevocoesPage from './pages/admin/CategoriasDevocoesPage';
 import AvaliacoesAdminPage from './pages/admin/AvaliacoesAdminPage';
 import DevolucoesList from './pages/admin/DevolucoesList';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import ClientesAdmin from './pages/admin/ClientesAdmin';
 import './App.css';
 
 /**
@@ -102,6 +103,9 @@ function App() {
 
         {/* Gestão de Devoluções e Trocas */}
         <Route path="devolucoes"          element={<DevolucoesList />} />
+
+        {/* Gestão de Clientes */}
+        <Route path="clientes"            element={<ClientesAdmin />} />
 
         {/* Categorias e Devoções */}
         <Route path="categorias"          element={<CategoriasDevocoesPage />} />

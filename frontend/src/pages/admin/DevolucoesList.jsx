@@ -433,7 +433,14 @@ export default function DevolucoesList() {
                         </div>
                       </td>
                       <td style={{ padding: '14px 20px' }}>
-                        <strong>{clienteNome}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <strong>{clienteNome}</strong>
+                          {(d.user?.id || d.user_id || d.pedido?.user_id) && (
+                            <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#334155', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              ID #{d.user?.id || d.user_id || d.pedido?.user_id}
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: '11px', color: '#666' }}>{clienteEmail}</div>
                       </td>
                       <td style={{ padding: '14px 20px', color: '#333' }}>
@@ -617,10 +624,17 @@ export default function DevolucoesList() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                 <div>
                   <span style={{ color: '#64748b', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700 }}>Cliente</span>
-                  <p style={{ margin: '2px 0 0', fontWeight: 700, color: '#111' }}>
-                    {devolucaoSelecionada.user?.name || devolucaoSelecionada.pedido?.user?.name || 'Cliente'}
-                  </p>
-                  <span style={{ color: '#888', fontSize: '12px', display: 'block' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                    <p style={{ margin: 0, fontWeight: 700, color: '#111' }}>
+                      {devolucaoSelecionada.user?.name || devolucaoSelecionada.pedido?.user?.name || 'Cliente'}
+                    </p>
+                    {(devolucaoSelecionada.user?.id || devolucaoSelecionada.user_id || devolucaoSelecionada.pedido?.user?.id || devolucaoSelecionada.pedido?.user_id) && (
+                      <span style={{ fontSize: '11px', background: '#e2e8f0', color: '#1e293b', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
+                        ID #{devolucaoSelecionada.user?.id || devolucaoSelecionada.user_id || devolucaoSelecionada.pedido?.user?.id || devolucaoSelecionada.pedido?.user_id}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ color: '#888', fontSize: '12px', display: 'block', marginTop: '2px' }}>
                     {devolucaoSelecionada.user?.email || devolucaoSelecionada.pedido?.email_contato}
                   </span>
                   {(() => {

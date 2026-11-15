@@ -19,4 +19,5 @@ export const excluirConta = () => api.delete('/conta/excluir');
 export const cancelarPedido = (pedidoId, dados = {}) => api.post(`/pedidos/${pedidoId}/cancelar`, dados);
 export const obterOpcoesRestituicaoPedido = (pedidoId) => api.get(`/pedidos/${pedidoId}/opcoes-restituicao`);
 export const listarValesCompraConta = () => api.get('/conta/vales-compra');
+export const enviarVerificacaoEmailConta = () => api.post('/conta/enviar-verificacao-email');
 export const excluirPedido = (pedidoId) => api.delete(`/pedidos/${pedidoId}`);

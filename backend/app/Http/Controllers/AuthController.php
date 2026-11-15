@@ -24,6 +24,27 @@ class AuthController extends Controller
      */
     public function register(Request $request): JsonResponse
     {
+        $request->merge([
+            'email' => trim(strtolower((string) $request->input('email', ''))),
+        ]);
+
+        $emailInformado = (string) $request->input('email', '');
+        if ($emailInformado !== '') {
+            $estaBloqueado = DB::table('blocked_emails')
+                ->whereRaw('LOWER(email) = ?', [$emailInformado])
+                ->exists()
+                || User::withTrashed()
+                    ->whereRaw('LOWER(email) = ?', [$emailInformado])
+                    ->where('bloqueado', true)
+                    ->exists();
+
+            if ($estaBloqueado) {
+                throw ValidationException::withMessages([
+                    'email' => ['Este e-mail foi bloqueado pela administração e não pode ser utilizado para criar uma nova conta.'],
+                ]);
+            }
+        }
+
         $validated = $request->validate([
             'name'                  => ['required', 'string', 'max:255'],
             'email'                 => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -122,15 +143,30 @@ class AuthController extends Controller
         ]);
 
         $email = trim(strtolower($request->email));
+
+        $estaBloqueado = DB::table('blocked_emails')
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->exists();
+        if ($estaBloqueado) {
+            return response()->json([
+                'message' => 'Este e-mail foi bloqueado pela administração e não pode ser ativado.',
+            ], 403);
+        }
+
         $pendente = DB::table('pending_registrations')
             ->where('email', $email)
             ->where('token', $request->token)
             ->first();
 
         if (! $pendente) {
-            // Verifica se o usuário já validou antes
+            // Verifica se o usuário já existe e já foi validado antes
             $usuarioExistente = User::where('email', $email)->first();
-            if ($usuarioExistente) {
+            if ($usuarioExistente && ! is_null($usuarioExistente->email_verified_at)) {
+                if ($usuarioExistente->bloqueado) {
+                    return response()->json([
+                        'message' => 'Sua conta está bloqueada pela administração.',
+                    ], 403);
+                }
                 $token = $usuarioExistente->createToken('api-token')->plainTextToken;
                 return response()->json([
                     'message'   => 'E-mail validado com sucesso! Sua conta está ativa.',
@@ -145,22 +181,41 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Cria o usuário oficialmente no banco de dados
-        $user = User::create([
-            'name'              => $pendente->name,
-            'email'             => $pendente->email,
-            'password'          => $pendente->password,
-            'email_verified_at' => now(),
-        ]);
+        // Suporta tanto criação de nova conta quanto validação posterior de usuário já cadastrado
+        $user = User::where('email', $email)->first();
+        $ehNovoUsuario = false;
+
+        if ($user) {
+            if ($user->bloqueado) {
+                return response()->json([
+                    'message' => 'Sua conta está bloqueada pela administração.',
+                ], 403);
+            }
+            $user->forceFill(['email_verified_at' => now()])->save();
+            $user->refresh();
+        } else {
+            $ehNovoUsuario = true;
+            $user = User::create([
+                'name'              => $pendente->name,
+                'email'             => $pendente->email,
+                'password'          => $pendente->password,
+                'email_verified_at' => now(),
+            ]);
+            if (is_null($user->email_verified_at)) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+        }
 
         // Remove dos registros pendentes
         DB::table('pending_registrations')->where('email', $email)->delete();
 
-        // Envia o e-mail de boas-vindas oficial
-        try {
-            Mail::to($user->email)->send(new BoasVindasMail($user));
-        } catch (\Throwable $e) {
-            Log::error('Erro ao enviar e-mail de boas-vindas: ' . $e->getMessage());
+        // Envia o e-mail de boas-vindas oficial apenas no primeiro cadastro
+        if ($ehNovoUsuario) {
+            try {
+                Mail::to($user->email)->send(new BoasVindasMail($user));
+            } catch (\Throwable $e) {
+                Log::error('Erro ao enviar e-mail de boas-vindas: ' . $e->getMessage());
+            }
         }
 
         // Gera token de autenticação para já entrar logado
@@ -196,7 +251,18 @@ class AuthController extends Controller
         }
 
         /** @var User $user */
-        $user  = Auth::user();
+        $user = Auth::user();
+
+        if ($user->bloqueado) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => [
+                    'Sua conta foi bloqueada pela administração.' .
+                    ($user->bloqueado_motivo ? " Motivo: {$user->bloqueado_motivo}" : ''),
+                ],
+            ]);
+        }
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
@@ -223,8 +289,19 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if ($user && $user->bloqueado) {
+            $motivo = $user->bloqueado_motivo;
+            $user->currentAccessToken()?->delete();
+            return response()->json([
+                'code'    => 'ACCOUNT_BLOCKED',
+                'message' => 'Sua conta foi bloqueada pela administração.' . ($motivo ? " Motivo: {$motivo}" : ''),
+                'motivo'  => $motivo,
+            ], 403);
+        }
+
         return response()->json([
-            'user' => $request->user(),
+            'user' => $user,
         ]);
     }
 }

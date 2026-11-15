@@ -306,6 +306,7 @@ export default function ProdutoDetalhe() {
 
         setFotoPrincipal(fotoPrimaria);
         setCorSelecionada(corPrimaria);
+        setQuantidade(1);
 
         // Variação inicial: busca uma variação que corresponda à COR PRIMÁRIA (priorizando com estoque > 0)
         const varsDaCor = vars.filter((v) => (v.cor || '').trim().toLowerCase() === corPrimaria.toLowerCase());

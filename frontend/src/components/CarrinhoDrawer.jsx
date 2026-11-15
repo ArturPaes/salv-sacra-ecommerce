@@ -157,7 +157,10 @@ export default function CarrinhoDrawer() {
                 type="button"
                 className="cart-change-cep-btn"
                 style={{ marginTop: '12px' }}
-                onClick={closeCart}
+                onClick={() => {
+                  closeCart();
+                  navigate('/produtos?categoria=camisetas');
+                }}
               >
                 Explorar Coleção
               </button>

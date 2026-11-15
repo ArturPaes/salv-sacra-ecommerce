@@ -44,11 +44,16 @@ export function CartProvider({ children }) {
   const [ufDestino, setUfDestino] = useState('');
   const [loadingFrete, setLoadingFrete] = useState(false);
   const reqIdRef = useRef(0);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   // Busca endereço cadastrado ou do último pedido caso o CEP ainda não esteja preenchido
   useEffect(() => {
     if (!cep) {
-      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const token =
+        localStorage.getItem('sanctum_token') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('auth_token');
       if (token) {
         listarEnderecos()
           .then(({ data }) => {
@@ -79,6 +84,7 @@ export function CartProvider({ children }) {
 
   // Salvar no localStorage sempre que items mudar
   const salvarCarrinho = (novosItens) => {
+    itemsRef.current = novosItens;
     setItems(novosItens);
     try {
       localStorage.setItem('@SalvSacra:carrinho', JSON.stringify(novosItens));
@@ -171,7 +177,7 @@ export function CartProvider({ children }) {
   }, [cep, totalItens, calcularFretePorCep]);
 
   const processarItemNoArray = (lista, item) => {
-    const novos = [...lista];
+    const novos = lista.map((i) => ({ ...i }));
     const modItem = item.modelo || 'Regular Fit';
     const index = novos.findIndex(
       (i) =>
@@ -182,12 +188,17 @@ export function CartProvider({ children }) {
     );
 
     const estoqueMax = item.estoque !== undefined ? Number(item.estoque) : 999;
+    const qtdAdicionada = Math.max(1, Number(item.quantidade) || 1);
 
     if (index >= 0) {
-      const estoqueLimite = novos[index].estoque !== undefined ? Number(novos[index].estoque) : estoqueMax;
-      const novaQtd = (novos[index].quantidade || 0) + (item.quantidade || 1);
-      novos[index].quantidade = Math.min(estoqueLimite, novaQtd);
-      if (item.estoque !== undefined) novos[index].estoque = Number(item.estoque);
+      const atual = novos[index];
+      const estoqueLimite = atual.estoque !== undefined ? Number(atual.estoque) : estoqueMax;
+      const novaQtd = (Number(atual.quantidade) || 0) + qtdAdicionada;
+      novos[index] = {
+        ...atual,
+        quantidade: Math.min(estoqueLimite, novaQtd),
+        ...(item.estoque !== undefined ? { estoque: Number(item.estoque) } : {}),
+      };
     } else {
       novos.push({
         produtoId: item.produtoId,
@@ -198,7 +209,7 @@ export function CartProvider({ children }) {
         modelo: modItem,
         tamanho: item.tamanho || 'M',
         cor: item.cor || 'Preto',
-        quantidade: Math.min(estoqueMax, item.quantidade || 1),
+        quantidade: Math.min(estoqueMax, qtdAdicionada),
         estoque: item.estoque !== undefined ? Number(item.estoque) : undefined,
       });
     }
@@ -206,54 +217,50 @@ export function CartProvider({ children }) {
   };
 
   const addItem = (item) => {
-    setItems((prev) => {
-      const atualizados = processarItemNoArray(prev, item);
-      salvarCarrinho(atualizados);
-      return atualizados;
-    });
+    const atualizados = processarItemNoArray(itemsRef.current, item);
+    salvarCarrinho(atualizados);
     setIsCartOpen(true); // Abre a gaveta automaticamente ao adicionar
   };
 
   const addMultipleItems = (lista) => {
     if (!Array.isArray(lista) || !lista.length) return;
-    setItems((prev) => {
-      let atualizados = [...prev];
-      lista.forEach((item) => {
-        atualizados = processarItemNoArray(atualizados, item);
-      });
-      salvarCarrinho(atualizados);
-      return atualizados;
+    let atualizados = itemsRef.current.map((i) => ({ ...i }));
+    lista.forEach((item) => {
+      atualizados = processarItemNoArray(atualizados, item);
     });
+    salvarCarrinho(atualizados);
     setIsCartOpen(true);
   };
 
   const updateQuantity = (index, delta) => {
-    const novos = [...items];
-    if (!novos[index]) return;
+    const atuais = itemsRef.current;
+    if (!atuais[index]) return;
 
-    const item = novos[index];
+    const item = atuais[index];
     const estoqueMax = item.estoque !== undefined ? Number(item.estoque) : 999;
-    const novaQtd = item.quantidade + delta;
+    const novaQtd = Number(item.quantidade || 1) + delta;
 
     // Se estiver tentando aumentar além do estoque disponível, bloqueia a operação
     if (delta > 0 && novaQtd > estoqueMax) {
       return;
     }
 
-    item.quantidade = novaQtd;
-    if (item.quantidade <= 0) {
+    const novos = atuais.map((it, idx) =>
+      idx === index ? { ...it, quantidade: novaQtd } : { ...it }
+    );
+    if (novaQtd <= 0) {
       novos.splice(index, 1);
     }
     salvarCarrinho(novos);
   };
 
   const removeItem = (index) => {
-    const novos = [...items];
-    novos.splice(index, 1);
+    const novos = itemsRef.current.filter((_, idx) => idx !== index).map((it) => ({ ...it }));
     salvarCarrinho(novos);
   };
 
   const clearCart = () => {
+    itemsRef.current = [];
     try {
       localStorage.removeItem('@SalvSacra:carrinho');
     } catch {}
@@ -278,6 +285,8 @@ export function CartProvider({ children }) {
       return;
     }
 
+    const snapshotAntes = JSON.stringify(itens);
+
     try {
       const payload = itens.map((item) => ({
         variacao_id: item.variacaoId || null,
@@ -290,10 +299,14 @@ export function CartProvider({ children }) {
       const { data } = await api.post('/carrinho/verificar-estoque', { itens: payload });
       if (!data || !Array.isArray(data.itens)) return;
 
-      // Confere se o carrinho não foi limpo enquanto a requisição HTTP trafegava
+      // Confere se o carrinho não foi limpo ou alterado enquanto a requisição HTTP trafegava
       const salvoAposReq = localStorage.getItem('@SalvSacra:carrinho');
       if (!salvoAposReq || salvoAposReq === '[]') {
+        itemsRef.current = [];
         setItems([]);
+        return;
+      }
+      if (salvoAposReq !== snapshotAntes) {
         return;
       }
 
@@ -432,7 +445,10 @@ export function CartProvider({ children }) {
       const lista = Array.isArray(disponiveis) ? disponiveis : [];
 
       let meusVales = [];
-      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const token =
+        localStorage.getItem('sanctum_token') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('auth_token');
       if (token && valeCompra) {
         try {
           const resVales = await listarMeusVales();
@@ -445,7 +461,7 @@ export function CartProvider({ children }) {
       if (cupom) {
         const encontrado = lista.find((b) => Number(b.id) === Number(cupom.id) || b.codigo === cupom.codigo);
         if (encontrado) {
-          if (encontrado.status && encontrado.status !== 'ativo') {
+          if ((encontrado.status && encontrado.status !== 'ativo') || encontrado.ativo === false) {
             aplicarCupom(null);
           } else {
             setCupom(encontrado);
@@ -461,7 +477,7 @@ export function CartProvider({ children }) {
 
         if (encontradoVale) {
           const saldoAtualizado = Number(encontradoVale.saldo_atual ?? encontradoVale.valor_fixo ?? 0);
-          if ((encontradoVale.status && encontradoVale.status !== 'ativo') || !encontradoVale.ativo || saldoAtualizado <= 0) {
+          if ((encontradoVale.status && encontradoVale.status !== 'ativo') || encontradoVale.ativo === false || saldoAtualizado <= 0) {
             aplicarValeCompra(null);
           } else {
             setValeCompra(encontradoVale);

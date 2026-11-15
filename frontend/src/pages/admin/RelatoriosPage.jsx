@@ -407,6 +407,11 @@ export default function RelatoriosPage() {
                             <>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                 <strong>{nomeLimpo}</strong>
+                                {p.cliente_id && (
+                                  <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#334155', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                    ID #{p.cliente_id}
+                                  </span>
+                                )}
                                 {isDesativada && (
                                   <span
                                     style={{

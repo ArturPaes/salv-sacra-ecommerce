@@ -96,6 +96,7 @@ export default function CheckoutPage() {
     setCep: setGlobalCep,
     loadingFrete,
     openCart,
+    updateQuantity,
     clearCart,
     cupom,
     valeCompra,
@@ -1609,8 +1610,14 @@ export default function CheckoutPage() {
                     <div className="checkout-info-content">
                       <IconTruck />
                       <div className="checkout-info-text">
-                        <strong>{tipoFreteNome} · R${freteValor.toFixed(2).replace('.', ',')}</strong>
-                        <span>{freteAtual.prazo}</span>
+                        <strong>
+                          {loadingFrete && !freteAtual
+                            ? 'Recalculando frete...'
+                            : `${tipoFreteNome} · R$${freteValor.toFixed(2).replace('.', ',')}`}
+                        </strong>
+                        <span>
+                          {freteAtual?.prazo || (loadingFrete ? 'Atualizando prazo de entrega...' : 'Selecione uma modalidade de envio')}
+                        </span>
                       </div>
                     </div>
                     <button type="button" className="checkout-action-link" onClick={() => setEtapa('entrega')}>
@@ -1985,7 +1992,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   className="checkout-submit-btn"
-                  disabled={loading}
+                  disabled={loading || loadingFrete || !freteAtual}
                   onClick={handleFinalizarPedido}
                 >
                   {loading
@@ -2005,37 +2012,74 @@ export default function CheckoutPage() {
           <div className="checkout-summary-col">
             <div className="checkout-items-list">
               {items.length === 0 ? (
-                <div className="checkout-summary-item">
-                  <div className="checkout-summary-thumb">
-                    <span>🕊️</span>
-                  </div>
-                  <div className="checkout-summary-details">
-                    <div className="checkout-summary-name">CAMISETA CEIA (Preto, PP)</div>
-                    <div className="checkout-summary-qty">x 1</div>
-                  </div>
-                  <div className="checkout-summary-price">R$79,90</div>
+                <div style={{ padding: '16px 0', textAlign: 'center', fontSize: '13px', color: '#666' }}>
+                  <p style={{ margin: '0 0 10px' }}>Sua sacola de compras está vazia.</p>
+                  <button
+                    type="button"
+                    className="checkout-coupon-btn"
+                    style={{ marginTop: 0 }}
+                    onClick={() => navigate('/produtos?categoria=camisetas')}
+                  >
+                    Explorar Coleção
+                  </button>
                 </div>
               ) : (
-                items.map((item, idx) => (
-                  <div key={idx} className="checkout-summary-item">
-                    <div className="checkout-summary-thumb">
-                      {item.imagem ? (
-                        <img src={item.imagem} alt={item.nome} />
-                      ) : (
-                        <span>🕊️</span>
-                      )}
-                    </div>
-                    <div className="checkout-summary-details">
-                      <div className="checkout-summary-name">
-                        {item.nome} ({item.cor}, {item.tamanho})
+                items.map((item, idx) => {
+                  const atingiuLimiteEstoque =
+                    item.estoque !== undefined && item.quantidade >= Number(item.estoque);
+                  const minimoNoCheckout = items.length === 1 && item.quantidade <= 1;
+
+                  return (
+                    <div key={`${item.produtoId}-${item.modelo || 'Regular Fit'}-${item.tamanho}-${item.cor}-${idx}`} className="checkout-summary-item">
+                      <div className="checkout-summary-thumb">
+                        {item.imagem ? (
+                          <img src={item.imagem} alt={item.nome} />
+                        ) : (
+                          <span>🕊️</span>
+                        )}
                       </div>
-                      <div className="checkout-summary-qty">x {item.quantidade}</div>
+                      <div className="checkout-summary-details">
+                        <div className="checkout-summary-name">
+                          {item.nome} ({item.cor}, {item.tamanho})
+                        </div>
+                        <div className="checkout-item-qty" aria-label={`Quantidade de ${item.nome}`}>
+                          <button
+                            type="button"
+                            className="checkout-qty-btn"
+                            disabled={minimoNoCheckout}
+                            onClick={() => updateQuantity(idx, -1)}
+                            title={
+                              minimoNoCheckout
+                                ? 'Quantidade mínima no checkout'
+                                : 'Diminuir quantidade'
+                            }
+                            aria-label="Diminuir quantidade"
+                          >
+                            −
+                          </button>
+                          <span className="checkout-qty-num">{item.quantidade}</span>
+                          <button
+                            type="button"
+                            className="checkout-qty-btn"
+                            disabled={atingiuLimiteEstoque}
+                            onClick={() => updateQuantity(idx, 1)}
+                            title={
+                              atingiuLimiteEstoque
+                                ? `Limite de estoque (${item.estoque} un)`
+                                : 'Aumentar quantidade'
+                            }
+                            aria-label="Aumentar quantidade"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                      <div className="checkout-summary-price">
+                        R${(Number(item.preco) * item.quantidade).toFixed(2).replace('.', ',')}
+                      </div>
                     </div>
-                    <div className="checkout-summary-price">
-                      R${(Number(item.preco) * item.quantidade).toFixed(2).replace('.', ',')}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

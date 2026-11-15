@@ -22,4 +22,32 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Detecta bloqueio imediato de conta em qualquer chamada autenticada e notifica o AuthContext
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const data = error?.response?.data;
+
+    if (status === 403 && data?.code === 'ACCOUNT_BLOCKED') {
+      try {
+        localStorage.removeItem('sanctum_token');
+        localStorage.removeItem('minha_conta_resumo');
+        localStorage.removeItem('minha_conta_pedidos');
+      } catch {}
+
+      window.dispatchEvent(
+        new CustomEvent('salv-conta-bloqueada', {
+          detail: {
+            message: data.message || 'Sua conta foi bloqueada pela administração.',
+            motivo: data.motivo || '',
+          },
+        }),
+      );
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 export default api;

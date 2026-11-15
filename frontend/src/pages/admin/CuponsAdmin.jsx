@@ -1114,11 +1114,16 @@ export default function CuponsAdmin() {
                           <td style={{ fontSize: '12.5px' }}>
                             {v.usuario ? (
                               <div>
-                                <strong>{v.usuario.name}</strong>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <strong>{v.usuario.name}</strong>
+                                  <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#334155', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                    ID #{v.usuario.id || v.user_id}
+                                  </span>
+                                </div>
                                 <div style={{ fontSize: '11px', color: '#64748b' }}>{v.usuario.email}</div>
                               </div>
                             ) : v.user_id ? (
-                              `Cliente #${v.user_id}`
+                              `Cliente ID #${v.user_id}`
                             ) : (
                               <span style={{ color: '#94a3b8' }}>Portador livre</span>
                             )}

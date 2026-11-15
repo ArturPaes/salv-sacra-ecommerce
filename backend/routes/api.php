@@ -106,8 +106,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('favoritos',            [\App\Http\Controllers\ContaController::class, 'favoritos']);
         Route::post('favoritos/sincronizar',[\App\Http\Controllers\ContaController::class, 'sincronizarFavoritos']);
         Route::post('favoritos/{produto}', [\App\Http\Controllers\ContaController::class, 'toggleFavorito']);
-        Route::get('vales-compra',         [\App\Http\Controllers\CupomController::class, 'meusVales']);
-        Route::delete('excluir',           [\App\Http\Controllers\ContaController::class, 'excluirConta']);
+        Route::get('vales-compra',              [\App\Http\Controllers\CupomController::class, 'meusVales']);
+        Route::post('enviar-verificacao-email', [\App\Http\Controllers\ContaController::class, 'enviarVerificacaoEmail']);
+        Route::delete('excluir',                [\App\Http\Controllers\ContaController::class, 'excluirConta']);
     });
 
     /*
@@ -138,6 +139,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Gestão de Modelos de Camiseta (CRUD completo) ───────────────────
         Route::apiResource('modelos', \App\Http\Controllers\ModeloCamisetaController::class)
             ->except(['index']);
+
+        // ── Gestão de Clientes (Administração) ────────────────────────────
+        Route::get('admin/clientes',                  [\App\Http\Controllers\AdminClienteController::class, 'index']);
+        Route::get('admin/clientes/{id}',             [\App\Http\Controllers\AdminClienteController::class, 'show']);
+        Route::post('admin/clientes/{id}/bloquear',   [\App\Http\Controllers\AdminClienteController::class, 'bloquear']);
+        Route::post('admin/clientes/{id}/desbloquear', [\App\Http\Controllers\AdminClienteController::class, 'desbloquear']);
+        Route::delete('admin/clientes/{id}',          [\App\Http\Controllers\AdminClienteController::class, 'destroy']);
 
         // ── Gestão de Pedidos (Administração) ─────────────────────────────
         Route::get('admin/pedidos',                               [PedidoController::class, 'indexAdmin']);

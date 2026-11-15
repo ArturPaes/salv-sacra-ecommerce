@@ -756,16 +756,16 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
         </div>
       ) : (
         <div className="admin-table-wrapper">
-          <table className="admin-table" style={{ width: '100%', minWidth: '860px' }}>
+          <table className="admin-table admin-pedidos-table" style={{ width: '100%' }}>
             <thead>
               <tr>
-                <th style={{ width: '80px' }}>Pedido</th>
-                <th style={{ width: '105px' }}>Data</th>
-                <th style={{ minWidth: '140px' }}>Cliente</th>
-                <th style={{ width: '125px' }}>Envio / Rastreio</th>
-                <th style={{ width: '90px' }}>Total</th>
-                <th style={{ width: '110px' }}>Status Atual</th>
-                <th style={{ width: '230px', paddingRight: '32px' }}>Ações</th>
+                <th style={{ width: '74px' }}>Pedido</th>
+                <th style={{ width: '92px' }}>Data</th>
+                <th style={{ minWidth: '130px' }}>Cliente</th>
+                <th style={{ width: '112px' }}>Envio / Rastreio</th>
+                <th style={{ width: '86px' }}>Total</th>
+                <th style={{ width: '108px' }}>Status Atual</th>
+                <th style={{ width: '198px', paddingRight: '20px' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -861,6 +861,20 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
                         <>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 600 }}>{clienteInfo.nome}</span>
+                            {(p.user?.id || p.user_id) && (
+                              <span
+                                style={{
+                                  fontSize: '10.5px',
+                                  background: '#f1f5f9',
+                                  color: '#334155',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ID #{p.user?.id || p.user_id}
+                              </span>
+                            )}
                             {clienteInfo.isDesativada && (
                               <span
                                 style={{
@@ -918,13 +932,13 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
                       </select>
                     )}
                   </td>
-                  <td style={{ width: '230px', paddingRight: '32px' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+                  <td style={{ width: '198px', paddingRight: '20px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
                       <button
                         type="button"
                         className="admin-btn admin-btn-secondary admin-btn-sm"
                         onClick={() => handleAbrirDetalhe(p)}
-                        style={{ whiteSpace: 'nowrap' }}
+                        style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
                       >
                         Gerenciar Entrega
                       </button>
@@ -934,7 +948,7 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
                           className="admin-btn admin-btn-danger admin-btn-sm"
                           onClick={() => setPedidoParaExcluir(p)}
                           title="Excluir pedido do histórico"
-                          style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                          style={{ padding: '6px 9px', fontSize: '11px', whiteSpace: 'nowrap' }}
                         >
                           Excluir
                         </button>
@@ -948,7 +962,7 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
                             color: '#94a3b8',
                             border: '1px solid #e2e8f0',
                             cursor: 'not-allowed',
-                            padding: '6px 10px',
+                            padding: '6px 9px',
                             fontSize: '11px',
                             whiteSpace: 'nowrap',
                           }}
@@ -1350,6 +1364,7 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
                     const cInfo = formatarCliente(pedidoSelecionado.user, pedidoSelecionado.email_contato);
                     return (
                       <>
+                        <p><strong>ID do Cliente:</strong> #{pedidoSelecionado.user?.id || pedidoSelecionado.user_id || '—'}</p>
                         <p style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <strong>Nome:</strong> <span>{cInfo.nome}</span>
                           {cInfo.isDesativada && (

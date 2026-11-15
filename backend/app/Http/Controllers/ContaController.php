@@ -71,9 +71,64 @@ class ContaController extends Controller
             'data_nascimento' => ['nullable', 'date', 'before:today'],
         ]);
 
+        $novoEmail = trim(strtolower($dados['email']));
+        if ($novoEmail !== trim(strtolower($user->email))) {
+            $emailBloqueado = \Illuminate\Support\Facades\DB::table('blocked_emails')
+                ->whereRaw('LOWER(email) = ?', [$novoEmail])
+                ->exists();
+            if ($emailBloqueado) {
+                throw ValidationException::withMessages([
+                    'email' => ['Este e-mail está bloqueado pela administração.'],
+                ]);
+            }
+            $dados['email'] = $novoEmail;
+            $dados['email_verified_at'] = null;
+        }
+
         $user->update($dados);
 
         return response()->json(['message' => 'Dados atualizados com sucesso.', 'user' => $user->fresh()]);
+    }
+
+    /**
+     * Envia um link de validação de e-mail para o usuário autenticado cujo e-mail ainda esteja pendente.
+     */
+    public function enviarVerificacaoEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! is_null($user->email_verified_at)) {
+            return response()->json([
+                'message' => 'Seu e-mail já está verificado.',
+                'user'    => $user,
+            ]);
+        }
+
+        $email = trim(strtolower($user->email));
+        $token = \Illuminate\Support\Str::random(64);
+
+        \Illuminate\Support\Facades\DB::table('pending_registrations')->updateOrInsert(
+            ['email' => $email],
+            [
+                'name'       => $user->name,
+                'password'   => $user->password,
+                'token'      => $token,
+                'created_at' => now(),
+            ]
+        );
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\AtivarContaMail($user->name, $email, $token));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Erro ao enviar e-mail de verificação pela Minha Conta: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Não foi possível enviar o e-mail de verificação no momento. Tente novamente em instantes.',
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => "Enviamos um link de validação para {$email}. Verifique sua caixa de entrada e spam.",
+        ]);
     }
 
     /** Altera a senha confirmando a senha atual. */

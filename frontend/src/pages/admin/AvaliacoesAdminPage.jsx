@@ -149,7 +149,14 @@ export default function AvaliacoesAdminPage() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#222' }}>{av.autor_nome}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#222' }}>{av.autor_nome}</span>
+                      {av.user_id && (
+                        <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#334155', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          ID #{av.user_id}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{av.autor_email}</div>
                   </td>
                   <td>

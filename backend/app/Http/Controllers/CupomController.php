@@ -331,6 +331,7 @@ class CupomController extends Controller
                     'condicoes_utilizacao' => $c->condicoes_utilizacao,
                     'pedido_origem_id'     => $c->pedido_origem_id,
                     'status'               => $c->status,
+                    'ativo'                => (bool) $c->ativo,
                 ];
             });
 

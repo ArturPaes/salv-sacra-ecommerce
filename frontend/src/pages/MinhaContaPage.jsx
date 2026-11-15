@@ -16,6 +16,7 @@ import {
   cancelarPedido,
   criarCartao,
   criarEndereco,
+  enviarVerificacaoEmailConta,
   excluirConta,
   excluirPedido,
   listarCartoes,
@@ -175,6 +176,80 @@ const primeiroErro = (err) => {
 };
 
 /* ───────────────────────── Resumo ───────────────────────── */
+function AlertaValidacaoEmail({ user, compact = false }) {
+  const [enviando, setEnviando] = useState(false);
+  const [feedback, setFeedback] = useState({ tipo: '', texto: '' });
+
+  if (!user || user.email_verified_at) return null;
+
+  const handleEnviar = async () => {
+    setEnviando(true);
+    setFeedback({ tipo: '', texto: '' });
+    try {
+      const { data } = await enviarVerificacaoEmailConta();
+      setFeedback({
+        tipo: 'ok',
+        texto: data?.message || 'Link de validação enviado! Verifique sua caixa de entrada.',
+      });
+    } catch (err) {
+      setFeedback({
+        tipo: 'erro',
+        texto: err.response?.data?.message || 'Não foi possível enviar o link de validação.',
+      });
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        background: '#fffbeb',
+        border: '1px solid #fde68a',
+        borderRadius: '10px',
+        padding: compact ? '10px 14px' : '14px 18px',
+        marginTop: compact ? '8px' : '0',
+        marginBottom: compact ? '14px' : '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ fontSize: '13px', color: '#92400e', lineHeight: 1.45 }}>
+          <strong>E-mail não validado:</strong> confirme o seu endereço <strong>{user.email}</strong> para manter seu cadastro verificado.
+        </div>
+        <button
+          type="button"
+          className="conta-btn-sec"
+          disabled={enviando}
+          onClick={handleEnviar}
+          style={{
+            background: '#d97706',
+            color: '#fff',
+            borderColor: '#d97706',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {enviando ? 'Enviando link...' : 'Validar meu e-mail'}
+        </button>
+      </div>
+      {feedback.texto && (
+        <div
+          style={{
+            fontSize: '12.5px',
+            fontWeight: 600,
+            color: feedback.tipo === 'ok' ? '#15803d' : '#b91c1c',
+          }}
+        >
+          {feedback.texto}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irPara, carregando }) {
   const ultimo = resumo?.ultimo_pedido !== undefined ? resumo.ultimo_pedido : pedidos?.[0];
   const pedidoCompleto = pedidos?.find((p) => p.id === ultimo?.id) || ultimo;
@@ -228,6 +303,7 @@ function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irP
       <p className="conta-section-sub">
         Aqui você acompanha seus pedidos e gerencia seus dados.
       </p>
+      <AlertaValidacaoEmail user={user} />
 
       <div className="conta-cards">
         <button type="button" className="conta-card" onClick={() => irPara('pedidos')}>
@@ -922,8 +998,8 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
       <>
         <h2 className="conta-section-title">Meus pedidos</h2>
         {carregando ? (
-          <div style={{ padding: '24px 0', color: '#666', fontSize: '14px' }}>
-            Carregando seus pedidos...
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '220px' }}>
+            <LoadingSpinner />
           </div>
         ) : (
           <p className="conta-vazio">
@@ -3066,8 +3142,23 @@ function DadosPessoais({ user, onSalvo, onExcluirConta, excluindoConta }) {
           <input id="c-name" name="name" value={form.name} onChange={change} required />
         </div>
         <div className="auth-field">
-          <label htmlFor="c-email">E-mail</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <label htmlFor="c-email" style={{ marginBottom: 0 }}>E-mail</label>
+            <span
+              style={{
+                fontSize: '11.5px',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '999px',
+                background: user.email_verified_at ? '#dcfce7' : '#fef3c7',
+                color: user.email_verified_at ? '#15803d' : '#b45309',
+              }}
+            >
+              {user.email_verified_at ? '✓ E-mail verificado' : 'E-mail não verificado'}
+            </span>
+          </div>
           <input id="c-email" type="email" name="email" value={form.email} onChange={change} required />
+          <AlertaValidacaoEmail user={user} compact />
         </div>
         <div className="conta-grid-2">
           <div className="auth-field">
@@ -3938,14 +4029,6 @@ function CuponsEVales({ irPara }) {
             {moeda(saldoTotalAtivo)}
           </strong>
         </div>
-        <button
-          type="button"
-          className="conta-btn-sec"
-          onClick={() => irPara('pedidos')}
-          style={{ background: '#fff', borderColor: '#d8b4fe', color: '#5b21b6' }}
-        >
-          Acompanhar Meus Pedidos
-        </button>
       </div>
 
       {/* ── Seção 1: Meus Vales-Compra ── */}

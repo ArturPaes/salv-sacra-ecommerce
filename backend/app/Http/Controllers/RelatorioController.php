@@ -139,6 +139,7 @@ class RelatorioController extends Controller
             ->map(function ($p) {
                 return [
                     'id'               => $p->id,
+                    'cliente_id'       => $p->user_id,
                     'cliente'          => $p->user?->name ?? 'Cliente',
                     'email'            => $p->email_contato ?? $p->user?->email,
                     'data'             => $p->data_pedido?->format('d/m/Y H:i'),
