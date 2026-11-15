@@ -6,6 +6,7 @@ use App\Models\Configuracao;
 use App\Models\Pedido;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class MelhorEnvioService
 {
@@ -50,6 +51,50 @@ class MelhorEnvioService
      */
     public function inserirNoCarrinho(Pedido $pedido, ?string $cpfSobrescrito = null): array
     {
+        if (DemoSandboxService::isDemo()) {
+            $cpfInformado = preg_replace('/\D/', '', $cpfSobrescrito ?: ($pedido->user?->cpf ?? ''));
+            $cpfDestinatario = strlen($cpfInformado) === 11 ? $cpfInformado : '52998224725';
+
+            if ($pedido->user && empty($pedido->user->cpf)) {
+                try {
+                    $pedido->user->update(['cpf' => $cpfDestinatario]);
+                } catch (\Throwable) {
+                }
+            }
+
+            $shipmentId = 'DEMO-ME-' . strtoupper(Str::random(8));
+            $protocol = 'DEMO-ORD-' . random_int(100000, 999999);
+            $codigoRastreio = $pedido->codigo_rastreio ?: ('SS' . random_int(100000000, 999999999) . 'BR');
+
+            $pedido->update([
+                'melhor_envio_id' => $shipmentId,
+                'codigo_rastreio'  => $codigoRastreio,
+                'status'           => 'Em separação',
+            ]);
+
+            if ($pedido->user_id) {
+                NotificacaoService::notificarCliente(
+                    $pedido->user_id,
+                    'pedido',
+                    "Atualização no Pedido #{$pedido->id}: Em separação",
+                    "Etiqueta gerada na simulação Demo! Código de rastreio: {$codigoRastreio}.",
+                    "/minha-conta?aba=pedidos&pedido={$pedido->id}",
+                    $pedido->id
+                );
+            }
+
+            return [
+                'sucesso'         => true,
+                'demo_simulado'   => true,
+                'mensagem'        => 'Etiqueta gerada com sucesso no Ambiente Demo! Código de rastreio simulado atribuído.',
+                'melhor_envio_id' => $shipmentId,
+                'protocol'        => $protocol,
+                'codigo_rastreio' => $codigoRastreio,
+                'etiqueta_url'    => "#demo-etiqueta-{$shipmentId}",
+                'link_carrinho'   => "#demo-etiqueta-{$shipmentId}",
+            ];
+        }
+
         $token = $this->getToken();
         if (empty($token)) {
             return [

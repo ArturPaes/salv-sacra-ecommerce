@@ -123,4 +123,12 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Real Store Access Password Gate
+    |--------------------------------------------------------------------------
+    */
+
+    'store_real_password' => env('STORE_REAL_PASSWORD', 'artp2004'),
+
 ];

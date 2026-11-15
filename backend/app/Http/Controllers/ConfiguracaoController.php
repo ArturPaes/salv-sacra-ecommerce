@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
+use App\Services\DemoSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,6 +15,23 @@ class ConfiguracaoController extends Controller
     public function index(): JsonResponse
     {
         $configs = Configuracao::all()->pluck('valor', 'chave');
+
+        if (DemoSandboxService::isDemo()) {
+            $overrides = DemoSandboxService::getDemoConfigOverrides();
+            $chavesProtegidas = [
+                'mercadopago_access_token',
+                'mercadopago_public_key',
+                'melhor_envio_token',
+                'melhor_envio_sandbox_token',
+                'cartao_gateway_modo',
+            ];
+            foreach ($chavesProtegidas as $chave) {
+                if (isset($overrides[$chave])) {
+                    $configs[$chave] = $overrides[$chave]['valor'];
+                }
+            }
+        }
+
         return response()->json($configs);
     }
 
@@ -43,6 +61,15 @@ class ConfiguracaoController extends Controller
 
         $configs = Configuracao::whereIn('chave', $chavesPublicas)
             ->pluck('valor', 'chave');
+
+        if (DemoSandboxService::isDemo()) {
+            $overrides = DemoSandboxService::getDemoConfigOverrides();
+            foreach (['mercadopago_public_key', 'cartao_gateway_modo'] as $chave) {
+                if (isset($overrides[$chave])) {
+                    $configs[$chave] = $overrides[$chave]['valor'];
+                }
+            }
+        }
 
         return response()->json($configs);
     }

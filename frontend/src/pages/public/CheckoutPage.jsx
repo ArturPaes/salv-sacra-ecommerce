@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDemo } from '../../contexts/DemoContext';
 import api from '../../services/api';
+import { simularPagamentoPedidoDemo } from '../../services/demoService';
 import logoImg from '../../assets/logo.webp';
 import '../../styles/checkout.css';
 import '../../styles/cupom.css';
@@ -87,6 +89,7 @@ const getDadosCheckoutSalvos = () => {
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading: authLoading, updateUser } = useAuth();
+  const { isDemoMode } = useDemo();
   const {
     items,
     subtotal,
@@ -220,6 +223,7 @@ export default function CheckoutPage() {
   const [copiadoPix, setCopiadoPix] = useState(false);
   const [tempoRestantePix, setTempoRestantePix] = useState(1800); // 30 minutos em segundos
   const [confirmandoPagamento, setConfirmandoPagamento] = useState(false);
+  const [simulandoPagamentoDemo, setSimulandoPagamentoDemo] = useState(false);
   const [cancelandoPix, setCancelandoPix] = useState(false);
 
   // Modal para avisos e recusas de pagamento (sem usar o alert nativo do navegador)
@@ -341,6 +345,51 @@ export default function CheckoutPage() {
     } finally {
       setConfirmandoPagamento(false);
     }
+  };
+
+  const handleSimularPagamentoDemo = async () => {
+    if (!pedidoConcluido) return;
+    setSimulandoPagamentoDemo(true);
+    try {
+      const { data } = await simularPagamentoPedidoDemo(pedidoConcluido.id);
+      if (data?.pedido) {
+        setPedidoConcluido(data.pedido);
+      } else {
+        setPedidoConcluido((prev) => (prev ? { ...prev, status: 'Pago' } : prev));
+      }
+      clearCart();
+      if (removerTodosBeneficios) {
+        removerTodosBeneficios();
+      } else {
+        removerCupom();
+      }
+      try {
+        localStorage.removeItem('minha_conta_pedidos');
+        localStorage.setItem('salv_sync_trigger', String(Date.now()));
+      } catch {}
+      window.dispatchEvent(new Event('salv-pedidos-atualizados'));
+    } catch (err) {
+      abrirModalAviso({
+        titulo: 'Erro na Simulação',
+        mensagem:
+          err?.response?.data?.message ||
+          'Não foi possível simular a aprovação do pagamento agora.',
+        tipo: 'alerta',
+      });
+    } finally {
+      setSimulandoPagamentoDemo(false);
+    }
+  };
+
+  const handlePreencherCartaoTesteDemo = (modo = 'apro') => {
+    setCartaoSelecionadoId('novo');
+    setCartao({
+      numero: '4000 1234 5678 9010',
+      titular: modo === 'cont' ? 'CONT' : 'CLIENTE DEMO APRO',
+      validade: '12/30',
+      cvv: '123',
+    });
+    setCpfTitular('529.982.247-25');
   };
 
   const handleCancelarPix = async () => {
@@ -786,6 +835,10 @@ export default function CheckoutPage() {
       !pagoIntegralmenteComBeneficios &&
       metodoPagamento === 'pix' &&
       pedidoConcluido.status === 'Pendente';
+    const aguardandoBoleto =
+      !pagoIntegralmenteComBeneficios &&
+      (metodoPagamento === 'boleto' || pedidoConcluido.metodo_pagamento === 'boleto') &&
+      pedidoConcluido.status === 'Pendente';
     const emAnaliseCartao =
       !pagoIntegralmenteComBeneficios &&
       metodoPagamento === 'cartao' &&
@@ -930,6 +983,31 @@ export default function CheckoutPage() {
 
             {/* Botão para confirmar/simular o pagamento em ambiente de apresentação/testes */}
             <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed #e5e7eb' }}>
+              {isDemoMode && (
+                <button
+                  type="button"
+                  onClick={handleSimularPagamentoDemo}
+                  disabled={simulandoPagamentoDemo}
+                  style={{
+                    width: '100%',
+                    padding: '13px 18px',
+                    marginBottom: '10px',
+                    background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '13.5px',
+                    cursor: simulandoPagamentoDemo ? 'wait' : 'pointer',
+                    boxShadow: '0 6px 16px rgba(22, 163, 74, 0.25)',
+                  }}
+                >
+                  {simulandoPagamentoDemo
+                    ? 'Aprovando pagamento simulado...'
+                    : '⚡ [DEMO] Simular Pagamento Aprovado Agora'}
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleConfirmarPagamentoSimulado}
@@ -997,6 +1075,127 @@ export default function CheckoutPage() {
                   ← Voltar para a loja (pagar depois)
                 </button>
               </div>
+            </div>
+          </div>
+        ) : aguardandoBoleto ? (
+          /* ── TELA ALTERNATIVA: AGUARDANDO PAGAMENTO DE BOLETO ── */
+          <div className="checkout-success-wrap" style={{ maxWidth: '580px' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#fff8e6',
+                color: '#b45309',
+                border: '1px solid #fde68a',
+                padding: '6px 16px',
+                borderRadius: '999px',
+                fontSize: '12px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                marginBottom: '14px',
+              }}
+            >
+              🧾 Aguardando Pagamento do Boleto
+            </div>
+
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111', margin: '0 0 6px' }}>
+              Boleto Gerado com Sucesso!
+            </h2>
+            <p style={{ fontSize: '14px', color: '#666', margin: '0 0 18px' }}>
+              Pedido <strong>#{pedidoConcluido.id}</strong> · Valor total:{' '}
+              <strong style={{ color: '#111', fontSize: '16px' }}>
+                R$ {Number(pedidoConcluido.valor_total || totalFinal).toFixed(2).replace('.', ',')}
+              </strong>
+            </p>
+
+            {pedidoConcluido.pagamento_id && (
+              <div className="checkout-pix-box" style={{ marginTop: 0, textAlign: 'left', marginBottom: '16px' }}>
+                <h4 style={{ color: '#926c15', margin: '0 0 8px', fontSize: '12px', textTransform: 'uppercase' }}>
+                  Referência / Linha Digitável Simulada
+                </h4>
+                <code
+                  style={{
+                    fontSize: '12px',
+                    background: '#fff',
+                    padding: '10px 12px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    display: 'block',
+                    wordBreak: 'break-all',
+                    color: '#333',
+                  }}
+                >
+                  {pedidoConcluido.pagamento_id}
+                </code>
+              </div>
+            )}
+
+            {isDemoMode && (
+              <button
+                type="button"
+                onClick={handleSimularPagamentoDemo}
+                disabled={simulandoPagamentoDemo}
+                style={{
+                  width: '100%',
+                  padding: '13px 18px',
+                  marginBottom: '12px',
+                  background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '13.5px',
+                  cursor: simulandoPagamentoDemo ? 'wait' : 'pointer',
+                  boxShadow: '0 6px 16px rgba(22, 163, 74, 0.25)',
+                }}
+              >
+                {simulandoPagamentoDemo
+                  ? 'Aprovando pagamento simulado...'
+                  : '⚡ [DEMO] Simular Pagamento Aprovado Agora'}
+              </button>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+              <Link
+                to="/minha-conta?aba=pedidos"
+                className="checkout-submit-btn"
+                style={{
+                  background: '#1a1a1a',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '14px',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  width: '100%',
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                }}
+              >
+                Acompanhar na Minha Conta
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setPedidoConcluido(null);
+                  navigate('/');
+                }}
+                style={{
+                  background: 'transparent',
+                  color: '#475569',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                ← Voltar para a loja (pagar depois)
+              </button>
             </div>
           </div>
         ) : emAnaliseCartao ? (
@@ -1083,6 +1282,28 @@ export default function CheckoutPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '24px' }}>
+              {isDemoMode && (
+                <button
+                  type="button"
+                  onClick={handleSimularPagamentoDemo}
+                  disabled={simulandoPagamentoDemo}
+                  style={{
+                    width: '100%',
+                    padding: '13px 18px',
+                    background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    cursor: simulandoPagamentoDemo ? 'wait' : 'pointer',
+                  }}
+                >
+                  {simulandoPagamentoDemo
+                    ? 'Aprovando pagamento simulado...'
+                    : '⚡ [DEMO] Simular Pagamento Aprovado Agora'}
+                </button>
+              )}
               <Link
                 to="/minha-conta?aba=pedidos"
                 className="checkout-submit-btn"
@@ -1791,6 +2012,61 @@ export default function CheckoutPage() {
                                   <span>+ Usar outro cartão</span>
                                 </div>
                               </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {isDemoMode && (
+                          <div
+                            style={{
+                              background: '#f0fdf4',
+                              border: '1px solid #bbf7d0',
+                              borderRadius: '8px',
+                              padding: '10px 12px',
+                              marginBottom: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '8px',
+                            }}
+                          >
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
+                              🧪 Ambiente Demo: preencha um cartão de teste com 1 clique
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => handlePreencherCartaoTesteDemo('apro')}
+                                style={{
+                                  background: '#16a34a',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '6px 11px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                ⚡ Preencher Cartão de Teste (Aprovado)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handlePreencherCartaoTesteDemo('cont')}
+                                style={{
+                                  background: '#fff',
+                                  color: '#1e40af',
+                                  border: '1px solid #93c5fd',
+                                  borderRadius: '6px',
+                                  padding: '6px 10px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Testar Em Análise
+                              </button>
                             </div>
                           </div>
                         )}

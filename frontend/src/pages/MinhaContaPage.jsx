@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { useDemo } from '../contexts/DemoContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import MainLayout from '../layouts/MainLayout';
 import api from '../services/api';
+import { simularPagamentoPedidoDemo } from '../services/demoService';
 import IconPix from '../components/IconPix';
 import CardBrandIcon, { detectarBandeira } from '../components/CardBrandIcon';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -571,6 +573,7 @@ function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irP
 
 /* ───────────────────────── Pedidos ───────────────────────── */
 function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, carregando }) {
+  const { isDemoMode } = useDemo();
   const pendenteMaisRecente = pedidos.find((p) => p.status === 'Pendente');
   const pendentePixMaisRecente = pedidos.find((p) => p.status === 'Pendente' && !(p.metodo_pagamento || '').includes('cartao'));
   const [aberto, setAberto] = useState(
@@ -579,6 +582,7 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
   const [pixAbertoId, setPixAbertoId] = useState(pendentePixMaisRecente ? pendentePixMaisRecente.id : null);
   const [copiadoId, setCopiadoId] = useState(null);
   const [confirmandoId, setConfirmandoId] = useState(null);
+  const [simulandoDemoId, setSimulandoDemoId] = useState(null);
   const [agoraMs, setAgoraMs] = useState(() => Date.now());
   const [pedidoParaCancelar, setPedidoParaCancelar] = useState(null);
   const [cancelando, setCancelando] = useState(false);
@@ -908,6 +912,33 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
     }
   };
 
+  const handleSimularPagamentoDemo = async (pedidoId) => {
+    setSimulandoDemoId(pedidoId);
+    try {
+      await simularPagamentoPedidoDemo(pedidoId);
+      setMsgCancelamento({
+        tipo: 'ok',
+        texto: `⚡ [DEMO] Pagamento do Pedido #${pedidoId} aprovado com sucesso!`,
+        pedidoId,
+      });
+      window.dispatchEvent(new Event('salv-pedidos-atualizados'));
+      try {
+        localStorage.setItem('salv_sync_trigger', String(Date.now()));
+      } catch {}
+      if (recarregar) recarregar();
+    } catch (err) {
+      setMsgCancelamento({
+        tipo: 'erro',
+        texto:
+          err.response?.data?.message ||
+          'Não foi possível simular a aprovação do pagamento no momento.',
+        pedidoId,
+      });
+    } finally {
+      setSimulandoDemoId(null);
+    }
+  };
+
   const confirmarCancelamento = async () => {
     if (!pedidoParaCancelar) return;
     setCancelando(true);
@@ -1168,6 +1199,30 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {isDemoMode && (
+                          <button
+                            type="button"
+                            disabled={simulandoDemoId === p.id}
+                            onClick={() => handleSimularPagamentoDemo(p.id)}
+                            style={{
+                              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '9px 14px',
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              cursor: simulandoDemoId === p.id ? 'wait' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            {simulandoDemoId === p.id
+                              ? 'Simulando aprovação...'
+                              : '⚡ [DEMO] Simular Pagamento Aprovado Agora'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setPixAbertoId(pixAbertoId === p.id ? null : p.id)}
@@ -1329,7 +1384,28 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                           A transação no seu cartão de crédito está passando pela conferência de segurança da operadora. Esse processo costuma levar alguns minutos. Assim que a cobrança for confirmada pelo banco, o status mudará automaticamente para <strong>Pago</strong> e você receberá uma notificação por e-mail. Não é necessário realizar nenhuma ação ou pagamento adicional.
                         </span>
                       </div>
-                      <div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {isDemoMode && (
+                          <button
+                            type="button"
+                            disabled={simulandoDemoId === p.id}
+                            onClick={() => handleSimularPagamentoDemo(p.id)}
+                            style={{
+                              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '9px 14px',
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              cursor: simulandoDemoId === p.id ? 'wait' : 'pointer',
+                            }}
+                          >
+                            {simulandoDemoId === p.id
+                              ? 'Simulando aprovação...'
+                              : '⚡ [DEMO] Simular Pagamento Aprovado Agora'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => abrirModalCancelamento(p)}
@@ -4367,7 +4443,7 @@ export default function MinhaContaPage() {
 
   useEffect(() => {
     let ativo = true;
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.id) {
       // 1. Atualiza primeiro o resumo leve para exibir os contadores sem concorrência de requests
       carregarResumo()
         .catch(() => {})
@@ -4383,7 +4459,7 @@ export default function MinhaContaPage() {
     return () => {
       ativo = false;
     };
-  }, [isAuthenticated, carregarResumo, carregarPedidos, carregarEnderecos, carregarCartoes]);
+  }, [isAuthenticated, user?.id, carregarResumo, carregarPedidos, carregarEnderecos, carregarCartoes]);
 
   useEffect(() => {
     const handleAtualizados = () => {

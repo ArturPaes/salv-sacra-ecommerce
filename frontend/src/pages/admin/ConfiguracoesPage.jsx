@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getConfiguracoesAdmin, updateConfiguracoesAdmin } from '../../services/configuracaoService';
 import { uploadArquivoImagem } from '../../services/uploadService';
+import { useDemo } from '../../contexts/DemoContext';
 import api from '../../services/api';
 import bannerSaoJose from '../../assets/banner-sao-jose.jpg';
 import bannerDesatadora from '../../assets/banner-desatadora.jpg';
@@ -43,6 +44,7 @@ const DEFAULT_CARROSSEL_SLIDES = [
 const FALLBACK_BANNER_IMGS = [bannerSaoJose, bannerDesatadora, bannerPorVoce];
 
 export default function ConfiguracoesPage() {
+  const { isDemoMode } = useDemo();
   const [form, setForm] = useState({
     // Loja
     nome_loja: '',
@@ -214,6 +216,28 @@ export default function ConfiguracoesPage() {
           {salvando ? 'Salvando...' : 'Salvar Alterações'}
         </button>
       </div>
+
+      {isDemoMode && (
+        <div
+          style={{
+            background: '#eff6ff',
+            border: '1.5px solid #bfdbfe',
+            borderRadius: '10px',
+            padding: '14px 18px',
+            marginBottom: '22px',
+            color: '#1e3a8a',
+            fontSize: '13.5px',
+            lineHeight: 1.55,
+          }}
+        >
+          <strong style={{ display: 'block', marginBottom: '3px' }}>
+            🛡️ Modo Demo Ativo — Dados e Credenciais Protegidas
+          </strong>
+          Os tokens de API (Mercado Pago, Melhor Envio) e informações de remetente exibidos nesta
+          sessão são valores fictícios exclusivos de sandbox. As credenciais reais e tokens de
+          produção da Salv Sacra permanecem 100% ocultos e protegidos no servidor oficial.
+        </div>
+      )}
 
       {feedback.texto && (
         <div style={{

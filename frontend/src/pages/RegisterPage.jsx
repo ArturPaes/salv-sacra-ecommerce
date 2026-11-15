@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import MainLayout from '../layouts/MainLayout';
 import '../styles/auth.css';
 
@@ -29,7 +30,8 @@ const BREADCRUMBS = [
 ];
 
 export default function RegisterPage() {
-  const { signUp } = useAuth();
+  const { signUp, setSession } = useAuth();
+  const { isDemoMode, atualizarStatusDemo } = useDemo();
   const navigate   = useNavigate();
   const [searchParams] = useSearchParams();
   const location   = useLocation();
@@ -65,14 +67,37 @@ export default function RegisterPage() {
     e.preventDefault();
     setErrors({});
 
-    if (!token) {
+    if (!token && !isDemoMode) {
       setErrors({ recaptcha: ['Por favor, confirme que você não é um robô.'] });
       return;
     }
 
     setLoading(true);
     try {
-      await signUp({ ...form, recaptcha: token });
+      const data = await signUp({
+        ...form,
+        recaptcha: token || (isDemoMode ? 'demo-bypass' : ''),
+      });
+
+      if (data?.demo_auto_verified && data?.token && data?.user) {
+        try {
+          localStorage.removeItem('minha_conta_resumo');
+          localStorage.removeItem('minha_conta_pedidos');
+        } catch {}
+        setSession(data.token, data.user);
+        if (atualizarStatusDemo) {
+          await atualizarStatusDemo();
+        }
+        sessionStorage.removeItem('salv_redirect_after_auth');
+        const destino = redirectTarget
+          ? redirectTarget.startsWith('/')
+            ? redirectTarget
+            : `/${redirectTarget}`
+          : '/';
+        navigate(destino, { replace: true });
+        return;
+      }
+
       setRegisteredEmail(form.email);
     } catch (err) {
       captchaRef.current?.reset();
@@ -236,22 +261,48 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* reCAPTCHA */}
-              <div className="auth-captcha">
-                <ReCAPTCHA
-                  ref={captchaRef}
-                  sitekey={SITE_KEY}
-                  onChange={setToken}
-                  onExpired={() => setToken(null)}
-                />
-              </div>
-              {errors.recaptcha && (
-                <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                  <span className="auth-field-error">{errors.recaptcha[0]}</span>
+              {/* reCAPTCHA ou Aviso Demo */}
+              {isDemoMode ? (
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    color: '#166534',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    lineHeight: 1.45,
+                    marginBottom: '16px',
+                  }}
+                >
+                  🧪 <strong>Modo Demo:</strong> validação automática ativada — sua conta será
+                  criada, verificada e autenticada instantaneamente na sua sessão isolada (sem
+                  precisar confirmar e-mail).
                 </div>
+              ) : (
+                <>
+                  <div className="auth-captcha">
+                    <ReCAPTCHA
+                      ref={captchaRef}
+                      sitekey={SITE_KEY}
+                      onChange={setToken}
+                      onExpired={() => setToken(null)}
+                    />
+                  </div>
+                  {errors.recaptcha && (
+                    <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                      <span className="auth-field-error">{errors.recaptcha[0]}</span>
+                    </div>
+                  )}
+                </>
               )}
 
-              <button type="submit" className="auth-btn" disabled={loading || !token}>
+              <button
+                type="submit"
+                className="auth-btn"
+                disabled={loading || (!token && !isDemoMode)}
+              >
                 {loading ? 'Criando conta...' : 'Criar conta'}
               </button>
             </form>

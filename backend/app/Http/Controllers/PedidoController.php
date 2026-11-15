@@ -7,6 +7,7 @@ use App\Models\Cupom;
 use App\Models\ItemPedido;
 use App\Models\Pedido;
 use App\Models\Variacao;
+use App\Services\DemoSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -105,11 +106,86 @@ class PedidoController extends Controller
     }
 
     /**
+     * Gera um QR Code SVG vetorial determinístico em Base64 para visualização offline/Demo do PIX.
+     */
+    private function gerarQrCodeSvgBase64(string $payload): string
+    {
+        $size = 21;
+        $hash = hash('sha256', $payload, true) . hash('sha256', strrev($payload), true);
+        $rects = [];
+
+        $inFinder = static function (int $r, int $c) use ($size): ?bool {
+            $origins = [[0, 0], [0, $size - 7], [$size - 7, 0]];
+            foreach ($origins as [$or, $oc]) {
+                $dr = $r - $or;
+                $dc = $c - $oc;
+                if ($dr >= 0 && $dr < 7 && $dc >= 0 && $dc < 7) {
+                    if ($dr === 0 || $dr === 6 || $dc === 0 || $dc === 6) {
+                        return true;
+                    }
+                    if ($dr >= 2 && $dr <= 4 && $dc >= 2 && $dc <= 4) {
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            return null;
+        };
+
+        $bitIndex = 0;
+        for ($r = 0; $r < $size; $r++) {
+            for ($c = 0; $c < $size; $c++) {
+                $finder = $inFinder($r, $c);
+                $on = $finder ?? (((ord($hash[(int) floor($bitIndex / 8) % strlen($hash)]) >> ($bitIndex % 8)) & 1) === 1);
+                if ($finder === null) {
+                    $bitIndex++;
+                }
+                if ($on) {
+                    $rects[] = '<rect x="' . ($c + 2) . '" y="' . ($r + 2) . '" width="1" height="1" fill="#111111"/>';
+                }
+            }
+        }
+
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" shape-rendering="crispEdges">'
+            . '<rect width="25" height="25" fill="#ffffff"/>'
+            . implode('', $rects)
+            . '</svg>';
+
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+    }
+
+    /**
+     * Gera pagamento Boleto simulado no Ambiente Demo (sem chamada externa).
+     */
+    private function processarPagamentoBoletoDemo(Pedido $pedido): void
+    {
+        $centavos = str_pad((string) (int) round(max(0.0, (float) $pedido->valor_total) * 100), 10, '0', STR_PAD_LEFT);
+        $linhaDigitavel = "23793.38128 60000.000003 00000.000400 1 9999{$centavos}";
+
+        $pedido->update([
+            'status'           => 'Pendente',
+            'pagamento_id'     => 'DEMO-BOLETO-' . strtoupper(Str::random(10)),
+            'pix_copia_e_cola' => $linhaDigitavel,
+        ]);
+    }
+
+    /**
      * Integra com a API oficial do Mercado Pago (/v1/payments) para criar cobrança PIX.
      * Caso não haja token configurado ou a API retorne erro, gera o BRCode EMV padrão como fallback.
      */
     private function processarPagamentoPix(Pedido $pedido, $user): void
     {
+        if (DemoSandboxService::isDemo()) {
+            $brCode = $this->gerarPixBrCode($pedido);
+            $pedido->update([
+                'status'             => 'Pendente',
+                'pagamento_id'       => 'DEMO-PIX-' . strtoupper(Str::random(10)),
+                'pix_copia_e_cola'   => $brCode,
+                'pix_qr_code_base64' => $this->gerarQrCodeSvgBase64($brCode),
+            ]);
+            return;
+        }
+
         $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
             ?: env('MERCADOPAGO_ACCESS_TOKEN');
 
@@ -246,11 +322,18 @@ class PedidoController extends Controller
      */
     private function processarPagamentoCartao(Pedido $pedido, array $dadosCartao, $user): array
     {
-        $modo = Configuracao::where('chave', 'cartao_gateway_modo')->value('valor') ?: 'mercadopago';
-        $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-            ?: env('MERCADOPAGO_ACCESS_TOKEN');
-        $mpPublicKey = Configuracao::where('chave', 'mercadopago_public_key')->value('valor')
-            ?: env('MERCADOPAGO_PUBLIC_KEY');
+        $isDemo = DemoSandboxService::isDemo();
+        $modo = $isDemo
+            ? 'simulacao'
+            : (Configuracao::where('chave', 'cartao_gateway_modo')->value('valor') ?: 'mercadopago');
+        $mpToken = $isDemo
+            ? null
+            : (Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
+                ?: env('MERCADOPAGO_ACCESS_TOKEN'));
+        $mpPublicKey = $isDemo
+            ? null
+            : (Configuracao::where('chave', 'mercadopago_public_key')->value('valor')
+                ?: env('MERCADOPAGO_PUBLIC_KEY'));
 
         $numeroLimpo = preg_replace('/\D/', '', $dadosCartao['numero'] ?? '');
         $cvvLimpo = preg_replace('/\D/', '', $dadosCartao['cvv'] ?? '');
@@ -504,9 +587,10 @@ class PedidoController extends Controller
         }
 
         // Cenário Pendente / Em Análise (CONT)
+        $prefixoSimul = $isDemo ? 'DEMO-CARD-' : 'CARD-SIMUL-';
         if (str_contains($titularUpper, 'CONT')) {
             $pedido->update([
-                'pagamento_id' => 'CARD-SIMUL-' . strtoupper(Str::random(10)),
+                'pagamento_id' => $prefixoSimul . strtoupper(Str::random(10)),
                 'status'       => 'Pendente',
             ]);
             return [
@@ -517,7 +601,7 @@ class PedidoController extends Controller
 
         // Cenário Aprovado (APRO ou qualquer titular normal)
         $pedido->update([
-            'pagamento_id' => 'CARD-SIMUL-' . strtoupper(Str::random(10)),
+            'pagamento_id' => $prefixoSimul . strtoupper(Str::random(10)),
             'status'       => 'Pago',
         ]);
 
@@ -734,10 +818,13 @@ class PedidoController extends Controller
         // Sincroniza notificações de estoque baixo para o admin caso algum item tenha ficado crítico (<= 3)
         \App\Services\NotificacaoService::sincronizarEstoqueBaixo();
 
-        // Se o pagamento envolver saldo em dinheiro, gera cobrança via gateway (PIX ou Cartão)
+        // Se o pagamento envolver saldo em dinheiro, gera cobrança via gateway (PIX, Boleto ou Cartão)
         if ((float) $pedido->valor_pago_dinheiro > 0) {
             if ($pedido->metodo_pagamento === 'pix') {
                 $this->processarPagamentoPix($pedido, $request->user());
+                $pedido->refresh();
+            } elseif ($pedido->metodo_pagamento === 'boleto' && DemoSandboxService::isDemo()) {
+                $this->processarPagamentoBoletoDemo($pedido);
                 $pedido->refresh();
             } elseif (in_array($pedido->metodo_pagamento, ['cartao', 'cartao_credito', 'cartao_debito'], true)) {
                 $dadosCartao = $request->input('cartao_dados', []);
@@ -777,6 +864,11 @@ class PedidoController extends Controller
                             }
                         }
                     }
+                } elseif (DemoSandboxService::isDemo() && empty($pedido->pagamento_id)) {
+                    $pedido->update([
+                        'pagamento_id' => 'DEMO-CARD-' . strtoupper(Str::random(10)),
+                        'status'       => 'Pago',
+                    ]);
                 }
                 $pedido->refresh();
             }
@@ -867,7 +959,9 @@ class PedidoController extends Controller
     private function cancelarPagamentoMercadoPago(Pedido $pedido): void
     {
         if (
-            empty($pedido->pagamento_id)
+            DemoSandboxService::isDemo()
+            || empty($pedido->pagamento_id)
+            || str_starts_with((string) $pedido->pagamento_id, 'DEMO-')
             || str_starts_with((string) $pedido->pagamento_id, 'SIM-')
             || str_starts_with((string) $pedido->pagamento_id, 'CARD-SIMUL-')
             || str_starts_with((string) $pedido->pagamento_id, 'VALE-')
@@ -920,7 +1014,13 @@ class PedidoController extends Controller
         foreach ($expirados as $pedido) {
             try {
                 // Se tiver cobrança real no Mercado Pago, verifica antes se não foi paga nos últimos instantes
-                if (! empty($pedido->pagamento_id) && ! str_starts_with((string) $pedido->pagamento_id, 'SIM-')) {
+                if (
+                    ! DemoSandboxService::isDemo()
+                    && ! empty($pedido->pagamento_id)
+                    && ! str_starts_with((string) $pedido->pagamento_id, 'DEMO-')
+                    && ! str_starts_with((string) $pedido->pagamento_id, 'SIM-')
+                    && ! str_starts_with((string) $pedido->pagamento_id, 'CARD-SIMUL-')
+                ) {
                     $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
                         ?: env('MERCADOPAGO_ACCESS_TOKEN');
                     if (! empty($mpToken)) {
@@ -970,7 +1070,13 @@ class PedidoController extends Controller
         abort_unless($user->papel === 'admin' || $pedido->user_id === $user->id, 403, 'Acesso negado.');
 
         // Sincroniza com o Mercado Pago caso haja pagamento_id real
-        if (! empty($pedido->pagamento_id) && ! str_starts_with((string) $pedido->pagamento_id, 'SIM-')) {
+        if (
+            ! DemoSandboxService::isDemo()
+            && ! empty($pedido->pagamento_id)
+            && ! str_starts_with((string) $pedido->pagamento_id, 'DEMO-')
+            && ! str_starts_with((string) $pedido->pagamento_id, 'SIM-')
+            && ! str_starts_with((string) $pedido->pagamento_id, 'CARD-SIMUL-')
+        ) {
             $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
                 ?: env('MERCADOPAGO_ACCESS_TOKEN');
 
@@ -1212,8 +1318,13 @@ class PedidoController extends Controller
             ];
         }
 
-        // Em modo simulado (prefixo SIM- ou CARD-SIMUL-), confirma estorno simulado
-        if (str_starts_with((string) $pedido->pagamento_id, 'SIM-') || str_starts_with((string) $pedido->pagamento_id, 'CARD-SIMUL-')) {
+        // Em modo Demo ou simulado (prefixo DEMO-, SIM- ou CARD-SIMUL-), confirma estorno simulado
+        if (
+            DemoSandboxService::isDemo()
+            || str_starts_with((string) $pedido->pagamento_id, 'DEMO-')
+            || str_starts_with((string) $pedido->pagamento_id, 'SIM-')
+            || str_starts_with((string) $pedido->pagamento_id, 'CARD-SIMUL-')
+        ) {
             return [
                 'sucesso'  => true,
                 'mensagem' => 'Estorno processado automaticamente (modo simulação).',

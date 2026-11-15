@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
+use App\Services\DemoSandboxService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,61 @@ class FreteController extends Controller
 
         $subtotal   = (float) ($request->input('subtotal', 79.90));
         $quantidade = (int) ($request->input('quantidade', 1));
+
+        if (DemoSandboxService::isDemo()) {
+            $dadosCep = $this->deduzirUfPorFaixaCep($cepDestino);
+            $uf = strtoupper($dadosCep['uf'] ?? 'SC');
+            $cidade = (int) substr($cepDestino, 0, 3) === 887 ? 'Tubarão' : "{$uf} (Simulação Demo)";
+
+            $freteGratisMinimo = (float) (Configuracao::where('chave', 'frete_gratis_minimo')->value('valor') ?: 0);
+            $temFreteGratis = $freteGratisMinimo > 0 && $subtotal >= $freteGratisMinimo;
+
+            $adicionalPeso = max(0, ($quantidade - 1) * 2.40);
+            $tabela = $this->obterTarifaPorDestino($cepDestino, $uf, $cidade);
+
+            $opcoes = [
+                [
+                    'id'             => 'pac',
+                    'nome'           => 'Correios PAC',
+                    'transportadora' => 'Correios',
+                    'dias_uteis'     => $tabela['pac_dias'],
+                    'prazo'          => $this->formatarPrevisaoEntrega($tabela['pac_dias']),
+                    'prazo_curto'    => "{$tabela['pac_dias']} dias úteis",
+                    'preco'          => round($tabela['pac_base'] + ($adicionalPeso * 0.8), 2),
+                ],
+                [
+                    'id'             => 'sedex',
+                    'nome'           => 'Correios SEDEX',
+                    'transportadora' => 'Correios',
+                    'dias_uteis'     => $tabela['sedex_dias'],
+                    'prazo'          => $this->formatarPrevisaoEntrega($tabela['sedex_dias']),
+                    'prazo_curto'    => "{$tabela['sedex_dias']} dias úteis",
+                    'preco'          => round($tabela['sedex_base'] + ($adicionalPeso * 1.2), 2),
+                ],
+                [
+                    'id'             => 'jadlog',
+                    'nome'           => 'Jadlog Express',
+                    'transportadora' => 'Jadlog',
+                    'dias_uteis'     => $tabela['jadlog_dias'],
+                    'prazo'          => $this->formatarPrevisaoEntrega($tabela['jadlog_dias']),
+                    'prazo_curto'    => "{$tabela['jadlog_dias']} dias úteis",
+                    'preco'          => round($tabela['jadlog_base'] + ($adicionalPeso * 0.9), 2),
+                ],
+            ];
+
+            $opcoes = $this->aplicarRegraFreteGratis($opcoes, $temFreteGratis);
+
+            return response()->json([
+                'cep'          => $cepDestino,
+                'cidade'       => $cidade,
+                'uf'           => $uf,
+                'logradouro'   => 'Endereço simulado no Ambiente Demo',
+                'bairro'       => 'Centro',
+                'frete_gratis' => $temFreteGratis,
+                'fonte'        => 'demo_sandbox',
+                'opcoes'       => $opcoes,
+            ]);
+        }
 
         // 1. Consulta o CEP no ViaCEP para validar existência e identificar Cidade/UF real
         $dadosCep = null;

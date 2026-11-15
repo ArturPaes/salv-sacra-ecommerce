@@ -70,6 +70,31 @@ class RastreioService
         }
 
         $linkCorreios = self::obterLinkCorreios($codigoRastreio ?: $identificador);
+
+        if (DemoSandboxService::isDemo() || str_starts_with($idMelhorEnvio, 'DEMO-')) {
+            $eventosPorStatus = [
+                'Pago'         => 'Pagamento aprovado — aguardando postagem simulada.',
+                'Em separação' => 'Objeto em preparação e embalagem no ateliê (Simulação Demo).',
+                'Enviado'      => 'Objeto postado nos Correios — em triagem (Simulação Demo).',
+                'Em transporte'=> 'Objeto em trânsito para a cidade de destino (Simulação Demo).',
+                'Entregue'     => 'Objeto entregue ao destinatário (Simulação Demo).',
+                'Cancelado'    => 'Envio cancelado na simulação Demo.',
+            ];
+
+            return [
+                'sucesso'       => true,
+                'demo_simulado' => true,
+                'codigo'        => $codigoRastreio ?: $identificador,
+                'status_pedido' => $pedido->status,
+                'link_correios' => $linkCorreios,
+                'ultimo_evento' => $eventosPorStatus[$pedido->status] ?? "Status atual: {$pedido->status} (Simulação Demo).",
+                'data_evento'   => now()->format('d/m/Y H:i'),
+                'atualizado'    => false,
+                'novo_status'   => $pedido->status,
+                'mensagem'      => 'Rastreio simulado consultado com sucesso no Ambiente Demo.',
+            ];
+        }
+
         $token = self::getToken();
         $baseUrl = self::getBaseUrl();
 

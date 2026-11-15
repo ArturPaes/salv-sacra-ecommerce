@@ -2,10 +2,25 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DevocaoController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\ProdutoController;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Rotas de Controle — Modo Demo Sandbox & Portão de Senha do Site Real
+|--------------------------------------------------------------------------
+*/
+Route::prefix('demo')->group(function () {
+    Route::post('/validar-acesso-real',                    [DemoController::class, 'validarAcessoReal']);
+    Route::post('/iniciar',                                [DemoController::class, 'iniciar']);
+    Route::get('/status',                                  [DemoController::class, 'status']);
+    Route::post('/alternar-usuario',                       [DemoController::class, 'alternarUsuario']);
+    Route::post('/resetar',                                [DemoController::class, 'resetar']);
+    Route::post('/pedidos/{pedido}/simular-pagamento',     [DemoController::class, 'simularPagamento']);
+});
 
 /*
 |--------------------------------------------------------------------------

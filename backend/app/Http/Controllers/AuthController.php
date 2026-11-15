@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\AtivarContaMail;
 use App\Mail\BoasVindasMail;
 use App\Models\User;
+use App\Services\DemoSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,11 +46,13 @@ class AuthController extends Controller
             }
         }
 
+        $isDemo = DemoSandboxService::isDemo();
+
         $validated = $request->validate([
             'name'                  => ['required', 'string', 'max:255'],
             'email'                 => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password'              => ['required', 'string', 'min:8', 'confirmed'],
-            'recaptcha'             => ['required', 'string'],
+            'recaptcha'             => [$isDemo ? 'nullable' : 'required', 'string'],
         ], [
             'name.required'         => 'Informe o seu nome completo.',
             'email.required'        => 'Informe o seu endereço de e-mail.',
@@ -61,19 +64,46 @@ class AuthController extends Controller
             'recaptcha.required'    => 'Por favor, confirme a verificação de segurança.',
         ]);
 
-        $resposta = Http::withoutVerifying()
-            ->asForm()
-            ->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret'   => env('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'),
-                'response' => $validated['recaptcha'],
-                'remoteip' => $request->ip(),
-            ]);
+        if (! $isDemo) {
+            $resposta = Http::withoutVerifying()
+                ->asForm()
+                ->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret'   => env('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'),
+                    'response' => $validated['recaptcha'],
+                    'remoteip' => $request->ip(),
+                ]);
 
-        if (! $resposta->json('success')) {
-            return response()->json(['message' => 'Falha na verificação do reCAPTCHA.'], 422);
+            if (! $resposta->json('success')) {
+                return response()->json(['message' => 'Falha na verificação do reCAPTCHA.'], 422);
+            }
         }
 
         $email = trim(strtolower($validated['email']));
+
+        if ($isDemo) {
+            $user = User::create([
+                'name'              => trim($validated['name']),
+                'email'             => $email,
+                'password'          => Hash::make($validated['password']),
+                'papel'             => 'cliente',
+                'email_verified_at' => now(),
+            ]);
+            if (is_null($user->email_verified_at)) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            DB::table('pending_registrations')->where('email', $email)->delete();
+            $sanctumToken = $user->createToken('api-token')->plainTextToken;
+
+            return response()->json([
+                'message'            => 'Conta criada e ativada automaticamente no Ambiente Demo!',
+                'email'              => $email,
+                'user'               => $user->fresh(),
+                'token'              => $sanctumToken,
+                'demo_auto_verified' => true,
+            ], 201);
+        }
+
         $token = Str::random(64);
 
         // Salva na tabela temporária até que o usuário valide o link no e-mail

@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/ProtectedRoute';
+import AccessGateModal from './components/AccessGateModal';
+import DemoToolbar from './components/DemoToolbar';
 import AdminLayout from './components/AdminLayout';
 import PublicLayout from './components/PublicLayout';
 import LoginPage from './pages/LoginPage';
@@ -123,6 +125,8 @@ function App() {
         <Route path="config"              element={<ConfiguracoesPage />} />
       </Route>
     </Routes>
+      <AccessGateModal />
+      <DemoToolbar />
     </>
   );
 }
