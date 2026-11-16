@@ -8,6 +8,7 @@ import {
   excluirClienteAdmin,
 } from '../../services/adminClienteService';
 import { criarValeCompraAdmin } from '../../services/cupomService';
+import { useDemo } from '../../contexts/DemoContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import '../../styles/admin.css';
 
@@ -31,6 +32,7 @@ const formatEnderecoResumo = (end) => {
 };
 
 export default function ClientesAdmin() {
+  const { isDemoMode } = useDemo();
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
@@ -118,6 +120,7 @@ export default function ClientesAdmin() {
       setTimeout(() => setSucesso(''), 5000);
     } catch (err) {
       setErro(err.response?.data?.message || 'Não foi possível excluir o cliente.');
+      setClienteParaExcluir(null);
     } finally {
       setExcluindo(false);
     }
@@ -519,14 +522,32 @@ export default function ClientesAdmin() {
                             🚫 Bloquear
                           </button>
                         )}
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn-sm"
-                          style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700 }}
-                          onClick={() => setClienteParaExcluir(c)}
-                        >
-                          Excluir
-                        </button>
+                        {(() => {
+                          const totalAtivos = clientes.filter((item) => !item.bloqueado).length;
+                          const bloqueadoNaDemo = isDemoMode && (clientes.length <= 1 || (!c.bloqueado && totalAtivos <= 1));
+                          return (
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn-sm"
+                              disabled={bloqueadoNaDemo}
+                              style={{
+                                background: bloqueadoNaDemo ? '#f1f5f9' : '#fee2e2',
+                                color: bloqueadoNaDemo ? '#94a3b8' : '#b91c1c',
+                                border: `1px solid ${bloqueadoNaDemo ? '#cbd5e1' : '#fecaca'}`,
+                                fontWeight: 700,
+                                cursor: bloqueadoNaDemo ? 'not-allowed' : 'pointer',
+                              }}
+                              title={
+                                bloqueadoNaDemo
+                                  ? 'No Modo Demo é necessário manter ao menos uma conta de cliente ativa disponível.'
+                                  : 'Excluir cliente'
+                              }
+                              onClick={() => !bloqueadoNaDemo && setClienteParaExcluir(c)}
+                            >
+                              Excluir
+                            </button>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>

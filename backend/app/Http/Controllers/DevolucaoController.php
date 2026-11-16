@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class DevolucaoController extends Controller
@@ -557,6 +558,38 @@ class DevolucaoController extends Controller
             'cupom_restaurado'           => $resultado['resumo_beneficios']['cupom_restaurado'] ?? false,
             'estorno'                    => $resultado['estorno'],
         ]);
+    }
+
+    /**
+     * Faz o download direto do arquivo de Declaração de Conteúdo da devolução (força attachment em qualquer origem).
+     */
+    public function baixarDeclaracao(Request $request, Devolucao $devolucao)
+    {
+        $user = $request->user();
+        abort_unless($user->papel === 'admin' || $devolucao->user_id === $user->id, 403, 'Acesso negado.');
+
+        $path = $devolucao->declaracao_conteudo_path;
+        if (empty($path) && ! empty($devolucao->declaracao_conteudo_url)) {
+            $pos = strpos($devolucao->declaracao_conteudo_url, '/storage/');
+            if ($pos !== false) {
+                $path = substr($devolucao->declaracao_conteudo_url, $pos + strlen('/storage/'));
+            }
+        }
+
+        if (empty($path) || ! Storage::disk('public')->exists($path)) {
+            return response()->json(['message' => 'Arquivo da declaração de conteúdo não encontrado.'], 404);
+        }
+
+        $nomeArquivo = $devolucao->declaracao_conteudo_nome ?: basename($path);
+        $nomeLimpo = preg_replace('/["\\\\\/\r\n]/', '_', $nomeArquivo);
+
+        return response()->download(
+            Storage::disk('public')->path($path),
+            $nomeLimpo,
+            [
+                'Content-Disposition' => 'attachment; filename="' . $nomeLimpo . '"',
+            ]
+        );
     }
 }
 

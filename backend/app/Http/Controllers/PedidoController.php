@@ -636,8 +636,9 @@ class PedidoController extends Controller
             'cupons'               => ['nullable', 'array'],
             'cupons.*'             => ['string', 'max:50'],
             'cartao_dados'         => ['nullable', 'array'],
-            'salvar_cartao'      => ['nullable', 'boolean'],
-            'itens'              => ['required', 'array', 'min:1'],
+            'salvar_dados'         => ['nullable', 'boolean'],
+            'salvar_cartao'        => ['nullable', 'boolean'],
+            'itens'                => ['required', 'array', 'min:1'],
             'itens.*.variacao_id'=> ['nullable', 'integer', 'exists:variacaos,id'],
             'itens.*.produto_id' => ['required', 'integer', 'exists:produtos,id'],
             'itens.*.quantidade' => ['required', 'integer', 'min:1'],
@@ -669,17 +670,7 @@ class PedidoController extends Controller
             ], 422);
         }
 
-        // Salva/atualiza o CPF no cadastro do cliente para futuras compras e envios
-        if (! empty($validated['cpf'])) {
-            $cpfLimpo = preg_replace('/\D/', '', $validated['cpf']);
-            if ($this->validarCpf($cpfLimpo)) {
-                try {
-                    $user->update(['cpf' => $cpfLimpo]);
-                } catch (\Throwable $e) {
-                    \Log::warning('Erro ao salvar CPF do usuário no pedido: ' . $e->getMessage());
-                }
-            }
-        }
+        // Salva dados pessoais/CPF na conta do cliente apenas se explicitamente autorizado em salvar_dados/salvar_cartao (feito após o pagamento abaixo).
 
         $pedido = DB::transaction(function () use ($validated, $userId) {
             $codigosExtras = array_merge(

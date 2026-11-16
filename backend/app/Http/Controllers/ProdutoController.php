@@ -112,6 +112,11 @@ class ProdutoController extends Controller
             });
         }
 
+        if ($request->filled('per_page')) {
+            $limit = min(500, max(1, (int) $request->input('per_page')));
+            $query->limit($limit);
+        }
+
         $produtos = $query->get();
 
         return response()->json($produtos);

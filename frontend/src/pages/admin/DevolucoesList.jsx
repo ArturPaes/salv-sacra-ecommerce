@@ -1,12 +1,16 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
+import { useDemo } from '../../contexts/DemoContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import '../../styles/admin.css';
 
-const TEXTO_PADRAO_INSTRUCOES = `Reembalar o produto (preferencialmente na embalagem original ou pacote com dimensões similares). Retirar etiqueta antiga e imprimir a declaração de conteúdo anexa e fixar na parte externa da embalagem ou entregar ao atendente da agência dos Correios. Informar o código de postagem reversa no atendimento (envio gratuito). Atenção: validade de 7 dias corridos a partir da data de emissão. Dúvidas: WhatsApp (48) 99620-5153.`;
+const obterTextoPadraoInstrucoes = (isDemoMode) =>
+  `Reembalar o produto (preferencialmente na embalagem original ou pacote com dimensões similares). Retirar etiqueta antiga e imprimir a declaração de conteúdo anexa e fixar na parte externa da embalagem ou entregar ao atendente da agência dos Correios. Informar o código de postagem reversa no atendimento (envio gratuito). Atenção: validade de 7 dias corridos a partir da data de emissão. Dúvidas: WhatsApp ${isDemoMode ? '(48) 99999-0000' : '(48) 99620-5153'}.`;
 
 export default function DevolucoesList() {
+  const { isDemoMode } = useDemo();
+  const textoPadraoInstrucoes = obterTextoPadraoInstrucoes(isDemoMode);
   const [searchParams] = useSearchParams();
   const pedidoIdParam = searchParams.get('pedido_id');
   const devolucaoIdParam = searchParams.get('devolucao_id');
@@ -25,7 +29,7 @@ export default function DevolucoesList() {
   // Form de aprovação
   const [codigoPostagem, setCodigoPostagem] = useState('');
   const [prazoPostagem, setPrazoPostagem] = useState('7 dias corridos');
-  const [instrucoesAdmin, setInstrucoesAdmin] = useState(TEXTO_PADRAO_INSTRUCOES);
+  const [instrucoesAdmin, setInstrucoesAdmin] = useState(() => obterTextoPadraoInstrucoes(isDemoMode));
   const [arquivoDeclaracao, setArquivoDeclaracao] = useState(null);
   const [salvandoAprovacao, setSalvandoAprovacao] = useState(false);
 
@@ -132,7 +136,7 @@ export default function DevolucoesList() {
     setDevolucaoSelecionada(dev);
     setCodigoPostagem(dev.codigo_postagem_reversa || '');
     setPrazoPostagem(dev.prazo_postagem || '7 dias corridos');
-    setInstrucoesAdmin(dev.instrucoes_admin || TEXTO_PADRAO_INSTRUCOES);
+    setInstrucoesAdmin(dev.instrucoes_admin || textoPadraoInstrucoes);
     setArquivoDeclaracao(null);
     setMotivoRecusa('');
     setModoRecusa(false);
@@ -916,7 +920,7 @@ export default function DevolucoesList() {
                       </label>
                       <button
                         type="button"
-                        onClick={() => setInstrucoesAdmin(TEXTO_PADRAO_INSTRUCOES)}
+                        onClick={() => setInstrucoesAdmin(textoPadraoInstrucoes)}
                         style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
                       >
                         Restaurar texto padrão
@@ -929,7 +933,8 @@ export default function DevolucoesList() {
                       style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '12px', outline: 'none', resize: 'vertical' }}
                     />
                     <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '3px' }}>
-                      💬 Inclui link direto e botão de atendimento com o WhatsApp da loja: (48) 99620-5153.
+                      💬 Inclui link direto e botão de atendimento com o WhatsApp da loja:{' '}
+                      {isDemoMode ? '(48) 99999-0000' : '(48) 99620-5153'}.
                     </span>
                   </div>
 

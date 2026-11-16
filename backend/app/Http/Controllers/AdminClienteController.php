@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cupom;
 use App\Models\Pedido;
 use App\Models\User;
+use App\Services\DemoSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -239,6 +240,28 @@ class AdminClienteController extends Controller
             return response()->json([
                 'message' => 'Não é permitido excluir uma conta de administrador.',
             ], 422);
+        }
+
+        if (DemoSandboxService::isDemo()) {
+            $baseQuery = User::where(function ($q) {
+                $q->whereNull('papel')->orWhere('papel', '!=', 'admin');
+            });
+
+            $totalClientes = (clone $baseQuery)->count();
+            if ($totalClientes <= 1) {
+                return response()->json([
+                    'message' => 'No Modo Demo não é permitido excluir a única conta de cliente disponível na sessão.',
+                ], 422);
+            }
+
+            if (!$cliente->bloqueado) {
+                $clientesAtivos = (clone $baseQuery)->where('bloqueado', false)->count();
+                if ($clientesAtivos <= 1) {
+                    return response()->json([
+                        'message' => 'No Modo Demo é necessário manter ao menos uma conta de cliente ativa disponível.',
+                    ], 422);
+                }
+            }
         }
 
         $nomeOriginal = $cliente->name;

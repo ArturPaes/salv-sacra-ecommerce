@@ -46,15 +46,6 @@ class FreteController extends Controller
 
             $opcoes = [
                 [
-                    'id'             => 'pac',
-                    'nome'           => 'Correios PAC',
-                    'transportadora' => 'Correios',
-                    'dias_uteis'     => $tabela['pac_dias'],
-                    'prazo'          => $this->formatarPrevisaoEntrega($tabela['pac_dias']),
-                    'prazo_curto'    => "{$tabela['pac_dias']} dias úteis",
-                    'preco'          => round($tabela['pac_base'] + ($adicionalPeso * 0.8), 2),
-                ],
-                [
                     'id'             => 'sedex',
                     'nome'           => 'Correios SEDEX',
                     'transportadora' => 'Correios',
@@ -62,15 +53,6 @@ class FreteController extends Controller
                     'prazo'          => $this->formatarPrevisaoEntrega($tabela['sedex_dias']),
                     'prazo_curto'    => "{$tabela['sedex_dias']} dias úteis",
                     'preco'          => round($tabela['sedex_base'] + ($adicionalPeso * 1.2), 2),
-                ],
-                [
-                    'id'             => 'jadlog',
-                    'nome'           => 'Jadlog Express',
-                    'transportadora' => 'Jadlog',
-                    'dias_uteis'     => $tabela['jadlog_dias'],
-                    'prazo'          => $this->formatarPrevisaoEntrega($tabela['jadlog_dias']),
-                    'prazo_curto'    => "{$tabela['jadlog_dias']} dias úteis",
-                    'preco'          => round($tabela['jadlog_base'] + ($adicionalPeso * 0.9), 2),
                 ],
             ];
 

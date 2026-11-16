@@ -1,6 +1,9 @@
+import { useDemo } from '../../contexts/DemoContext';
 import '../../styles/institucional.css';
 
 export default function TermosUsoPage() {
+  const { isDemoMode } = useDemo() || {};
+  const emailSuporte = isDemoMode ? 'contato@demo.salvsacra.com.br' : 'salvsacra2@gmail.com';
   return (
     <div className="inst-page">
       <div className="inst-container politica-container">
@@ -63,7 +66,7 @@ export default function TermosUsoPage() {
 
           <h3>8. Atendimento e Contato</h3>
           <p>
-            Caso você tenha dúvidas sobre estes Termos de Uso ou necessite de suporte com seu pedido, fale com nossa equipe através do e-mail <a href="mailto:salvsacra2@gmail.com">salvsacra2@gmail.com</a> ou pelo WhatsApp oficial disponibilizado em nosso rodapé.
+            Caso você tenha dúvidas sobre estes Termos de Uso ou necessite de suporte com seu pedido, fale com nossa equipe através do e-mail <a href={`mailto:${emailSuporte}`}>{emailSuporte}</a> ou pelo WhatsApp oficial disponibilizado em nosso rodapé.
           </p>
         </div>
       </div>

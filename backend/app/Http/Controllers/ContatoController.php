@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DemoSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -14,24 +15,28 @@ class ContatoController extends Controller
      */
     public function enviar(Request $request): JsonResponse
     {
+        $isDemo = DemoSandboxService::isDemo();
+
         $dados = $request->validate([
             'nome'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'email', 'max:255'],
             'telefone'  => ['nullable', 'string', 'max:30'],
             'mensagem'  => ['required', 'string', 'max:5000'],
-            'recaptcha' => ['required', 'string'],
+            'recaptcha' => [$isDemo ? 'nullable' : 'required', 'string'],
         ]);
 
-        $resposta = Http::withoutVerifying()
-            ->asForm()
-            ->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret'   => env('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'),
-                'response' => $dados['recaptcha'],
-                'remoteip' => $request->ip(),
-            ]);
+        if (! $isDemo) {
+            $resposta = Http::withoutVerifying()
+                ->asForm()
+                ->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret'   => env('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'),
+                    'response' => $dados['recaptcha'],
+                    'remoteip' => $request->ip(),
+                ]);
 
-        if (! $resposta->json('success')) {
-            return response()->json(['message' => 'Falha na verificação do reCAPTCHA.'], 422);
+            if (! $resposta->json('success')) {
+                return response()->json(['message' => 'Falha na verificação do reCAPTCHA.'], 422);
+            }
         }
 
         unset($dados['recaptcha']);

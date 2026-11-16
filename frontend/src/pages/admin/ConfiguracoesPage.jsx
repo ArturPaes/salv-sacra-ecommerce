@@ -121,6 +121,12 @@ export default function ConfiguracoesPage() {
         setForm((prev) => ({
           ...prev,
           ...data,
+          ...(isDemoMode
+            ? {
+                melhor_envio_ambiente: 'sandbox',
+                cartao_gateway_modo: 'simulacao',
+              }
+            : {}),
         }));
         if (data.carrossel_slides) {
           try {
@@ -347,7 +353,7 @@ export default function ConfiguracoesPage() {
                     name="cep_origem"
                     value={form.cep_origem || '88702-280'}
                     onChange={handleChange}
-                    placeholder="Ex: 88702-280"
+                    placeholder={isDemoMode ? 'Ex: 88701-000' : 'Ex: 88702-280'}
                     style={{ width: '100%', maxWidth: '400px', padding: '12px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
                   />
                   <span style={{ display: 'block', fontSize: '12px', color: '#888', marginTop: '6px' }}>
@@ -365,34 +371,42 @@ export default function ConfiguracoesPage() {
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>
                     Ambiente Ativo do Melhor Envio
                   </label>
-                  <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: 600 }}>
-                      <input
-                        type="radio"
-                        name="melhor_envio_ambiente"
-                        value="production"
-                        checked={form.melhor_envio_ambiente !== 'sandbox'}
-                        onChange={handleChange}
-                      />
-                      🟢 Produção Oficial (Frete Real)
-                    </label>
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {!isDemoMode && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: 600 }}>
+                        <input
+                          type="radio"
+                          name="melhor_envio_ambiente"
+                          value="production"
+                          checked={form.melhor_envio_ambiente !== 'sandbox'}
+                          onChange={handleChange}
+                        />
+                        🟢 Produção Oficial (Frete Real)
+                      </label>
+                    )}
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: 600 }}>
                       <input
                         type="radio"
                         name="melhor_envio_ambiente"
                         value="sandbox"
-                        checked={form.melhor_envio_ambiente === 'sandbox'}
+                        checked={isDemoMode || form.melhor_envio_ambiente === 'sandbox'}
                         onChange={handleChange}
                       />
                       🧪 Sandbox (Ambiente de Testes Gratuito)
                     </label>
                   </div>
                   <span style={{ display: 'block', fontSize: '12px', color: '#666', marginTop: '6px' }}>
-                    Em <strong>Produção</strong>, conecta em <code>melhorenvio.com.br</code>. Em <strong>Sandbox</strong>, conecta em <code>sandbox.melhorenvio.com.br</code> com saldo e postagens fictícias.
+                    {isDemoMode
+                      ? 'No Ambiente Demo apenas o modo Sandbox fica ativo para proteger as integrações reais.'
+                      : (
+                        <>
+                          Em <strong>Produção</strong>, conecta em <code>melhorenvio.com.br</code>. Em <strong>Sandbox</strong>, conecta em <code>sandbox.melhorenvio.com.br</code> com saldo e postagens fictícias.
+                        </>
+                      )}
                   </span>
                 </div>
 
-                {form.melhor_envio_ambiente === 'sandbox' ? (
+                {(isDemoMode || form.melhor_envio_ambiente === 'sandbox') ? (
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#b45309', marginBottom: '6px' }}>
                       Token de Sandbox (sandbox.melhorenvio.com.br)
@@ -518,11 +532,13 @@ export default function ConfiguracoesPage() {
                     </label>
                     <select
                       name="cartao_gateway_modo"
-                      value={form.cartao_gateway_modo || 'mercadopago'}
+                      value={isDemoMode ? 'simulacao' : (form.cartao_gateway_modo || 'mercadopago')}
                       onChange={handleChange}
                       style={{ width: '100%', padding: '12px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none', background: '#fff' }}
                     >
-                      <option value="mercadopago">Produção — Mercado Pago API (Cobrança real no cartão)</option>
+                      {!isDemoMode && (
+                        <option value="mercadopago">Produção — Mercado Pago API (Cobrança real no cartão)</option>
+                      )}
                       <option value="simulacao">Simulação / Sandbox (Testes e cenários Mercado Pago)</option>
                     </select>
                     <span style={{ display: 'block', fontSize: '12px', color: '#888', marginTop: '6px' }}>
@@ -853,7 +869,7 @@ export default function ConfiguracoesPage() {
                     name="contato_email"
                     value={form.contato_email}
                     onChange={handleChange}
-                    placeholder="Ex: salvsacra2@gmail.com"
+                    placeholder={isDemoMode ? 'Ex: contato@demo.salvsacra.com.br' : 'Ex: salvsacra2@gmail.com'}
                     style={{ width: '100%', padding: '12px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
                   />
                 </div>
@@ -867,7 +883,7 @@ export default function ConfiguracoesPage() {
                     name="contato_telefone"
                     value={form.contato_telefone}
                     onChange={handleChange}
-                    placeholder="Ex: (48) 99620-5153"
+                    placeholder={isDemoMode ? 'Ex: (48) 99999-0000' : 'Ex: (48) 99620-5153'}
                     style={{ width: '100%', padding: '12px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
                   />
                 </div>
@@ -883,7 +899,7 @@ export default function ConfiguracoesPage() {
                     name="contato_whatsapp"
                     value={form.contato_whatsapp}
                     onChange={handleChange}
-                    placeholder="Ex: 5548996205153"
+                    placeholder={isDemoMode ? 'Ex: 5548999990000' : 'Ex: 5548996205153'}
                     style={{ width: '100%', padding: '12px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
                   />
                   <span style={{ display: 'block', fontSize: '12px', color: '#888', marginTop: '6px' }}>
@@ -915,7 +931,7 @@ export default function ConfiguracoesPage() {
                   name="contato_endereco"
                   value={form.contato_endereco}
                   onChange={handleChange}
-                  placeholder="Ex: Rua Manoel Antunes Corrêa, 2171 - Bairro Oficinas, Tubarão - SC"
+                  placeholder={isDemoMode ? 'Ex: Tubarão/SC - Endereço Fictício de Demonstração' : 'Ex: Rua Manoel Antunes Corrêa, 2171 - Bairro Oficinas, Tubarão - SC'}
                   style={{ width: '100%', padding: '12px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
                 />
               </div>

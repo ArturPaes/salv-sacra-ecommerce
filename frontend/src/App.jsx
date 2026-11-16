@@ -1,39 +1,43 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/ProtectedRoute';
 import AccessGateModal from './components/AccessGateModal';
 import DemoToolbar from './components/DemoToolbar';
-import AdminLayout from './components/AdminLayout';
 import PublicLayout from './components/PublicLayout';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import EsqueciSenhaPage from './pages/EsqueciSenhaPage';
-import RedefinirSenhaPage from './pages/RedefinirSenhaPage';
-import VerificarEmailPage from './pages/VerificarEmailPage';
-import MinhaContaPage from './pages/MinhaContaPage';
+import LoadingSpinner from './components/LoadingSpinner';
 import Home from './pages/public/Home';
-import ProdutoDetalhe from './pages/public/ProdutoDetalhe';
-import CatalogoPage from './pages/public/CatalogoPage';
-import CheckoutPage from './pages/public/CheckoutPage';
-import ContatoPage from './pages/public/ContatoPage';
-import GuiaMedidasPage from './pages/public/GuiaMedidasPage';
-import PoliticaPrivacidadePage from './pages/public/PoliticaPrivacidadePage';
-import TermosUsoPage from './pages/public/TermosUsoPage';
-import QuemSomosPage from './pages/public/QuemSomosPage';
-import NotFoundPage from './pages/public/NotFoundPage';
-import ProdutosList from './pages/admin/ProdutosList';
-import ProdutoForm from './pages/admin/ProdutoForm';
-import PedidosList from './pages/admin/PedidosList';
-import EstoqueList from './pages/admin/EstoqueList';
-import RelatoriosPage from './pages/admin/RelatoriosPage';
-import ConfiguracoesPage from './pages/admin/ConfiguracoesPage';
-import CategoriasDevocoesPage from './pages/admin/CategoriasDevocoesPage';
-import AvaliacoesAdminPage from './pages/admin/AvaliacoesAdminPage';
-import DevolucoesList from './pages/admin/DevolucoesList';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import ClientesAdmin from './pages/admin/ClientesAdmin';
 import './App.css';
+
+// Carregamento sob demanda (Code Splitting) para acelerar a abertura inicial da loja
+const AdminLayout = lazy(() => import('./components/AdminLayout'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const EsqueciSenhaPage = lazy(() => import('./pages/EsqueciSenhaPage'));
+const RedefinirSenhaPage = lazy(() => import('./pages/RedefinirSenhaPage'));
+const VerificarEmailPage = lazy(() => import('./pages/VerificarEmailPage'));
+const MinhaContaPage = lazy(() => import('./pages/MinhaContaPage'));
+const ProdutoDetalhe = lazy(() => import('./pages/public/ProdutoDetalhe'));
+const CatalogoPage = lazy(() => import('./pages/public/CatalogoPage'));
+const CheckoutPage = lazy(() => import('./pages/public/CheckoutPage'));
+const ContatoPage = lazy(() => import('./pages/public/ContatoPage'));
+const GuiaMedidasPage = lazy(() => import('./pages/public/GuiaMedidasPage'));
+const PoliticaPrivacidadePage = lazy(() => import('./pages/public/PoliticaPrivacidadePage'));
+const TermosUsoPage = lazy(() => import('./pages/public/TermosUsoPage'));
+const QuemSomosPage = lazy(() => import('./pages/public/QuemSomosPage'));
+const NotFoundPage = lazy(() => import('./pages/public/NotFoundPage'));
+const ProdutosList = lazy(() => import('./pages/admin/ProdutosList'));
+const ProdutoForm = lazy(() => import('./pages/admin/ProdutoForm'));
+const PedidosList = lazy(() => import('./pages/admin/PedidosList'));
+const EstoqueList = lazy(() => import('./pages/admin/EstoqueList'));
+const RelatoriosPage = lazy(() => import('./pages/admin/RelatoriosPage'));
+const ConfiguracoesPage = lazy(() => import('./pages/admin/ConfiguracoesPage'));
+const CategoriasDevocoesPage = lazy(() => import('./pages/admin/CategoriasDevocoesPage'));
+const AvaliacoesAdminPage = lazy(() => import('./pages/admin/AvaliacoesAdminPage'));
+const DevolucoesList = lazy(() => import('./pages/admin/DevolucoesList'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const ClientesAdmin = lazy(() => import('./pages/admin/ClientesAdmin'));
 
 /**
  * Redireciona a rota `/admin` para o destino correto:
@@ -54,6 +58,7 @@ function App() {
   return (
     <>
       <ScrollToTop />
+      <Suspense fallback={<LoadingSpinner size="lg" text="Carregando página..." />}>
       <Routes>
       {/* ── Vitrine Pública ── */}
       <Route element={<PublicLayout />}>
@@ -125,6 +130,7 @@ function App() {
         <Route path="config"              element={<ConfiguracoesPage />} />
       </Route>
     </Routes>
+      </Suspense>
       <AccessGateModal />
       <DemoToolbar />
     </>

@@ -25,13 +25,17 @@ const DemoContext = createContext(null);
 
 const lerModoInicial = () => {
   try {
-    const modo = localStorage.getItem(ACCESS_MODE_KEY);
+    // Limpa eventuais resquícios antigos de localStorage para que novas abas/janelas abram o Portão
+    localStorage.removeItem(ACCESS_MODE_KEY);
+    localStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
+
+    const modo = sessionStorage.getItem(ACCESS_MODE_KEY);
     if (modo === 'demo') {
       const sid = localStorage.getItem(DEMO_SESSION_KEY);
       return sid ? 'demo' : null;
     }
     if (modo === 'real') {
-      const realToken = localStorage.getItem(REAL_ACCESS_TOKEN_KEY);
+      const realToken = sessionStorage.getItem(REAL_ACCESS_TOKEN_KEY);
       return realToken ? 'real' : null;
     }
   } catch {}
@@ -120,10 +124,12 @@ export function DemoProvider({ children }) {
   useEffect(() => {
     const handleStoreAccessRequired = (e) => {
       try {
-        localStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
-        if (localStorage.getItem(ACCESS_MODE_KEY) === 'real') {
-          localStorage.removeItem(ACCESS_MODE_KEY);
+        sessionStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
+        if (sessionStorage.getItem(ACCESS_MODE_KEY) === 'real') {
+          sessionStorage.removeItem(ACCESS_MODE_KEY);
         }
+        localStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
+        localStorage.removeItem(ACCESS_MODE_KEY);
       } catch {}
 
       setAccessMode((prev) => (prev === 'real' ? null : prev));
@@ -140,7 +146,7 @@ export function DemoProvider({ children }) {
       setLoadingAction(true);
       setGateError('');
       try {
-        const modoAnterior = localStorage.getItem(ACCESS_MODE_KEY);
+        const modoAnterior = sessionStorage.getItem(ACCESS_MODE_KEY);
         const tokenAtual = localStorage.getItem('sanctum_token');
         if (modoAnterior !== 'demo' && tokenAtual) {
           try {
@@ -159,7 +165,7 @@ export function DemoProvider({ children }) {
           localStorage.setItem(DEMO_SESSION_KEY, nextSessionId);
           setDemoSessionId(nextSessionId);
         }
-        localStorage.setItem(ACCESS_MODE_KEY, 'demo');
+        sessionStorage.setItem(ACCESS_MODE_KEY, 'demo');
         setAccessMode('demo');
 
         if (reset) {
@@ -167,6 +173,17 @@ export function DemoProvider({ children }) {
           if (removerTodosBeneficios) removerTodosBeneficios();
           try {
             localStorage.removeItem('@SalvSacra:checkout_dados');
+          } catch {}
+        } else {
+          // Impede vazamento de dados salvos na Loja Real (ou sem escopo de sessão) para dentro do Modo Demo
+          try {
+            const rawCheckout = localStorage.getItem('@SalvSacra:checkout_dados');
+            if (rawCheckout) {
+              const parsed = JSON.parse(rawCheckout);
+              if (parsed?.mode !== 'demo' || (nextSessionId && parsed?.demoSessionId !== nextSessionId)) {
+                localStorage.removeItem('@SalvSacra:checkout_dados');
+              }
+            }
           } catch {}
         }
 
@@ -204,9 +221,9 @@ export function DemoProvider({ children }) {
           throw new Error('Token de acesso oficial não retornado.');
         }
 
-        const modoAnterior = localStorage.getItem(ACCESS_MODE_KEY);
-        localStorage.setItem(REAL_ACCESS_TOKEN_KEY, storeToken);
-        localStorage.setItem(ACCESS_MODE_KEY, 'real');
+        const modoAnterior = sessionStorage.getItem(ACCESS_MODE_KEY);
+        sessionStorage.setItem(REAL_ACCESS_TOKEN_KEY, storeToken);
+        sessionStorage.setItem(ACCESS_MODE_KEY, 'real');
         setAccessMode('real');
 
         // Ao sair do Modo Demo para a Loja Oficial, limpa o carrinho/caches da Demo
@@ -310,7 +327,7 @@ export function DemoProvider({ children }) {
       setIsGateOpen(false);
       return;
     }
-    if (accessMode === 'real' && localStorage.getItem(REAL_ACCESS_TOKEN_KEY)) {
+    if (accessMode === 'real' && sessionStorage.getItem(REAL_ACCESS_TOKEN_KEY)) {
       setIsGateOpen(false);
     }
   }, [accessMode, demoSessionId]);

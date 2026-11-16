@@ -1,6 +1,9 @@
+import { useDemo } from '../../contexts/DemoContext';
 import '../../styles/institucional.css';
 
 export default function QuemSomosPage() {
+  const { isDemoMode } = useDemo() || {};
+  const emailSuporte = isDemoMode ? 'contato@demo.salvsacra.com.br' : 'salvsacra2@gmail.com';
   return (
     <div className="inst-page">
       <div className="inst-container politica-container">
@@ -38,7 +41,7 @@ export default function QuemSomosPage() {
 
           <h3>Faça Parte da Nossa Comunidade</h3>
           <p>
-            Convidamos você a vestir sua fé com orgulho e a se conectar conosco através das nossas redes sociais. Se quiser entrar em contato, tirar dúvidas ou enviar sugestões, escreva para <a href="mailto:salvsacra2@gmail.com">salvsacra2@gmail.com</a>.
+            Convidamos você a vestir sua fé com orgulho e a se conectar conosco através das nossas redes sociais. Se quiser entrar em contato, tirar dúvidas ou enviar sugestões, escreva para <a href={`mailto:${emailSuporte}`}>{emailSuporte}</a>.
           </p>
         </div>
       </div>

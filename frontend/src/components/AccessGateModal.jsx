@@ -21,15 +21,30 @@ export default function AccessGateModal() {
   const [mostrarFormReal, setMostrarFormReal] = useState(false);
   const [senhaReal, setSenhaReal] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [erroLocal, setErroLocal] = useState('');
+  const [erroDemo, setErroDemo] = useState('');
+  const [erroReal, setErroReal] = useState('');
+  const [loadingTarget, setLoadingTarget] = useState(null); // 'demo' | 'real' | null
   const [confirmandoResetInicio, setConfirmandoResetInicio] = useState(false);
+  const [hoverBtn, setHoverBtn] = useState(null);
 
   const visivel = isGateOpen || !accessMode;
 
   useEffect(() => {
     if (!visivel) return;
-    setErroLocal('');
+    setErroDemo('');
+    setErroReal('');
+    setLoadingTarget(null);
     setConfirmandoResetInicio(false);
+
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
   }, [visivel]);
 
   if (!visivel) return null;
@@ -37,7 +52,9 @@ export default function AccessGateModal() {
   const podeFechar = Boolean(accessMode);
 
   const handleEntrarDemo = async (reset = false) => {
-    setErroLocal('');
+    setErroDemo('');
+    setErroReal('');
+    setLoadingTarget('demo');
     try {
       await entrarModoDemo({ reset });
       if (
@@ -49,21 +66,25 @@ export default function AccessGateModal() {
         navigate('/', { replace: true });
       }
     } catch (err) {
-      setErroLocal(
+      setErroDemo(
         err?.response?.data?.message ||
           'Não foi possível iniciar o Modo Demo. Verifique se o backend está em execução.',
       );
+    } finally {
+      setLoadingTarget(null);
     }
   };
 
   const handleEntrarReal = async (e) => {
     e.preventDefault();
     if (!senhaReal.trim()) {
-      setErroLocal('Informe a senha de acesso ao site oficial.');
+      setErroReal('Informe a senha de acesso ao site oficial.');
       return;
     }
 
-    setErroLocal('');
+    setErroDemo('');
+    setErroReal('');
+    setLoadingTarget('real');
     try {
       await entrarModoReal(senhaReal.trim());
       setSenhaReal('');
@@ -72,10 +93,12 @@ export default function AccessGateModal() {
         navigate('/', { replace: true });
       }
     } catch (err) {
-      setErroLocal(
+      setErroReal(
         err?.response?.data?.message ||
           'Senha incorreta. Para testar sem restrições, utilize o Modo Demo.',
       );
+    } finally {
+      setLoadingTarget(null);
     }
   };
 
@@ -92,11 +115,10 @@ export default function AccessGateModal() {
           'radial-gradient(circle at top center, rgba(42, 34, 22, 0.96) 0%, rgba(12, 13, 17, 0.98) 65%)',
         backdropFilter: 'blur(8px)',
         overflowY: 'auto',
-        padding: '28px 16px',
+        padding: '44px 16px 36px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
         fontFamily: 'inherit',
       }}
     >
@@ -104,6 +126,7 @@ export default function AccessGateModal() {
         style={{
           width: '100%',
           maxWidth: '940px',
+          margin: 'auto',
           position: 'relative',
           color: '#f8fafc',
         }}
@@ -131,7 +154,7 @@ export default function AccessGateModal() {
         )}
 
         {/* Cabeçalho com logo e boas-vindas */}
-        <div style={{ textAlign: 'center', marginBottom: '26px' }}>
+        <div style={{ textAlign: 'center', marginTop: '8px', marginBottom: '26px' }}>
           <img
             src={logoImg}
             alt="Salv Sacra"
@@ -139,7 +162,7 @@ export default function AccessGateModal() {
               height: '58px',
               width: 'auto',
               objectFit: 'contain',
-              margin: '0 auto 12px',
+              margin: '0 auto 14px',
               display: 'block',
             }}
           />
@@ -185,7 +208,7 @@ export default function AccessGateModal() {
           </p>
         </div>
 
-        {(gateError || erroLocal) && (
+        {gateError && !erroDemo && !erroReal && (
           <div
             style={{
               background: 'rgba(185, 28, 28, 0.22)',
@@ -199,7 +222,7 @@ export default function AccessGateModal() {
               marginBottom: '20px',
             }}
           >
-            ⚠️ {erroLocal || gateError}
+            ⚠️ {gateError}
           </div>
         )}
 
@@ -220,7 +243,15 @@ export default function AccessGateModal() {
               borderRadius: '16px',
               padding: '26px',
               border: '2px solid #c5a880',
-              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.45)',
+              boxShadow:
+                hoverBtn === 'demo' && !loadingAction
+                  ? '0 32px 72px rgba(0, 0, 0, 0.58), 0 0 0 2px rgba(197, 168, 128, 0.45)'
+                  : '0 24px 60px rgba(0, 0, 0, 0.45)',
+              transform:
+                hoverBtn === 'demo' && !loadingAction
+                  ? 'translateY(-6px) scale(1.02)'
+                  : 'translateY(0) scale(1)',
+              transition: 'transform 0.24s ease, box-shadow 0.24s ease',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -291,7 +322,8 @@ export default function AccessGateModal() {
               >
                 <li>
                   Alterne em 1 clique entre <strong>Visão Cliente</strong> e{' '}
-                  <strong>Painel Admin</strong>.
+                  <strong>Painel Admin</strong>. Barra flutuante expandível no lado inferior
+                  direito, que contém também outras opções.
                 </li>
                 <li>
                   Crie contas, faça pedidos, edite produtos/estoque e gerencie devoluções livremente.
@@ -323,24 +355,46 @@ export default function AccessGateModal() {
             </div>
 
             <div>
+              {erroDemo && (
+                <div
+                  style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#991b1b',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    marginBottom: '12px',
+                  }}
+                >
+                  ⚠️ {erroDemo}
+                </div>
+              )}
               <button
                 type="button"
                 disabled={loadingAction}
                 onClick={() => handleEntrarDemo(false)}
+                onMouseEnter={() => setHoverBtn('demo')}
+                onMouseLeave={() => setHoverBtn(null)}
                 style={{
                   width: '100%',
                   padding: '14px 18px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #111827 0%, #27272a 100%)',
+                  background:
+                    hoverBtn === 'demo' && !loadingAction
+                      ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+                      : 'linear-gradient(135deg, #111827 0%, #27272a 100%)',
                   color: '#f8fafc',
                   fontSize: '14.5px',
                   fontWeight: 800,
-                  cursor: loadingAction ? 'wait' : 'pointer',
+                  cursor: loadingAction && loadingTarget === 'demo' ? 'wait' : loadingAction ? 'not-allowed' : 'pointer',
                   boxShadow: '0 8px 20px rgba(15, 23, 42, 0.25)',
+                  transition: 'background 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
-                {loadingAction
+                {loadingAction && loadingTarget === 'demo'
                   ? 'Preparando sua sessão isolada...'
                   : hasSavedDemoSession
                     ? '▶ Retomar Minha Sessão Demo'
@@ -434,7 +488,19 @@ export default function AccessGateModal() {
               color: '#f1f5f9',
               borderRadius: '16px',
               padding: '26px',
-              border: '1px solid rgba(255, 255, 255, 0.16)',
+              border:
+                (hoverBtn === 'real' || hoverBtn === 'real-submit') && !loadingAction
+                  ? '1px solid rgba(197, 168, 128, 0.6)'
+                  : '1px solid rgba(255, 255, 255, 0.16)',
+              boxShadow:
+                (hoverBtn === 'real' || hoverBtn === 'real-submit') && !loadingAction
+                  ? '0 28px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(197, 168, 128, 0.3)'
+                  : '0 16px 40px rgba(0, 0, 0, 0.3)',
+              transform:
+                (hoverBtn === 'real' || hoverBtn === 'real-submit') && !loadingAction
+                  ? 'translateY(-6px) scale(1.02)'
+                  : 'translateY(0) scale(1)',
+              transition: 'transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -502,17 +568,26 @@ export default function AccessGateModal() {
               <button
                 type="button"
                 disabled={loadingAction}
-                onClick={() => setMostrarFormReal(true)}
+                onClick={() => {
+                  setErroReal('');
+                  setMostrarFormReal(true);
+                }}
+                onMouseEnter={() => setHoverBtn('real')}
+                onMouseLeave={() => setHoverBtn(null)}
                 style={{
                   width: '100%',
                   padding: '13px 18px',
                   borderRadius: '10px',
                   border: '1px solid rgba(197, 168, 128, 0.55)',
-                  background: 'rgba(197, 168, 128, 0.12)',
+                  background:
+                    hoverBtn === 'real' && !loadingAction
+                      ? 'rgba(197, 168, 128, 0.24)'
+                      : 'rgba(197, 168, 128, 0.12)',
                   color: '#e6d3b3',
                   fontSize: '14px',
                   fontWeight: 700,
-                  cursor: 'pointer',
+                  cursor: loadingAction ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s ease, border-color 0.2s ease',
                 }}
               >
                 🔑 Entrar no Site Real (Solicitar Senha)
@@ -531,13 +606,18 @@ export default function AccessGateModal() {
                     type={mostrarSenha ? 'text' : 'password'}
                     autoFocus
                     value={senhaReal}
-                    onChange={(e) => setSenhaReal(e.target.value)}
+                    onChange={(e) => {
+                      setSenhaReal(e.target.value);
+                      if (erroReal) setErroReal('');
+                    }}
                     placeholder="Digite a senha de acesso..."
                     style={{
                       width: '100%',
                       padding: '11px 68px 11px 12px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      border: erroReal
+                        ? '1px solid rgba(248, 113, 113, 0.85)'
+                        : '1px solid rgba(255, 255, 255, 0.25)',
                       background: 'rgba(15, 23, 42, 0.85)',
                       color: '#ffffff',
                       fontSize: '14px',
@@ -564,6 +644,23 @@ export default function AccessGateModal() {
                     {mostrarSenha ? 'Ocultar' : 'Mostrar'}
                   </button>
                 </div>
+                {erroReal && (
+                  <div
+                    role="alert"
+                    style={{
+                      background: 'rgba(185, 28, 28, 0.26)',
+                      border: '1px solid rgba(248, 113, 113, 0.65)',
+                      color: '#fecaca',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    ⚠️ {erroReal}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="button"
@@ -571,7 +668,7 @@ export default function AccessGateModal() {
                     onClick={() => {
                       setMostrarFormReal(false);
                       setSenhaReal('');
-                      setErroLocal('');
+                      setErroReal('');
                     }}
                     style={{
                       padding: '11px 14px',
@@ -589,19 +686,22 @@ export default function AccessGateModal() {
                   <button
                     type="submit"
                     disabled={loadingAction}
+                    onMouseEnter={() => setHoverBtn('real-submit')}
+                    onMouseLeave={() => setHoverBtn(null)}
                     style={{
                       flex: 1,
                       padding: '11px 16px',
                       borderRadius: '8px',
                       border: 'none',
-                      background: '#c5a880',
+                      background: hoverBtn === 'real-submit' && !loadingAction ? '#d4b890' : '#c5a880',
                       color: '#111827',
                       fontSize: '13.5px',
                       fontWeight: 800,
-                      cursor: loadingAction ? 'wait' : 'pointer',
+                      cursor: loadingAction && loadingTarget === 'real' ? 'wait' : loadingAction ? 'not-allowed' : 'pointer',
+                      transition: 'background 0.2s ease',
                     }}
                   >
-                    {loadingAction ? 'Verificando...' : 'Desbloquear Loja Oficial'}
+                    {loadingAction && loadingTarget === 'real' ? 'Verificando...' : 'Desbloquear Loja Oficial'}
                   </button>
                 </div>
               </form>

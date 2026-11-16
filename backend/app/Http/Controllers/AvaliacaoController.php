@@ -86,7 +86,7 @@ class AvaliacaoController extends Controller
     }
 
     /**
-     * Registra ou atualiza a avaliação do cliente autenticado para um produto.
+     * Registra uma nova avaliação do cliente autenticado para um produto.
      */
     public function store(Request $request, Produto $produto): JsonResponse
     {
@@ -118,18 +118,14 @@ class AvaliacaoController extends Controller
             ], 403);
         }
 
-        $avaliacao = Avaliacao::updateOrCreate(
-            [
-                'produto_id' => $produto->id,
-                'user_id'    => $user->id,
-            ],
-            [
-                'nota'              => $validated['nota'],
-                'titulo'            => $validated['titulo'] ?? null,
-                'comentario'        => $validated['comentario'],
-                'compra_verificada' => true,
-            ]
-        );
+        $avaliacao = Avaliacao::create([
+            'produto_id'        => $produto->id,
+            'user_id'           => $user->id,
+            'nota'              => $validated['nota'],
+            'titulo'            => $validated['titulo'] ?? null,
+            'comentario'        => $validated['comentario'],
+            'compra_verificada' => true,
+        ]);
 
         return response()->json([
             'message'   => 'Avaliação publicada com sucesso!',
@@ -143,8 +139,55 @@ class AvaliacaoController extends Controller
                 'comentario'        => $avaliacao->comentario,
                 'compra_verificada' => (bool) $avaliacao->compra_verificada,
                 'created_at'        => $avaliacao->created_at?->toIso8601String(),
+                'updated_at'        => $avaliacao->updated_at?->toIso8601String(),
             ],
         ], 201);
+    }
+
+    /**
+     * Permite ao próprio autor ou a um administrador editar uma avaliação existente.
+     */
+    public function update(Request $request, Avaliacao $avaliacao): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->papel !== 'admin' && $avaliacao->user_id !== $user->id) {
+            return response()->json(['message' => 'Acesso negado.'], 403);
+        }
+
+        $validated = $request->validate([
+            'nota'       => ['required', 'integer', 'min:1', 'max:5'],
+            'titulo'     => ['nullable', 'string', 'max:120'],
+            'comentario' => ['required', 'string', 'min:3', 'max:1500'],
+        ], [
+            'nota.required'       => 'Selecione uma nota de 1 a 5 estrelas.',
+            'comentario.required' => 'Escreva um breve comentário sobre o produto.',
+            'comentario.min'      => 'O comentário deve ter pelo menos 3 caracteres.',
+        ]);
+
+        $avaliacao->update([
+            'nota'       => $validated['nota'],
+            'titulo'     => $validated['titulo'] ?? null,
+            'comentario' => $validated['comentario'],
+        ]);
+
+        $avaliacao->loadMissing('user:id,name');
+
+        return response()->json([
+            'message'   => 'Avaliação atualizada com sucesso!',
+            'avaliacao' => [
+                'id'                => $avaliacao->id,
+                'produto_id'        => $avaliacao->produto_id,
+                'user_id'           => $avaliacao->user_id,
+                'autor_nome'        => $avaliacao->user?->name ?? $user->name,
+                'nota'              => (int) $avaliacao->nota,
+                'titulo'            => $avaliacao->titulo,
+                'comentario'        => $avaliacao->comentario,
+                'compra_verificada' => (bool) $avaliacao->compra_verificada,
+                'created_at'        => $avaliacao->created_at?->toIso8601String(),
+                'updated_at'        => $avaliacao->updated_at?->toIso8601String(),
+            ],
+        ]);
     }
 
     /**

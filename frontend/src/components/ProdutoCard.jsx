@@ -156,6 +156,7 @@ export default function ProdutoCard({ produto }) {
             src={fotoExibida}
             alt={produto.nome}
             loading="lazy"
+            decoding="async"
             style={{ objectPosition: 'top center' }}
           />
         ) : (

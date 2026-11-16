@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Avaliacao;
 use App\Models\Endereco;
 use App\Models\Pedido;
 use Illuminate\Http\JsonResponse;
@@ -370,6 +371,26 @@ class ContaController extends Controller
         return response()->json([
             'message' => 'Sua conta foi desativada com sucesso.',
         ]);
+    }
+
+    /** Lista todas as avaliações feitas pelo cliente autenticado. */
+    public function avaliacoes(Request $request): JsonResponse
+    {
+        $avaliacoes = Avaliacao::where('user_id', $request->user()->id)
+            ->orderByDesc('updated_at')
+            ->get([
+                'id',
+                'produto_id',
+                'user_id',
+                'nota',
+                'titulo',
+                'comentario',
+                'compra_verificada',
+                'created_at',
+                'updated_at',
+            ]);
+
+        return response()->json($avaliacoes);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────

@@ -223,8 +223,8 @@ class DemoSandboxTest extends TestCase
             ])->assertStatus(200)
             ->assertJsonPath('fonte', 'demo_sandbox');
 
-        $this->assertCount(3, $freteResp->json('opcoes'));
-        $this->assertSame(['pac', 'sedex', 'jadlog'], collect($freteResp->json('opcoes'))->pluck('id')->all());
+        $this->assertCount(1, $freteResp->json('opcoes'));
+        $this->assertSame(['sedex'], collect($freteResp->json('opcoes'))->pluck('id')->all());
 
         // 4. Pedido PIX simulado -> QR SVG Base64 + simulação de aprovação
         $pixOrder = $this->withHeaders([
@@ -482,5 +482,140 @@ class DemoSandboxTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $removidas);
         $this->assertFileDoesNotExist($arquivoAntigo);
         $this->assertFileExists($arquivoRecente);
+    }
+
+    public function test_06_multiplas_avaliacoes_por_produto_edicao_e_protecao_ultima_conta_cliente(): void
+    {
+        $produto = Produto::with('variacoes')->first();
+        if (! $produto || $produto->variacoes->isEmpty()) {
+            $this->markTestSkipped('Catálogo oficial sem produto/variação.');
+        }
+        $variacao = $produto->variacoes->first();
+
+        $sid = $this->novoSessionId('reviews');
+        $init = $this->withHeaders(['X-Demo-Session' => $sid])->postJson('/api/demo/iniciar')->assertStatus(200);
+        $clienteToken = $init->json('tokens.cliente');
+        $clienteId = (int) $init->json('contas_padrao.cliente.id');
+        $adminToken = $init->json('tokens.admin');
+
+        // 1. Não permite excluir a única conta de cliente ativa da sessão Demo
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->deleteJson("/api/admin/clientes/{$clienteId}")
+            ->assertStatus(422);
+
+        // 2. Cria segundo cliente -> permite excluir o segundo, mas continua bloqueando excluir o último restante
+        $reg2 = $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/auth/register', [
+                'name'                  => 'Cliente Extra Demo',
+                'email'                 => 'extra.demo@test.com',
+                'password'              => 'senha1234',
+                'password_confirmation' => 'senha1234',
+            ])->assertStatus(201);
+        $cliente2Id = (int) $reg2->json('user.id');
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->deleteJson("/api/admin/clientes/{$cliente2Id}")
+            ->assertStatus(200);
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->deleteJson("/api/admin/clientes/{$clienteId}")
+            ->assertStatus(422);
+
+        // 3. Compra + Entrega + Múltiplas avaliações para o mesmo produto pelo mesmo cliente + Edição + Exclusão individual
+        if ($variacao->estoque < 2) {
+            $this->withHeaders([
+                'X-Demo-Session' => $sid,
+                'Authorization'  => "Bearer {$adminToken}",
+            ])->patchJson("/api/admin/estoque/{$variacao->id}", ['estoque' => 5])->assertStatus(200);
+        }
+
+        $ped = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->postJson('/api/pedidos', [
+            'email_contato'    => 'cliente.demo@salvsacra.test',
+            'cep'              => '88701-000',
+            'logradouro'       => 'Rua Teste Demo',
+            'numero'           => '123',
+            'bairro'           => 'Centro',
+            'cidade'           => 'Tubarão',
+            'estado'           => 'SC',
+            'tipo_frete'       => 'Correios SEDEX',
+            'valor_frete'      => 15.00,
+            'metodo_pagamento' => 'pix',
+            'itens'            => [
+                [
+                    'produto_id'  => $produto->id,
+                    'variacao_id' => $variacao->id,
+                    'quantidade'  => 1,
+                    'preco'       => (float) $produto->preco,
+                ],
+            ],
+        ])->assertStatus(201);
+
+        $pedidoId = $ped->json('pedido.id');
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->patchJson("/api/admin/pedidos/{$pedidoId}/status", ['status' => 'Entregue'])
+            ->assertStatus(200);
+
+        // Primeira avaliação
+        $av1 = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->postJson("/api/produtos/{$produto->id}/avaliacoes", [
+            'nota'       => 5,
+            'comentario' => 'Primeira avaliação excelente!',
+        ])->assertStatus(201);
+        $av1Id = $av1->json('avaliacao.id');
+
+        // Segunda avaliação do mesmo cliente no mesmo produto (não substitui a primeira!)
+        $av2 = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->postJson("/api/produtos/{$produto->id}/avaliacoes", [
+            'nota'       => 4,
+            'comentario' => 'Segunda avaliação após algumas lavagens.',
+        ])->assertStatus(201);
+        $av2Id = $av2->json('avaliacao.id');
+
+        $this->assertNotSame($av1Id, $av2Id);
+
+        $minhas = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson('/api/conta/avaliacoes')->assertStatus(200);
+        $this->assertCount(2, $minhas->json());
+
+        // Edição da segunda avaliação via PUT
+        $edit2 = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->putJson("/api/avaliacoes/{$av2Id}", [
+            'nota'       => 5,
+            'comentario' => 'Segunda avaliação editada com 5 estrelas.',
+        ])->assertStatus(200);
+        $this->assertSame(5, $edit2->json('avaliacao.nota'));
+        $this->assertSame('Segunda avaliação editada com 5 estrelas.', $edit2->json('avaliacao.comentario'));
+
+        // Excluir apenas a primeira avaliação preserva a segunda
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->deleteJson("/api/avaliacoes/{$av1Id}")->assertStatus(200);
+
+        $minhasDepois = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson('/api/conta/avaliacoes')->assertStatus(200);
+        $this->assertCount(1, $minhasDepois->json());
+        $this->assertSame($av2Id, $minhasDepois->json('0.id'));
     }
 }

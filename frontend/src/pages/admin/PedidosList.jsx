@@ -11,6 +11,7 @@ import {
   bloquearValesPedidoAdmin,
 } from '../../services/adminPedidoService';
 import { imprimirReciboPedido } from '../../utils/imprimirRecibo';
+import { useDemo } from '../../contexts/DemoContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import '../../styles/admin.css';
 import '../../styles/minha-conta.css';
@@ -143,6 +144,7 @@ function diasRestantesDevolucao(p) {
 }
 
 export default function PedidosList() {
+  const { isDemoMode } = useDemo();
   const [searchParams] = useSearchParams();
   const buscaUrl = searchParams.get('busca') || searchParams.get('pedido') || '';
   const [pedidos, setPedidos] = useState([]);
@@ -521,36 +523,6 @@ export default function PedidosList() {
     }
   };
 
-  const handleCopiarDadosEnvio = (pedido) => {
-    if (!pedido) return;
-    const cInfo = formatarCliente(pedido.user, pedido.email_contato);
-    const qtdTotal = (pedido.itens || []).reduce((acc, it) => acc + (it.quantidade || 1), 0) || 1;
-    const pesoKg = Math.max(0.3, qtdTotal * 0.25).toFixed(2);
-    const alturaCm = Math.min(30, Math.max(4, qtdTotal * 3));
-
-    const texto = `DESTINATÁRIO:
-Nome: ${cInfo.nome}
-CPF: ${pedido.user?.cpf || 'Não informado'}
-Telefone: ${pedido.telefone || pedido.user?.telefone || 'Não informado'}
-E-mail: ${cInfo.email}
-
-ENDEREÇO DE ENTREGA:
-Rua/Av: ${pedido.logradouro}, ${pedido.numero}${pedido.complemento ? ' - ' + pedido.complemento : ''}
-Bairro: ${pedido.bairro}
-Cidade/UF: ${pedido.cidade}/${pedido.estado}
-CEP: ${pedido.cep}
-
-PACOTE:
-Modalidade: ${pedido.tipo_frete || 'Correios PAC'}
-Dimensões: ${alturaCm}cm (Altura) x 22cm (Largura) x 28cm (Comprimento)
-Peso estimado: ${pesoKg} kg (${qtdTotal} item(ns))
-Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
-
-    navigator.clipboard?.writeText(texto);
-    setSuccess(`Dados do Pedido #${pedido.id} copiados para o Melhor Envio!`);
-    setTimeout(() => setSuccess(''), 4000);
-  };
-
   const handleEnviarMelhorEnvio = async () => {
     if (!pedidoSelecionado) return;
     setEnviandoMelhorEnvio(true);
@@ -648,9 +620,12 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
 
           <div class="remetente">
             <div class="section-title">REMETENTE</div>
-            <strong>SALV SACRA ECOMMERCE</strong><br/>
-            Rua Manoel Antunes Corrêa, 2171 — Oficinas<br/>
-            Tubarão / SC — CEP: 88702-280
+            <strong>${isDemoMode ? 'SALV SACRA (MODO DEMO)' : 'SALV SACRA ECOMMERCE'}</strong><br/>
+            ${
+              isDemoMode
+                ? 'Av. Marcolino Martins Cabral, 100 — Centro (Demo)<br/>\n            Tubarão / SC — CEP: 88701-000'
+                : 'Rua Manoel Antunes Corrêa, 2171 — Oficinas<br/>\n            Tubarão / SC — CEP: 88702-280'
+            }
           </div>
         </div>
 
@@ -1140,7 +1115,17 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
                         🚚 Marcar como Enviado
                       </button>
                     )}
-                    {(pedidoSelecionado.status === 'Enviado' || pedidoSelecionado.status === 'Em transporte') && (
+                    {pedidoSelecionado.status === 'Enviado' && (
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-secondary"
+                        style={{ fontSize: '12px', padding: '6px 12px', background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }}
+                        onClick={() => handleAlterarStatus(pedidoSelecionado.id, 'Em transporte')}
+                      >
+                        🛣️ Marcar Em transporte
+                      </button>
+                    )}
+                    {pedidoSelecionado.status === 'Em transporte' && (
                       <button
                         type="button"
                         className="admin-btn admin-btn-secondary"
@@ -1174,7 +1159,7 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
                       type="button"
                       className="admin-btn admin-btn-secondary"
                       style={{ padding: '8px 14px', fontSize: '12px', borderRadius: '6px', background: '#fff' }}
-                      onClick={() => imprimirReciboPedido(pedidoSelecionado)}
+                      onClick={() => imprimirReciboPedido(pedidoSelecionado, { isDemoMode })}
                       title="Imprimir comprovante completo de venda em PDF"
                     >
                       📄 Imprimir Recibo
@@ -1187,83 +1172,135 @@ Valor Declarado: ${formatMoeda(pedido.valor_total)}`;
               <div className="admin-drawer-section" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                   <h4 style={{ margin: 0, fontSize: '14px' }}>📦 Integração Automática (Melhor Envio)</h4>
-                  {pedidoSelecionado.melhor_envio_id ? (
-                    <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', fontWeight: 700, padding: '3px 8px', borderRadius: '4px' }}>
-                      ✓ No Carrinho do Melhor Envio
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', fontWeight: 600, padding: '3px 8px', borderRadius: '4px' }}>
-                      Aguardando envio ao carrinho
-                    </span>
+                  {!isDemoMode && (
+                    pedidoSelecionado.melhor_envio_id ? (
+                      <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', fontWeight: 700, padding: '3px 8px', borderRadius: '4px' }}>
+                        ✓ No Carrinho do Melhor Envio
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', fontWeight: 600, padding: '3px 8px', borderRadius: '4px' }}>
+                        Aguardando envio ao carrinho
+                      </span>
+                    )
                   )}
                 </div>
 
-                <p style={{ fontSize: '12px', color: '#555', margin: '0 0 10px 0', lineHeight: 1.5 }}>
-                  Envie os dados do pedido (destinatário, endereço, CPF e medidas) direto para o seu carrinho do Melhor Envio com 1 clique. Depois é só abrir o painel para pagar e imprimir a etiqueta.
-                </p>
-
-                {/* Campo de CPF manual caso o cliente não tenha no cadastro */}
-                {(!pedidoSelecionado.user?.cpf || pedidoSelecionado.user.cpf.length < 11) && (
-                  <div style={{ marginBottom: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '10px 12px' }}>
-                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#92400e', marginBottom: '4px' }}>
-                      ⚠️ CPF do destinatário (obrigatório para etiqueta dos Correios):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="000.000.000-00"
-                      maxLength="14"
-                      value={cpfManual}
-                      onChange={(e) => {
-                        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-                        if (v.length > 9) v = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
-                        else if (v.length > 6) v = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
-                        else if (v.length > 3) v = `${v.slice(0, 3)}.${v.slice(3)}`;
-                        setCpfManual(v);
+                {isDemoMode ? (
+                  <>
+                    <div
+                      style={{
+                        background: '#fffbeb',
+                        border: '1px solid #fde68a',
+                        borderRadius: '6px',
+                        padding: '10px 12px',
+                        fontSize: '12px',
+                        color: '#92400e',
+                        lineHeight: 1.5,
+                        marginBottom: '12px',
+                        fontWeight: 600,
                       }}
-                      className="admin-search-input"
-                      style={{ width: '100%', maxWidth: '240px', height: '32px', fontSize: '12px', background: '#fff' }}
-                    />
-                  </div>
+                    >
+                      🔒 Integração automática com o Melhor Envio bloqueada no Ambiente Demo. Este recurso estará disponível apenas na versão final oficial da loja.
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        disabled
+                        className="admin-btn admin-btn-secondary"
+                        style={{
+                          background: '#f1f5f9',
+                          color: '#64748b',
+                          fontSize: '12px',
+                          padding: '8px 14px',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          cursor: 'not-allowed',
+                          border: '1px solid #cbd5e1',
+                        }}
+                        title="Disponível apenas na versão final"
+                      >
+                        Enviar para o Carrinho do Melhor Envio
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled
+                        className="admin-btn admin-btn-secondary"
+                        style={{
+                          fontSize: '12px',
+                          padding: '8px 14px',
+                          background: '#f1f5f9',
+                          color: '#64748b',
+                          cursor: 'not-allowed',
+                          border: '1px solid #cbd5e1',
+                        }}
+                        title="Disponível apenas na versão final"
+                      >
+                        Abrir Carrinho do Melhor Envio
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: '12px', color: '#555', margin: '0 0 10px 0', lineHeight: 1.5 }}>
+                      Envie os dados do pedido (destinatário, endereço, CPF e medidas) direto para o seu carrinho do Melhor Envio com 1 clique. Depois é só abrir o painel para pagar e imprimir a etiqueta.
+                    </p>
+
+                    {/* Campo de CPF manual caso o cliente não tenha no cadastro */}
+                    {(!pedidoSelecionado.user?.cpf || pedidoSelecionado.user.cpf.length < 11) && (
+                      <div style={{ marginBottom: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '10px 12px' }}>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#92400e', marginBottom: '4px' }}>
+                          ⚠️ CPF do destinatário (obrigatório para etiqueta dos Correios):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="000.000.000-00"
+                          maxLength="14"
+                          value={cpfManual}
+                          onChange={(e) => {
+                            let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+                            if (v.length > 9) v = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+                            else if (v.length > 6) v = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+                            else if (v.length > 3) v = `${v.slice(0, 3)}.${v.slice(3)}`;
+                            setCpfManual(v);
+                          }}
+                          className="admin-search-input"
+                          style={{ width: '100%', maxWidth: '240px', height: '32px', fontSize: '12px', background: '#fff' }}
+                        />
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        disabled={enviandoMelhorEnvio}
+                        onClick={handleEnviarMelhorEnvio}
+                        className="admin-btn"
+                        style={{
+                          background: '#1d4ed8',
+                          color: '#fff',
+                          fontSize: '12px',
+                          padding: '8px 14px',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                        }}
+                      >
+                        {enviandoMelhorEnvio ? '⚡ Enviando Dados...' : pedidoSelecionado.melhor_envio_id ? '⚡ Reenviar ao Carrinho' : '⚡ Enviar para o Carrinho do Melhor Envio'}
+                      </button>
+
+                      <a
+                        href="https://app.melhorenvio.com.br/carrinho"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="admin-btn admin-btn-secondary"
+                        style={{ fontSize: '12px', padding: '8px 14px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        🛒 Abrir Carrinho do Melhor Envio ↗
+                      </a>
+                    </div>
+                  </>
                 )}
-
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    disabled={enviandoMelhorEnvio}
-                    onClick={handleEnviarMelhorEnvio}
-                    className="admin-btn"
-                    style={{
-                      background: '#1d4ed8',
-                      color: '#fff',
-                      fontSize: '12px',
-                      padding: '8px 14px',
-                      fontWeight: 600,
-                      borderRadius: '6px',
-                    }}
-                  >
-                    {enviandoMelhorEnvio ? '⚡ Enviando Dados...' : pedidoSelecionado.melhor_envio_id ? '⚡ Reenviar ao Carrinho' : '⚡ Enviar para o Carrinho do Melhor Envio'}
-                  </button>
-
-                  <a
-                    href="https://app.melhorenvio.com.br/carrinho"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="admin-btn admin-btn-secondary"
-                    style={{ fontSize: '12px', padding: '8px 14px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    🛒 Abrir Carrinho do Melhor Envio ↗
-                  </a>
-
-                  <button
-                    type="button"
-                    className="admin-btn admin-btn-secondary"
-                    style={{ fontSize: '11px', padding: '6px 10px', background: '#fff' }}
-                    title="Copia os dados formatados caso prefira preencher avulso"
-                    onClick={() => handleCopiarDadosEnvio(pedidoSelecionado)}
-                  >
-                    📋 Copiar Dados
-                  </button>
-                </div>
               </div>
 
               {/* Controle de Código de Rastreio */}

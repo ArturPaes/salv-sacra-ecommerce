@@ -7,6 +7,7 @@ use App\Models\Endereco;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -42,6 +43,8 @@ class DemoSandboxService
         'pix_desconto_pct',
         'frete_gratis_minimo',
     ];
+
+    protected const DEMO_OVERRIDES_VERSION = 2;
 
     protected static ?string $currentSessionId = null;
     protected static ?bool $activatedAsNewInRequest = null;
@@ -175,14 +178,30 @@ class DemoSandboxService
         }
 
         self::ensureDirectories();
-        self::cleanupAbandonedSessions();
+
+        // Executa limpeza de sessões expiradas no máximo a cada 6h (em vez de varrer o disco em toda requisição)
+        $fileCache = Cache::store('file');
+        if (! $fileCache->has('demo_last_cleanup_at')) {
+            $fileCache->put('demo_last_cleanup_at', time(), 21600);
+            self::cleanupAbandonedSessions();
+        }
 
         $sqlitePath = self::sqliteFilePath($sessionId);
         $alreadyExists = ! $forceReset && self::sessionExists($sessionId);
 
         if ($alreadyExists) {
             self::configureSessionConnection($sessionId);
-            @touch($sqlitePath);
+
+            $overridesKey = 'demo_overrides_v' . self::DEMO_OVERRIDES_VERSION . "_{$sessionId}";
+            if (! $fileCache->has($overridesKey)) {
+                self::ensureDemoCatalogOverrides();
+                $fileCache->put($overridesKey, true, 86400);
+            }
+
+            if ((@filemtime($sqlitePath) ?: 0) < (time() - 300)) {
+                @touch($sqlitePath);
+            }
+
             self::$currentSessionId = $sessionId;
             self::$activatedAsNewInRequest = false;
             Auth::forgetGuards();
@@ -196,6 +215,8 @@ class DemoSandboxService
         }
 
         self::provisionSessionDatabase($sessionId);
+        $fileCache->put('demo_schema_exists_' . $sessionId, true, 600);
+        $fileCache->put('demo_overrides_v' . self::DEMO_OVERRIDES_VERSION . "_{$sessionId}", true, 86400);
         self::$currentSessionId = $sessionId;
         self::$activatedAsNewInRequest = true;
         Auth::forgetGuards();
@@ -261,6 +282,11 @@ class DemoSandboxService
             @unlink($sqlitePath);
         }
 
+        $fileCache = Cache::store('file');
+        $fileCache->forget('demo_schema_exists_' . $sessionId);
+        $fileCache->forget('demo_overrides_v' . self::DEMO_OVERRIDES_VERSION . "_{$sessionId}");
+        $fileCache->forget('config_publicas:demo:' . $sessionId);
+
         if (self::$currentSessionId === $sessionId) {
             self::restoreDefaultConnection();
         }
@@ -312,6 +338,12 @@ class DemoSandboxService
             return true;
         }
 
+        $cacheKey = 'demo_schema_exists_' . $sessionId;
+        $fileCache = Cache::store('file');
+        if ($fileCache->get($cacheKey) === true) {
+            return true;
+        }
+
         $schemaName = self::schemaName($sessionId);
         $officialConn = self::getOfficialConnectionName();
         $exists = DB::connection($officialConn)->selectOne(
@@ -319,7 +351,12 @@ class DemoSandboxService
             [$schemaName]
         );
 
-        return $exists !== null;
+        if ($exists !== null) {
+            $fileCache->put($cacheKey, true, 600);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -372,6 +409,7 @@ class DemoSandboxService
 
         self::configureSessionConnection($sessionId);
         self::copyCatalogFromOfficialDatabase();
+        self::ensureDemoCatalogOverrides();
         self::seedSanitizedConfigurations();
         self::seedDemoUsersAndBenefits();
 
@@ -473,6 +511,69 @@ class DemoSandboxService
             foreach (array_chunk($rows, 100) as $chunk) {
                 $demoDb->table($tbl)->insert($chunk);
             }
+        }
+    }
+
+    /**
+     * Ajusta detalhes específicos do catálogo na sessão Demo sem alterar o banco oficial.
+     */
+    protected static function ensureDemoCatalogOverrides(): void
+    {
+        try {
+            $demoDb = DB::connection('demo_session');
+            $demoSchema = Schema::connection('demo_session');
+
+            if ($demoSchema->hasTable('avaliacoes')) {
+                if (self::usesSqliteDriver()) {
+                    if ($demoSchema->hasIndex('avaliacoes', ['produto_id', 'user_id'], 'unique')) {
+                        $demoSchema->table('avaliacoes', function ($table) {
+                            $table->dropUnique(['produto_id', 'user_id']);
+                        });
+                    }
+                } else {
+                    $schemaName = self::schemaNameFromCurrentConnection();
+                    $demoDb->statement("ALTER TABLE \"{$schemaName}\".\"avaliacoes\" DROP CONSTRAINT IF EXISTS \"avaliacoes_produto_id_user_id_key\"");
+                    $demoDb->statement("ALTER TABLE \"{$schemaName}\".\"avaliacoes\" DROP CONSTRAINT IF EXISTS \"avaliacoes_produto_id_user_id_unique\"");
+                    $demoDb->statement("DROP INDEX IF EXISTS \"{$schemaName}\".\"avaliacoes_produto_id_user_id_key\"");
+                    $demoDb->statement("DROP INDEX IF EXISTS \"{$schemaName}\".\"avaliacoes_produto_id_user_id_unique\"");
+                }
+            }
+
+            if (! $demoSchema->hasTable('produtos')) {
+                return;
+            }
+
+            $pacem = $demoDb->table('produtos')
+                ->whereRaw('LOWER(nome) LIKE ?', ['%pacem%'])
+                ->first();
+
+            if (! $pacem) {
+                return;
+            }
+
+            $descricaoAtual = (string) ($pacem->descricao ?? '');
+            if (
+                $descricaoAtual === '' ||
+                (str_contains($descricaoAtual, 'SI VIS PACEM, PARA BELLUM') && ! str_contains($descricaoAtual, '*SI VIS PACEM, PARA BELLUM*'))
+            ) {
+                $novaDescricao = <<<'TEXT'
+*SI VIS PACEM, PARA BELLUM* É um provérbio latino famoso que significa "se queres paz, prepara-te para a guerra". A máxima sugere que a melhor forma de evitar conflitos e garantir a paz é estar preparado para a defesa. Para o católico é um chamado à defesa firme da fé e da verdade, preparado para os combates da vida com coragem, mas sem odiar o inimigo.
+
+Confeccionada em malha premium fio 30 penteado, oferece um toque macio e alta durabilidade, garantindo conforto durante todo o dia.
+
+Sua estampa tradicional em silk screen proporciona cores vibrantes e resistência, permitindo que você lave na máquina e passe a ferro sem preocupações. Disponível nos tamanhos PP, P, M, G, GG, G1 e G2, atende a todos os perfis.
+
+Mais do que uma peça de roupa, esta camiseta é uma forma de evangelizar diariamente, carregando a fé em cada detalhe. Ideal para quem busca qualidade, durabilidade e uma mensagem inspiradora em seu vestuário.
+
+Garanta já a sua e viva a fé com conforto e estilo!
+TEXT;
+
+                $demoDb->table('produtos')
+                    ->where('id', $pacem->id)
+                    ->update(['descricao' => $novaDescricao]);
+            }
+        } catch (\Throwable) {
+            // Silencioso caso a tabela ainda não esteja pronta
         }
     }
 

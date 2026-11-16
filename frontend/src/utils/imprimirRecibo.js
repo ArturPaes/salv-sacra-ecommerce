@@ -30,8 +30,9 @@ const formatarMetodo = (m) => {
   return map[m.toLowerCase()] || m.toUpperCase();
 };
 
-export function imprimirReciboPedido(pedido) {
+export function imprimirReciboPedido(pedido, options = {}) {
   if (!pedido) return;
+  const isDemoMode = Boolean(options?.isDemoMode);
 
   const subtotalItens = (pedido.itens || []).reduce(
     (acc, it) => acc + Number(it.preco_unitario || 0) * Number(it.quantidade || 1),
@@ -257,10 +258,10 @@ export function imprimirReciboPedido(pedido) {
   <div class="recibo-container">
     <div class="header">
       <div class="marca">
-        <h1>SALV SACRA</h1>
+        <h1>SALV SACRA${isDemoMode ? ' (DEMO)' : ''}</h1>
         <p>Vestindo a Fé com Elegância</p>
-        <p style="margin-top: 4px; font-size: 11px;">CNPJ: 54.899.825/0001-77 · Tubarão / SC</p>
-        <p style="font-size: 11px;">suporte: salvsacra2@gmail.com · (48) 99620-5153</p>
+        <p style="margin-top: 4px; font-size: 11px;">CNPJ: ${isDemoMode ? '00.000.000/0001-00' : '54.899.825/0001-77'} · Tubarão / SC</p>
+        <p style="font-size: 11px;">suporte: ${isDemoMode ? 'contato@demo.salvsacra.com.br · (48) 99999-0000' : 'salvsacra2@gmail.com · (48) 99620-5153'}</p>
       </div>
       <div class="pedido-meta">
         <div class="numero">PEDIDO #${pedido.id}</div>

@@ -12,7 +12,7 @@ import CupomSelector from '../../components/CupomSelector';
 import IconPix from '../../components/IconPix';
 import CardBrandIcon, { detectarBandeira } from '../../components/CardBrandIcon';
 
-import { listarEnderecos, listarCartoes, obterUltimoEndereco } from '../../services/contaService';
+import { listarEnderecos, listarCartoes } from '../../services/contaService';
 
 // Ícones SVG inline
 const IconShieldCheck = () => (
@@ -77,19 +77,89 @@ const IconBarcode = () => (
   </svg>
 );
 
-const getDadosCheckoutSalvos = () => {
+const getDadosCheckoutSalvos = ({ userId = null, isDemoMode = false, demoSessionId = null } = {}) => {
   try {
     const salvo = localStorage.getItem('@SalvSacra:checkout_dados');
-    return salvo ? JSON.parse(salvo) : null;
+    if (!salvo) return null;
+    const parsed = JSON.parse(salvo);
+    const currentMode = isDemoMode ? 'demo' : 'real';
+
+    if (!parsed || parsed.mode !== currentMode) {
+      return null;
+    }
+    if (isDemoMode && demoSessionId && parsed.demoSessionId !== demoSessionId) {
+      return null;
+    }
+    if (!userId || !parsed.userId || Number(parsed.userId) !== Number(userId)) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
 };
 
+const detectarBandeiraCartao = (num) => {
+  const limpo = (num || '').replace(/\D/g, '');
+  if (!limpo) return '';
+  if (/^(636368|438935|504175|451416|636297|5067|4576|4011)/.test(limpo)) return 'Elo';
+  if (/^(34|37)/.test(limpo)) return 'Amex';
+  if (/^(606282|3841)/.test(limpo)) return 'Hipercard';
+  if (/^(5[1-5]|2[2-7])/.test(limpo)) return 'Mastercard';
+  if (/^4/.test(limpo)) return 'Visa';
+  return 'Cartão';
+};
+
+const formatarCpfInput = (val) => {
+  const d = (val || '').replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
+};
+
+const formatarTelefoneInput = (val) => {
+  const d = (val || '').replace(/\D/g, '').slice(0, 11);
+  if (!d) return '';
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+};
+
+// Validação matemática do CPF (Dígitos verificadores - Módulo 11 oficial da Receita Federal)
+const validarCpfAlgoritmo = (cpfStr) => {
+  const d = (cpfStr || '').replace(/\D/g, '');
+  if (d.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(d)) return false;
+
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += parseInt(d.charAt(i), 10) * (10 - i);
+  let resto = 11 - (soma % 11);
+  let dig1 = resto === 10 || resto === 11 ? 0 : resto;
+  if (dig1 !== parseInt(d.charAt(9), 10)) return false;
+
+  soma = 0;
+  for (let i = 0; i < 10; i++) soma += parseInt(d.charAt(i), 10) * (11 - i);
+  resto = 11 - (soma % 11);
+  let dig2 = resto === 10 || resto === 11 ? 0 : resto;
+  return dig2 === parseInt(d.charAt(10), 10);
+};
+
+// Validação de formato e DDD de telefone nacional (11 a 99)
+const validarTelefoneFormato = (telStr) => {
+  const d = (telStr || '').replace(/\D/g, '');
+  if (d.length < 10 || d.length > 11) return false;
+  const ddd = parseInt(d.slice(0, 2), 10);
+  if (ddd < 11 || ddd > 99) return false;
+  if (d.length === 11 && d.charAt(2) !== '9') return false;
+  return true;
+};
+
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading: authLoading, updateUser } = useAuth();
-  const { isDemoMode } = useDemo();
+  const { isDemoMode, demoSessionId } = useDemo();
   const {
     items,
     subtotal,
@@ -118,7 +188,11 @@ export default function CheckoutPage() {
   const [etapa, setEtapa] = useState('entrega');
   const [resumoBeneficiosConcluido, setResumoBeneficiosConcluido] = useState(null);
 
-  const dadosSalvos = getDadosCheckoutSalvos();
+  const dadosSalvos = getDadosCheckoutSalvos({
+    userId: user?.id,
+    isDemoMode,
+    demoSessionId,
+  });
 
   // Dados de contato e endereço (carregam instantaneamente da memória do navegador ou usuário para eliminar qualquer delay)
   const [email, setEmail] = useState(() => dadosSalvos?.email || user?.email || '');
@@ -160,63 +234,6 @@ export default function CheckoutPage() {
     validade: '',
     cvv: '',
   });
-
-  const detectarBandeiraCartao = (num) => {
-    const limpo = (num || '').replace(/\D/g, '');
-    if (!limpo) return '';
-    if (/^(636368|438935|504175|451416|636297|5067|4576|4011)/.test(limpo)) return 'Elo';
-    if (/^(34|37)/.test(limpo)) return 'Amex';
-    if (/^(606282|3841)/.test(limpo)) return 'Hipercard';
-    if (/^(5[1-5]|2[2-7])/.test(limpo)) return 'Mastercard';
-    if (/^4/.test(limpo)) return 'Visa';
-    return 'Cartão';
-  };
-
-  const formatarCpfInput = (val) => {
-    const d = (val || '').replace(/\D/g, '').slice(0, 11);
-    if (d.length <= 3) return d;
-    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
-    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
-    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
-  };
-
-  const formatarTelefoneInput = (val) => {
-    const d = (val || '').replace(/\D/g, '').slice(0, 11);
-    if (!d) return '';
-    if (d.length <= 2) return `(${d}`;
-    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
-  };
-
-  // Validação matemática do CPF (Dígitos verificadores - Módulo 11 oficial da Receita Federal)
-  const validarCpfAlgoritmo = (cpfStr) => {
-    const d = (cpfStr || '').replace(/\D/g, '');
-    if (d.length !== 11) return false;
-    if (/^(\d)\1{10}$/.test(d)) return false; // Bloqueia 000.000.000-00, 111.111.111-11, etc.
-
-    let soma = 0;
-    for (let i = 0; i < 9; i++) soma += parseInt(d.charAt(i), 10) * (10 - i);
-    let resto = 11 - (soma % 11);
-    let dig1 = resto === 10 || resto === 11 ? 0 : resto;
-    if (dig1 !== parseInt(d.charAt(9), 10)) return false;
-
-    soma = 0;
-    for (let i = 0; i < 10; i++) soma += parseInt(d.charAt(i), 10) * (11 - i);
-    resto = 11 - (soma % 11);
-    let dig2 = resto === 10 || resto === 11 ? 0 : resto;
-    return dig2 === parseInt(d.charAt(10), 10);
-  };
-
-  // Validação de formato e DDD de telefone nacional (11 a 99)
-  const validarTelefoneFormato = (telStr) => {
-    const d = (telStr || '').replace(/\D/g, '');
-    if (d.length < 10 || d.length > 11) return false;
-    const ddd = parseInt(d.slice(0, 2), 10);
-    if (ddd < 11 || ddd > 99) return false;
-    if (d.length === 11 && d.charAt(2) !== '9') return false; // Celular de 11 dígitos começa com 9
-    return true;
-  };
 
   const [loading, setLoading] = useState(false);
   const [pedidoConcluido, setPedidoConcluido] = useState(null);
@@ -472,31 +489,6 @@ export default function CheckoutPage() {
               cidade: end.cidade || '',
               estado: end.estado || '',
             }));
-          } else {
-            // Se o usuário ainda não cadastrou no perfil mas já fez compras anteriores, preenche com o último usado
-            obterUltimoEndereco()
-              .then((resUltimo) => {
-                if (resUltimo?.data) {
-                  const endU = resUltimo.data;
-                  setEndereco((prev) => (prev.cep ? prev : {
-                    cep: endU.cep || '',
-                    logradouro: endU.logradouro || '',
-                    numero: endU.numero || '',
-                    complemento: endU.complemento || '',
-                    bairro: endU.bairro || '',
-                    cidade: endU.cidade || '',
-                    estado: endU.estado || '',
-                  }));
-                  if (endU.telefone) {
-                    setTelefone((prev) => prev || formatarTelefoneInput(endU.telefone));
-                  }
-                  if (endU.cpf) {
-                    setCpf((prev) => prev || formatarCpfInput(endU.cpf));
-                    setCpfTitular((prev) => prev || formatarCpfInput(endU.cpf));
-                  }
-                }
-              })
-              .catch(() => {});
           }
         })
         .catch(() => {});
@@ -752,10 +744,13 @@ export default function CheckoutPage() {
       });
       setPedidoConcluido(res.data.pedido);
 
-      // Salva os dados de entrega localmente para próximas compras
+      // Salva os dados de entrega localmente para próximas compras apenas se o usuário marcou a opção
       if (salvarDadosCompra) {
         try {
           localStorage.setItem('@SalvSacra:checkout_dados', JSON.stringify({
+            userId: user?.id || null,
+            mode: isDemoMode ? 'demo' : 'real',
+            demoSessionId: isDemoMode ? demoSessionId : null,
             email,
             nome,
             telefone,
@@ -843,9 +838,10 @@ export default function CheckoutPage() {
       !pagoIntegralmenteComBeneficios &&
       metodoPagamento === 'cartao' &&
       pedidoConcluido.status === 'Pendente';
+    const pixChaveFallback = isDemoMode ? 'contato@demo.salvsacra.com.br' : 'salvsacra2@gmail.com';
     const codigoPix =
       pedidoConcluido.pix_copia_e_cola ||
-      `00020126580014br.gov.bcb.pix0120salvsacra2@gmail.com5204000053039865405${Number(pedidoConcluido.valor_total || totalFinal).toFixed(2)}5802BR5910SALV SACRA6007TUBARAO62140510PEDIDO${String(pedidoConcluido.id).padStart(4, '0')}6304B14F`;
+      `00020126580014br.gov.bcb.pix01${String(pixChaveFallback.length).padStart(2, '0')}${pixChaveFallback}5204000053039865405${Number(pedidoConcluido.valor_total || totalFinal).toFixed(2)}5802BR5910SALV SACRA6007TUBARAO62140510PEDIDO${String(pedidoConcluido.id).padStart(4, '0')}6304B14F`;
     const qrCodeUrl =
       pedidoConcluido.pix_qr_code_base64 ||
       `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(codigoPix)}`;
@@ -1008,26 +1004,28 @@ export default function CheckoutPage() {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={handleConfirmarPagamentoSimulado}
-                disabled={confirmandoPagamento}
-                style={{
-                  width: '100%',
-                  padding: '12px 18px',
-                  background: '#f0fdf4',
-                  color: '#166534',
-                  border: '1.5px solid #86efac',
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                }}
-              >
-                {confirmandoPagamento
-                  ? 'Verificando pagamento...'
-                  : '✓ Já realizei o pagamento / Confirmar PIX agora'}
-              </button>
+              {!isDemoMode && (
+                <button
+                  type="button"
+                  onClick={handleConfirmarPagamentoSimulado}
+                  disabled={confirmandoPagamento}
+                  style={{
+                    width: '100%',
+                    padding: '12px 18px',
+                    background: '#f0fdf4',
+                    color: '#166534',
+                    border: '1.5px solid #86efac',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {confirmandoPagamento
+                    ? 'Verificando pagamento...'
+                    : '✓ Já realizei o pagamento / Confirmar PIX agora'}
+                </button>
+              )}
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
                 <button

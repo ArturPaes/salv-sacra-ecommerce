@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useDemo } from "../contexts/DemoContext";
 import { useWishlist } from "../contexts/WishlistContext";
 import { obterResumoConta } from "../services/contaService";
 import api from "../services/api";
@@ -893,7 +894,13 @@ const PAYMENT_METHODS = [
 ];
 
 function SiteFooter({ configs }) {
-  const whatsNumero = (configs.contato_whatsapp || '5548996205153').replace(/\D/g, '');
+  const { isDemoMode } = useDemo() || {};
+  const whatsDefault = isDemoMode ? '5548999990000' : '5548996205153';
+  const telDefault = isDemoMode ? '(48) 99999-0000' : '(48) 99620-5153';
+  const emailDefault = isDemoMode ? 'contato@demo.salvsacra.com.br' : 'salvsacra2@gmail.com';
+  const endDefault = isDemoMode ? 'Av. Marcolino Martins Cabral, 100 (Demo)' : 'Rua Manoel Antunes Corrêa, 2171';
+
+  const whatsNumero = (configs.contato_whatsapp || whatsDefault).replace(/\D/g, '');
   const whatsUrl = `https://wa.me/${whatsNumero}`;
 
   return (
@@ -919,16 +926,16 @@ function SiteFooter({ configs }) {
           <div className="contact-item">
             <IconWhatsapp />
             <a href={whatsUrl} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-              {configs.contato_whatsapp || '5548996205153'}
+              {configs.contato_whatsapp || whatsDefault}
             </a>
           </div>
           <div className="contact-item">
             <IconPhone />
-            <span>{configs.contato_telefone || '(48) 99620-5153'}</span>
+            <span>{configs.contato_telefone || telDefault}</span>
           </div>
           <div className="contact-item">
             <IconMail />
-            <a href={`mailto:${configs.contato_email || 'salvsacra2@gmail.com'}`}>{configs.contato_email || 'salvsacra2@gmail.com'}</a>
+            <a href={`mailto:${configs.contato_email || emailDefault}`}>{configs.contato_email || emailDefault}</a>
           </div>
         </div>
 
@@ -950,11 +957,11 @@ function SiteFooter({ configs }) {
               ) : (
                 <>
                   <span style={{ display: 'block', color: '#333', fontSize: '13px', lineHeight: 1.4 }}>
-                    {configs.contato_endereco || 'Rua Manoel Antunes Corrêa, 2171'}
+                    {configs.contato_endereco || endDefault}
                   </span>
                   {!configs.contato_endereco?.toLowerCase().includes('tubarão') && (
                     <span style={{ display: 'block', color: '#333', fontSize: '13px', lineHeight: 1.4, marginTop: '3px' }}>
-                      Bairro Oficinas · Tubarão - SC
+                      {isDemoMode ? 'Centro · Tubarão - SC (Demo)' : 'Bairro Oficinas · Tubarão - SC'}
                     </span>
                   )}
                 </>

@@ -18,6 +18,12 @@ const api = axios.create({
   },
 });
 
+// Migra/limpa eventuais resquícios antigos de localStorage para garantir que cada nova abertura de navegador exiba o Portão de Escolha
+try {
+  localStorage.removeItem(ACCESS_MODE_KEY);
+  localStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
+} catch {}
+
 // Injeta token Sanctum e headers do Modo Demo / Loja Oficial em todas as requisições
 api.interceptors.request.use((config) => {
   try {
@@ -26,7 +32,7 @@ api.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    const accessMode = localStorage.getItem(ACCESS_MODE_KEY);
+    const accessMode = sessionStorage.getItem(ACCESS_MODE_KEY);
     const bypassModeHeaders = config.headers?.['X-Skip-Mode-Headers'];
     if (bypassModeHeaders) {
       delete config.headers['X-Skip-Mode-Headers'];
@@ -39,7 +45,7 @@ api.interceptors.request.use((config) => {
         config.headers['X-Demo-Session'] = demoSessionId;
       }
     } else if (accessMode === 'real') {
-      const realAccessToken = localStorage.getItem(REAL_ACCESS_TOKEN_KEY);
+      const realAccessToken = sessionStorage.getItem(REAL_ACCESS_TOKEN_KEY);
       if (realAccessToken && !config.headers['X-Store-Access-Token']) {
         config.headers['X-Store-Access-Token'] = realAccessToken;
       }
@@ -73,10 +79,12 @@ api.interceptors.response.use(
       );
     } else if (status === 403 && data?.code === 'STORE_ACCESS_REQUIRED') {
       try {
-        localStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
-        if (localStorage.getItem(ACCESS_MODE_KEY) === 'real') {
-          localStorage.removeItem(ACCESS_MODE_KEY);
+        sessionStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
+        if (sessionStorage.getItem(ACCESS_MODE_KEY) === 'real') {
+          sessionStorage.removeItem(ACCESS_MODE_KEY);
         }
+        localStorage.removeItem(REAL_ACCESS_TOKEN_KEY);
+        localStorage.removeItem(ACCESS_MODE_KEY);
       } catch {}
 
       window.dispatchEvent(

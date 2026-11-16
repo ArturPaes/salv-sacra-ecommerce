@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import { useDemo } from '../contexts/DemoContext';
 
 const CODIGOS_PADRAO_GUIA = [
@@ -32,6 +33,7 @@ const CODIGOS_PADRAO_GUIA = [
 
 export default function DemoToolbar() {
   const { user } = useAuth();
+  const { isCartOpen } = useCart();
   const {
     isDemoMode,
     demoUsers,
@@ -46,11 +48,17 @@ export default function DemoToolbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [minimizado, setMinimizado] = useState(false);
+  const [minimizado, setMinimizado] = useState(true);
   const [modalGuiaAberto, setModalGuiaAberto] = useState(false);
   const [modalResetAberto, setModalResetAberto] = useState(false);
   const [copiadoChave, setCopiadoChave] = useState('');
   const [toastMsg, setToastMsg] = useState('');
+
+  useEffect(() => {
+    if (isDemoMode) {
+      setMinimizado(true);
+    }
+  }, [isDemoMode]);
 
   if (!isDemoMode) return null;
 
@@ -74,16 +82,14 @@ export default function DemoToolbar() {
 
   const handleVisaoCliente = async () => {
     try {
+      setMinimizado(true);
+      navigate('/', { replace: true });
       if (user && user.papel === 'cliente') {
-        if (location.pathname.startsWith('/admin')) {
-          navigate('/');
-        } else {
-          navigate('/');
-        }
         return;
       }
+      // Garante desmontagem de rotas /admin antes da troca de papel no AuthContext
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const nextUser = await alternarUsuario({ papel: 'cliente' });
-      navigate('/');
       if (nextUser) {
         exibirToast(`Visão Cliente ativada (${nextUser.name})`);
       }
@@ -94,6 +100,7 @@ export default function DemoToolbar() {
 
   const handleVisaoAdmin = async () => {
     try {
+      setMinimizado(true);
       if (user && user.papel === 'admin') {
         if (!location.pathname.startsWith('/admin')) {
           navigate('/admin');
@@ -116,12 +123,20 @@ export default function DemoToolbar() {
     const userId = Number(val);
     if (!userId || userId === user?.id) return;
 
+    const usuarioAlvo = usuariosAtivos.find((u) => Number(u.id) === userId);
+    const indoParaCliente = usuarioAlvo && usuarioAlvo.papel !== 'admin';
+
     try {
+      setMinimizado(true);
+      if (location.pathname.startsWith('/admin') && indoParaCliente) {
+        navigate('/', { replace: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
       const nextUser = await alternarUsuario({ user_id: userId });
       if (nextUser?.papel === 'admin') {
         navigate('/admin');
       } else if (location.pathname.startsWith('/admin')) {
-        navigate('/');
+        navigate('/', { replace: true });
       }
       if (nextUser) {
         exibirToast(`Conta alterada para #${nextUser.id} ${nextUser.name}`);
@@ -133,9 +148,11 @@ export default function DemoToolbar() {
 
   const handleConfirmarReset = async () => {
     try {
-      await resetarDemo();
       setModalResetAberto(false);
-      navigate('/');
+      setMinimizado(true);
+      navigate('/', { replace: true });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await resetarDemo();
       exibirToast('✓ Sessão Demo restaurada para o estado inicial!');
     } catch (err) {
       setModalResetAberto(false);
@@ -151,7 +168,7 @@ export default function DemoToolbar() {
           style={{
             position: 'fixed',
             bottom: minimizado ? '62px' : '74px',
-            right: '16px',
+            ...(isCartOpen ? { left: '16px' } : { right: '16px' }),
             zIndex: 1120,
             background: '#111827',
             color: '#f8fafc',
@@ -173,11 +190,12 @@ export default function DemoToolbar() {
           style={{
             position: 'fixed',
             bottom: '16px',
-            right: '16px',
+            ...(isCartOpen ? { left: '16px', right: 'auto' } : { right: '16px', left: 'auto' }),
             zIndex: 1100,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            transition: 'all 0.2s ease',
           }}
         >
           <button
@@ -211,69 +229,78 @@ export default function DemoToolbar() {
       ) : (
         /* Barra Flutuante Expandida */
         <div
-          role="region"
-          aria-label="Barra de Controle do Modo Demo"
           style={{
             position: 'fixed',
             bottom: '12px',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            left: '12px',
+            right: isCartOpen ? '428px' : '12px',
             zIndex: 1100,
-            width: 'calc(100% - 24px)',
-            maxWidth: '1220px',
-            background: 'rgba(17, 24, 39, 0.96)',
-            backdropFilter: 'blur(8px)',
-            color: '#f8fafc',
-            border: '1.5px solid #c5a880',
-            borderRadius: '14px',
-            padding: '10px 14px',
-            boxShadow: '0 14px 40px rgba(0, 0, 0, 0.45)',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px',
+            justifyContent: isCartOpen ? 'flex-start' : 'center',
+            pointerEvents: 'none',
           }}
         >
-          {/* Identificação da Sessão */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #c5a880 0%, #a38252 100%)',
-                color: '#111827',
-                fontSize: '11px',
-                fontWeight: 900,
-                padding: '4px 10px',
-                borderRadius: '999px',
-                letterSpacing: '0.4px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              🧪 MODO DEMO (Sessão Isolada Salva)
-            </span>
-            <span style={{ fontSize: '12px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
-              {user ? (
-                <>
-                  Ativo:{' '}
-                  <strong style={{ color: '#fff' }}>
-                    {user.papel === 'admin' ? 'Admin' : 'Cliente'} · {user.name}
-                  </strong>
-                </>
-              ) : (
-                'Visitante Demo'
-              )}
-            </span>
-          </div>
-
-          {/* Ações de Troca e Controles */}
           <div
+            role="region"
+            aria-label="Barra de Controle do Modo Demo"
             style={{
+              pointerEvents: 'auto',
+              width: 'fit-content',
+              maxWidth: '100%',
+              background: 'rgba(17, 24, 39, 0.96)',
+              backdropFilter: 'blur(8px)',
+              color: '#f8fafc',
+              border: '1.5px solid #c5a880',
+              borderRadius: '14px',
+              padding: '10px 14px',
+              boxShadow: '0 14px 40px rgba(0, 0, 0, 0.45)',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '7px',
+              gap: '8px',
             }}
           >
+            {/* Identificação da Sessão */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #c5a880 0%, #a38252 100%)',
+                  color: '#111827',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  letterSpacing: '0.4px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                🧪 MODO DEMO (Sessão Isolada Salva)
+              </span>
+              <span style={{ fontSize: '12px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+                {user ? (
+                  <>
+                    Ativo:{' '}
+                    <strong style={{ color: '#fff' }}>
+                      {user.papel === 'admin' ? 'Admin' : 'Cliente'} · {user.name}
+                    </strong>
+                  </>
+                ) : (
+                  'Visitante Demo'
+                )}
+              </span>
+            </div>
+
+            {/* Ações de Troca e Controles */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'nowrap',
+                gap: '7px',
+                maxWidth: '100%',
+                overflowX: 'auto',
+              }}
+            >
             <button
               type="button"
               disabled={loadingAction}
@@ -423,6 +450,7 @@ export default function DemoToolbar() {
             >
               ▼
             </button>
+            </div>
           </div>
         </div>
       )}

@@ -555,7 +555,12 @@ export default function ProdutoForm() {
 
           {/* Descrição */}
           <div className="admin-field" style={{ marginBottom: '16px' }}>
-            <label htmlFor="descricao">Descrição</label>
+            <label htmlFor="descricao">
+              Descrição{' '}
+              <span style={{ fontWeight: 500, fontSize: '12px', color: '#64748b', textTransform: 'none', letterSpacing: 0 }}>
+                (Negrito: *palavra*)
+              </span>
+            </label>
             <textarea
               id="descricao"
               name="descricao"

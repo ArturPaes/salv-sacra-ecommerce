@@ -23,6 +23,7 @@ import {
   excluirPedido,
   listarCartoes,
   listarEnderecos,
+  listarMinhasAvaliacoes,
   listarPedidos,
   listarValesCompraConta,
   obterOpcoesRestituicaoPedido,
@@ -252,7 +253,20 @@ function AlertaValidacaoEmail({ user, compact = false }) {
   );
 }
 
-function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irPara, carregando }) {
+function Resumo({
+  user,
+  pedidos,
+  enderecos,
+  cartoes,
+  totalFavoritos,
+  resumo,
+  irPara,
+  carregando,
+  avaliacoesUsuario,
+  onAvaliacaoAtualizada,
+  configsLoja,
+  recarregar,
+}) {
   const ultimo = resumo?.ultimo_pedido !== undefined ? resumo.ultimo_pedido : pedidos?.[0];
   const pedidoCompleto = pedidos?.find((p) => p.id === ultimo?.id) || ultimo;
   const carregandoResumo = !resumo && carregando;
@@ -260,44 +274,6 @@ function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irP
   const numEnderecos = carregandoResumo ? '—' : (resumo?.total_enderecos !== undefined ? resumo.total_enderecos : (enderecos?.length || 0));
   const numCartoes = carregandoResumo ? '—' : (resumo?.total_cartoes !== undefined ? resumo.total_cartoes : (cartoes?.length || 0));
   const numFavoritos = totalFavoritos ?? resumo?.total_favoritos ?? 0;
-  const [ultimoAberto, setUltimoAberto] = useState(false);
-  const { addMultipleItems, addItem, openCart } = useCart();
-
-  const etapaRastreio = pedidoCompleto ? obterEtapaRastreio(pedidoCompleto.status) : 0;
-  const ehCancelado = pedidoCompleto?.status === 'Cancelado';
-  const ehCartao = (pedidoCompleto?.metodo_pagamento || '').includes('cartao');
-  const previsaoEntrega = pedidoCompleto ? calcularPrevisaoEntrega(pedidoCompleto.data_pedido, pedidoCompleto.tipo_frete) : '';
-
-  const handleComprarUltimo = () => {
-    if (!pedidoCompleto?.itens?.length) return;
-    const listaFormatada = pedidoCompleto.itens.map((it) => {
-      const prod = it.variacao?.produto || it.produto;
-      const fotoProd =
-        (Array.isArray(prod?.imagens_vitrine) && prod.imagens_vitrine[0]) ||
-        (Array.isArray(prod?.imagens) && prod.imagens[0]) ||
-        prod?.imagem_url ||
-        '';
-
-      return {
-        produtoId: it.variacao?.produto_id || it.produto_id || prod?.id,
-        variacaoId: it.variacao_produto_id || it.variacao?.id,
-        nome: prod?.nome || 'Camiseta Salv Sacra',
-        preco: Number(it.preco_unitario || it.preco || prod?.preco_base || 0),
-        imagem: fotoProd,
-        modelo: prod?.modelo || 'Regular Fit',
-        tamanho: it.variacao?.tamanho || 'M',
-        cor: it.variacao?.cor || 'Padrão',
-        quantidade: Number(it.quantidade) || 1,
-      };
-    });
-
-    if (addMultipleItems) {
-      addMultipleItems(listaFormatada);
-    } else {
-      listaFormatada.forEach((it) => addItem(it));
-    }
-    openCart();
-  };
 
   return (
     <>
@@ -327,7 +303,7 @@ function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irP
       </div>
 
       <div className="conta-box">
-        <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: pedidoCompleto ? '12px' : undefined }}>
           <span>Último pedido</span>
           {ultimo && (
             <button
@@ -342,223 +318,17 @@ function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irP
         </h3>
 
         {pedidoCompleto ? (
-          <div>
-            <button
-              type="button"
-              onClick={() => setUltimoAberto(!ultimoAberto)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px 0',
-                textAlign: 'left',
-              }}
-              title="Clique para ver os detalhes deste pedido"
-            >
-              <div>
-                <strong>Pedido #{pedidoCompleto.id}</strong>
-                <span> · {dataBR(pedidoCompleto.data_pedido)}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {pedidoCompleto.devolucao && ['Pendente', 'Aprovada', 'Concluida'].includes(pedidoCompleto.devolucao.status) ? (
-                  <span
-                    style={{
-                      padding: '3px 8px',
-                      borderRadius: '999px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      background:
-                        pedidoCompleto.devolucao.status === 'Pendente'
-                          ? '#fef3c7'
-                          : pedidoCompleto.devolucao.status === 'Aprovada'
-                          ? '#e0f2fe'
-                          : '#dcfce7',
-                      color:
-                        pedidoCompleto.devolucao.status === 'Pendente'
-                          ? '#b45309'
-                          : pedidoCompleto.devolucao.status === 'Aprovada'
-                          ? '#0369a1'
-                          : '#15803d',
-                      border: `1px solid ${
-                        pedidoCompleto.devolucao.status === 'Pendente'
-                          ? '#fde68a'
-                          : pedidoCompleto.devolucao.status === 'Aprovada'
-                          ? '#7dd3fc'
-                          : '#86efac'
-                      }`,
-                    }}
-                  >
-                    {pedidoCompleto.devolucao.status === 'Pendente' && 'Devolução Solicitada'}
-                    {pedidoCompleto.devolucao.status === 'Aprovada' && 'Em Devolução'}
-                    {pedidoCompleto.devolucao.status === 'Concluida' && 'Devolução Concluída'}
-                  </span>
-                ) : (
-                  <span className={`conta-status ${STATUS_CLASS[pedidoCompleto.status] ?? 'pendente'}`}>
-                    {pedidoCompleto.status}
-                  </span>
-                )}
-                <strong>{moeda(pedidoCompleto.valor_total)}</strong>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>
-                  {ultimoAberto ? '▲' : '▼'}
-                </span>
-              </div>
-            </button>
-
-            {/* Dados expandidos do Último Pedido */}
-            {ultimoAberto && (
-              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-                {/* Linha do tempo / Rastreio */}
-                <div className="conta-rastreio-container" style={{ margin: '0 0 18px 0' }}>
-                  <div className="conta-previsao-banner">
-                    <div className="conta-previsao-left">
-                      <span className="conta-previsao-icon">📦</span>
-                      <div className="conta-previsao-text">
-                        <strong>
-                          {ehCancelado
-                            ? 'Pedido Cancelado'
-                            : `Previsão de entrega: ${previsaoEntrega}`}
-                        </strong>
-                        <span>Modalidade de envio: {pedidoCompleto.tipo_frete || 'Correios SEDEX'}</span>
-                      </div>
-                    </div>
-                    <div>
-                      {pedidoCompleto.codigo_rastreio ? (
-                        <a
-                          href={`https://rastreamento.correios.com.br/app/index.php?codigo=${encodeURIComponent(pedidoCompleto.codigo_rastreio)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="conta-codigo-rastreio"
-                          style={{
-                            textDecoration: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            cursor: 'pointer',
-                          }}
-                          title="Clique para rastrear a encomenda nos Correios"
-                        >
-                          📦 Rastreio: {pedidoCompleto.codigo_rastreio} ↗
-                        </a>
-                      ) : (
-                        <span className="conta-codigo-rastreio" title="Código de rastreamento">
-                          {ehCancelado ? 'Envio cancelado' : 'Rastreio: Aguardando postagem'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {!ehCancelado && (() => {
-                    const etapaAtual = etapaRastreio;
-                    const steps = [
-                      { num: 1, label: 'Pendente', sub: etapaAtual > 1 ? 'Concluído' : (ehCartao ? 'Em análise' : 'Aguardando pagamento') },
-                      { num: 2, label: 'Pago', sub: etapaAtual >= 2 ? 'Confirmado' : 'Aguardando' },
-                      { num: 3, label: 'Em separação', sub: etapaAtual > 3 ? 'Concluído' : (etapaAtual === 3 ? 'Separando peças' : 'Pendente') },
-                      { num: 4, label: 'Enviado', sub: etapaAtual >= 4 ? 'Postado na agência' : 'Pendente' },
-                      { num: 5, label: 'Em transporte', sub: etapaAtual >= 5 ? 'A caminho' : 'Pendente' },
-                      { num: 6, label: 'Entregue', sub: etapaAtual >= 6 ? 'Pacote recebido' : 'Pendente' },
-                    ];
-
-                    return (
-                      <div className="conta-timeline">
-                        {steps.map((st) => {
-                          const isCompleted = etapaAtual > st.num || (etapaAtual === 6 && st.num === 6);
-                          const isActive = etapaAtual === st.num && etapaAtual !== 6;
-                          return (
-                            <div
-                              key={st.num}
-                              className={`conta-timeline-step ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}`}
-                            >
-                              <div className="conta-timeline-circle">
-                                {isCompleted ? '✓' : st.num}
-                              </div>
-                              <span className="conta-timeline-label">{st.label}</span>
-                              <span className="conta-timeline-sub">{st.sub}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Tabela de Produtos */}
-                {pedidoCompleto.itens && pedidoCompleto.itens.length > 0 && (
-                  <table className="conta-tabela" style={{ marginBottom: '16px' }}>
-                    <thead>
-                      <tr>
-                        <th>Produto</th>
-                        <th>Qtd</th>
-                        <th>Preço</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pedidoCompleto.itens.map((it) => {
-                        const prod = it.variacao?.produto || it.produto;
-                        return (
-                          <tr key={it.id}>
-                            <td>
-                              <strong>{prod?.nome || 'Camiseta Salv Sacra'}</strong>
-                              <p className="conta-muted" style={{ margin: '2px 0 0' }}>
-                                Tamanho: {it.variacao?.tamanho || 'M'} · Cor: {it.variacao?.cor || 'Padrão'}
-                              </p>
-                            </td>
-                            <td>{it.quantidade}</td>
-                            <td>{moeda(it.preco_unitario || it.preco || prod?.preco_base || 0)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-
-                {/* Informações de Pagamento e Entrega */}
-                <div className="conta-pedido-info" style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px' }}>
-                  <p>
-                    <strong>Pagamento:</strong>{' '}
-                    {pedidoCompleto.metodo_pagamento === 'cartao_credito' || pedidoCompleto.metodo_pagamento === 'cartao'
-                      ? `CARTÃO DE CRÉDITO${pedidoCompleto.cartao_parcelas > 1 ? ` (${pedidoCompleto.cartao_parcelas}x${pedidoCompleto.cartao_valor_parcela ? ` de ${moeda(pedidoCompleto.cartao_valor_parcela)}` : ''})` : ' (À vista)'}`
-                      : pedidoCompleto.metodo_pagamento === 'cartao_debito'
-                      ? 'CARTÃO DE DÉBITO (À vista)'
-                      : pedidoCompleto.metodo_pagamento?.toUpperCase()}
-                  </p>
-                  <p><strong>Frete ({pedidoCompleto.tipo_frete || 'Correios SEDEX'}):</strong> {moeda(pedidoCompleto.valor_frete)}</p>
-                  <p>
-                    <strong>Entrega:</strong> {pedidoCompleto.logradouro}, {pedidoCompleto.numero}
-                    {pedidoCompleto.complemento ? ` - ${pedidoCompleto.complemento}` : ''} — {pedidoCompleto.bairro}, {pedidoCompleto.cidade}/{pedidoCompleto.estado} · CEP {pedidoCompleto.cep}
-                  </p>
-                </div>
-
-                {/* Ações */}
-                {!ehCancelado && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-                    <button
-                      type="button"
-                      onClick={handleComprarUltimo}
-                      style={{
-                        background: '#0f172a',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 18px',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      🛒 Comprar Novamente
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <Pedidos
+            pedidos={[pedidoCompleto]}
+            pedidoSelecionadoInicial={null}
+            autoAvaliar={false}
+            embeddedResumo
+            avaliacoesUsuario={avaliacoesUsuario}
+            onAvaliacaoAtualizada={onAvaliacaoAtualizada}
+            configsLoja={configsLoja}
+            recarregar={recarregar}
+            carregando={carregando}
+          />
         ) : carregando ? (
           <div className="conta-skeleton-linha" />
         ) : (
@@ -572,17 +342,30 @@ function Resumo({ user, pedidos, enderecos, cartoes, totalFavoritos, resumo, irP
 }
 
 /* ───────────────────────── Pedidos ───────────────────────── */
-function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, carregando }) {
+function Pedidos({
+  pedidos,
+  pedidoSelecionadoInicial,
+  autoAvaliar,
+  recarregar,
+  carregando,
+  embeddedResumo = false,
+  avaliacoesUsuario = [],
+  onAvaliacaoAtualizada,
+  configsLoja = {},
+}) {
   const { isDemoMode } = useDemo();
-  const pendenteMaisRecente = pedidos.find((p) => p.status === 'Pendente');
+  const pendenteMaisRecente = embeddedResumo ? null : pedidos.find((p) => p.status === 'Pendente');
   const pendentePixMaisRecente = pedidos.find((p) => p.status === 'Pendente' && !(p.metodo_pagamento || '').includes('cartao'));
   const [aberto, setAberto] = useState(
-    pedidoSelecionadoInicial ? Number(pedidoSelecionadoInicial) : (pendenteMaisRecente ? pendenteMaisRecente.id : null)
+    embeddedResumo
+      ? null
+      : (pedidoSelecionadoInicial ? Number(pedidoSelecionadoInicial) : (pendenteMaisRecente ? pendenteMaisRecente.id : null))
   );
   const [pixAbertoId, setPixAbertoId] = useState(pendentePixMaisRecente ? pendentePixMaisRecente.id : null);
   const [copiadoId, setCopiadoId] = useState(null);
   const [confirmandoId, setConfirmandoId] = useState(null);
   const [simulandoDemoId, setSimulandoDemoId] = useState(null);
+  const [baixandoDeclaracaoId, setBaixandoDeclaracaoId] = useState(null);
   const [agoraMs, setAgoraMs] = useState(() => Date.now());
   const [pedidoParaCancelar, setPedidoParaCancelar] = useState(null);
   const [cancelando, setCancelando] = useState(false);
@@ -598,10 +381,36 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
   const [msgCancelamento, setMsgCancelamento] = useState({ tipo: '', texto: '', pedidoId: null });
   const { addItem, addMultipleItems, openCart } = useCart();
   const [produtoParaAvaliar, setProdutoParaAvaliar] = useState(null);
-  const [formAvaliacao, setFormAvaliacao] = useState({ nota: 5, comentario: '' });
+  const [formAvaliacao, setFormAvaliacao] = useState({ nota: 5, titulo: '', comentario: '' });
   const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
+  const [excluindoAvaliacaoId, setExcluindoAvaliacaoId] = useState(null);
   const [msgAvaliacao, setMsgAvaliacao] = useState({ tipo: '', texto: '' });
-  const [avaliadosIds, setAvaliadosIds] = useState([]);
+  const [avaliacoesAdicionadas, setAvaliacoesAdicionadas] = useState([]);
+  const [avaliacoesEditadasMap, setAvaliacoesEditadasMap] = useState({});
+  const [avaliacoesRemovidasIds, setAvaliacoesRemovidasIds] = useState([]);
+  const [avaliacaoAtualModal, setAvaliacaoAtualModal] = useState(null);
+  const [modoModalAvaliacao, setModoModalAvaliacao] = useState('nova'); // 'visualizar' | 'editar' | 'nova'
+
+  const obterAvaliacoesProduto = (produtoId) => {
+    const pid = Number(produtoId);
+    const porId = new Map();
+    (avaliacoesUsuario || [])
+      .filter((av) => Number(av.produto_id) === pid)
+      .forEach((av) => porId.set(av.id, av));
+    avaliacoesAdicionadas
+      .filter((av) => Number(av.produto_id) === pid)
+      .forEach((av) => porId.set(av.id, av));
+    return Array.from(porId.values())
+      .filter((av) => !avaliacoesRemovidasIds.includes(av.id))
+      .map((av) => avaliacoesEditadasMap[av.id] || av)
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at || b.created_at || 0).getTime() -
+          new Date(a.updated_at || a.created_at || 0).getTime()
+      );
+  };
+
+  const avaliacoesModalProduto = produtoParaAvaliar ? obterAvaliacoesProduto(produtoParaAvaliar.id) : [];
 
   // Devoluções & Trocas (Logística Reversa)
   const [pedidoParaDevolucao, setPedidoParaDevolucao] = useState(null);
@@ -786,6 +595,41 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
     openCart();
   };
 
+  const handleBaixarDeclaracao = async (devolucao) => {
+    if (!devolucao?.id) return;
+    setBaixandoDeclaracaoId(devolucao.id);
+    try {
+      const response = await api.get(`/devolucoes/${devolucao.id}/declaracao`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], {
+        type: response.headers?.['content-type'] || 'application/octet-stream',
+      });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute(
+        'download',
+        devolucao.declaracao_conteudo_nome || `declaracao_conteudo_pedido_${devolucao.pedido_id || devolucao.id}.pdf`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+    } catch (err) {
+      setModalAviso({
+        aberto: true,
+        titulo: 'Erro ao Baixar Declaração',
+        mensagem:
+          err?.response?.data?.message ||
+          'Não foi possível baixar a Declaração de Conteúdo agora. Tente novamente.',
+        icon: '⚠️',
+      });
+    } finally {
+      setBaixandoDeclaracaoId(null);
+    }
+  };
+
   const handleSubmeterAvaliacao = async (e) => {
     e.preventDefault();
     if (!produtoParaAvaliar) return;
@@ -796,16 +640,40 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
     setEnviandoAvaliacao(true);
     setMsgAvaliacao({ tipo: '', texto: '' });
     try {
-      await api.post(`/produtos/${produtoParaAvaliar.id}/avaliacoes`, {
+      const payload = {
         nota: Number(formAvaliacao.nota),
+        titulo: formAvaliacao.titulo?.trim() || null,
         comentario: formAvaliacao.comentario.trim(),
+      };
+
+      const isEdicao = modoModalAvaliacao === 'editar' && avaliacaoAtualModal?.id;
+      const { data } = isEdicao
+        ? await api.put(`/avaliacoes/${avaliacaoAtualModal.id}`, payload)
+        : await api.post(`/produtos/${produtoParaAvaliar.id}/avaliacoes`, payload);
+
+      if (data?.avaliacao) {
+        if (isEdicao) {
+          setAvaliacoesEditadasMap((prev) => ({
+            ...prev,
+            [data.avaliacao.id]: data.avaliacao,
+          }));
+        } else {
+          setAvaliacoesRemovidasIds((prev) => prev.filter((id) => id !== data.avaliacao.id));
+          setAvaliacoesAdicionadas((prev) => [...prev.filter((a) => a.id !== data.avaliacao.id), data.avaliacao]);
+        }
+        setAvaliacaoAtualModal(data.avaliacao);
+      }
+      if (onAvaliacaoAtualizada) onAvaliacaoAtualizada();
+      setMsgAvaliacao({
+        tipo: 'ok',
+        texto: isEdicao
+          ? 'Avaliação atualizada com sucesso!'
+          : 'Avaliação publicada com sucesso! Muito obrigado pelo feedback.',
       });
-      setAvaliadosIds((prev) => [...prev, produtoParaAvaliar.id]);
-      setMsgAvaliacao({ tipo: 'ok', texto: 'Avaliação publicada com sucesso! Muito obrigado pelo feedback.' });
       setTimeout(() => {
         setProdutoParaAvaliar(null);
         setMsgAvaliacao({ tipo: '', texto: '' });
-      }, 1800);
+      }, 1500);
     } catch (err) {
       setMsgAvaliacao({
         tipo: 'erro',
@@ -813,6 +681,43 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
       });
     } finally {
       setEnviandoAvaliacao(false);
+    }
+  };
+
+  const handleExcluirAvaliacao = async (avId) => {
+    if (!avId || !produtoParaAvaliar) return;
+    setExcluindoAvaliacaoId(avId);
+    setMsgAvaliacao({ tipo: '', texto: '' });
+    try {
+      await api.delete(`/avaliacoes/${avId}`);
+      const novasRemovidas = [...new Set([...avaliacoesRemovidasIds, avId])];
+      setAvaliacoesRemovidasIds(novasRemovidas);
+      setAvaliacoesAdicionadas((prev) => prev.filter((a) => a.id !== avId));
+      setAvaliacoesEditadasMap((prev) => {
+        const next = { ...prev };
+        delete next[avId];
+        return next;
+      });
+      if (avaliacaoAtualModal?.id === avId) {
+        setAvaliacaoAtualModal(null);
+      }
+      if (onAvaliacaoAtualizada) onAvaliacaoAtualizada();
+      const restantes = obterAvaliacoesProduto(produtoParaAvaliar.id).filter((a) => !novasRemovidas.includes(a.id));
+      if (restantes.length === 0) {
+        setMsgAvaliacao({ tipo: 'ok', texto: 'Avaliação excluída! Você pode escrever uma nova se desejar.' });
+        setFormAvaliacao({ nota: 5, titulo: '', comentario: '' });
+        setModoModalAvaliacao('nova');
+      } else {
+        setMsgAvaliacao({ tipo: 'ok', texto: 'Avaliação excluída com sucesso.' });
+        setModoModalAvaliacao('visualizar');
+      }
+    } catch (err) {
+      setMsgAvaliacao({
+        tipo: 'erro',
+        texto: err.response?.data?.message || 'Não foi possível excluir a avaliação.',
+      });
+    } finally {
+      setExcluindoAvaliacaoId(null);
     }
   };
 
@@ -824,17 +729,22 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
       if (autoAvaliar && pedidos.length) {
         const ped = pedidos.find((p) => p.id === Number(pedidoSelecionadoInicial));
         if (ped && ped.status === 'Entregue' && ped.itens?.length) {
-          const itemParaAvaliar = ped.itens.find((i) => i.variacao?.produto && !avaliadosIds.includes(i.variacao.produto.id)) || ped.itens[0];
+          const itemParaAvaliar =
+            ped.itens.find((i) => i.variacao?.produto && obterAvaliacoesProduto(i.variacao.produto.id).length === 0) ||
+            ped.itens[0];
           if (itemParaAvaliar?.variacao?.produto) {
+            const listaExistente = obterAvaliacoesProduto(itemParaAvaliar.variacao.produto.id);
             setProdutoParaAvaliar(itemParaAvaliar.variacao.produto);
+            setAvaliacaoAtualModal(listaExistente[0] || null);
+            setModoModalAvaliacao(listaExistente.length > 0 ? 'visualizar' : 'nova');
           }
         }
       }
-    } else if (pendenteMaisRecente && aberto === null) {
+    } else if (!embeddedResumo && pendenteMaisRecente && aberto === null) {
       setAberto(pendenteMaisRecente.id);
       setPixAbertoId(pendenteMaisRecente.id);
     }
-  }, [pedidoSelecionadoInicial, pendenteMaisRecente?.id, autoAvaliar, pedidos]);
+  }, [pedidoSelecionadoInicial, pendenteMaisRecente?.id, autoAvaliar, pedidos, embeddedResumo]);
 
   // Atualiza cronômetro regressivo de 30 minutos para pedidos Pendente e cancela automaticamente ao zerar
   useEffect(() => {
@@ -1024,10 +934,16 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
     }
   };
 
+  const whatsDefault = isDemoMode ? '5548999990000' : '5548996205153';
+  const whatsNumeroLoja = String(configsLoja?.contato_whatsapp || whatsDefault).replace(/\D/g, '') || whatsDefault;
+  const telDefault = isDemoMode ? '(48) 99999-0000' : '(48) 99620-5153';
+  const telLojaFmt = configsLoja?.contato_telefone || telDefault;
+  const pixChaveFallback = isDemoMode ? 'contato@demo.salvsacra.com.br' : 'salvsacra2@gmail.com';
+
   if (!pedidos.length) {
     return (
       <>
-        <h2 className="conta-section-title">Meus pedidos</h2>
+        {!embeddedResumo && <h2 className="conta-section-title">Meus pedidos</h2>}
         {carregando ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '220px' }}>
             <LoadingSpinner />
@@ -1043,7 +959,7 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
 
   return (
     <>
-      <h2 className="conta-section-title">Meus pedidos</h2>
+      {!embeddedResumo && <h2 className="conta-section-title">Meus pedidos</h2>}
 
       {msgCancelamento.texto && (
         <div
@@ -1072,7 +988,7 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
           const itensResumo = (p.itens || [])
             .map((i) => `${i.quantidade}x ${i.variacao?.produto?.nome ?? 'Produto'} (${i.variacao?.tamanho || ''}/${i.variacao?.cor || ''})`)
             .join(', ');
-          const linkWhatsappSuporte = `https://wa.me/5548996205153?text=${encodeURIComponent(
+          const linkWhatsappSuporte = `https://wa.me/${whatsNumeroLoja}?text=${encodeURIComponent(
             `Olá! Gostaria de solicitar a devolução referente ao meu Pedido #${p.id} (${itensResumo}).`
           )}`;
 
@@ -1086,7 +1002,7 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
 
           const codigoPixPedido =
             p.pix_copia_e_cola ||
-            `00020126580014br.gov.bcb.pix0120salvsacra2@gmail.com5204000053039865405${Number(p.valor_total || 0).toFixed(2)}5802BR5910SALV SACRA6007TUBARAO62140510PEDIDO${String(p.id).padStart(4, '0')}6304B14F`;
+            `00020126580014br.gov.bcb.pix01${String(pixChaveFallback.length).padStart(2, '0')}${pixChaveFallback}5204000053039865405${Number(p.valor_total || 0).toFixed(2)}5802BR5910SALV SACRA6007TUBARAO62140510PEDIDO${String(p.id).padStart(4, '0')}6304B14F`;
           const qrCodeUrlPedido =
             p.pix_qr_code_base64 ||
             `https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=10&data=${encodeURIComponent(codigoPixPedido)}`;
@@ -1339,24 +1255,26 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                             >
                               {copiadoId === p.id ? '✓ Código PIX Copiado!' : '📋 Copiar Código PIX'}
                             </button>
-                            <button
-                              type="button"
-                              disabled={confirmandoId === p.id}
-                              onClick={() => handleConfirmarPagamentoPedido(p.id)}
-                              style={{
-                                flex: 1,
-                                padding: '10px 14px',
-                                background: '#f0fdf4',
-                                color: '#166534',
-                                border: '1.5px solid #86efac',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {confirmandoId === p.id ? 'Verificando...' : '✓ Já realizei o pagamento'}
-                            </button>
+                            {!isDemoMode && (
+                              <button
+                                type="button"
+                                disabled={confirmandoId === p.id}
+                                onClick={() => handleConfirmarPagamentoPedido(p.id)}
+                                style={{
+                                  flex: 1,
+                                  padding: '10px 14px',
+                                  background: '#f0fdf4',
+                                  color: '#166534',
+                                  border: '1.5px solid #86efac',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {confirmandoId === p.id ? 'Verificando...' : '✓ Já realizei o pagamento'}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1514,7 +1432,8 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                   <tbody>
                     {p.itens?.map((i) => {
                       const prodObj = i.variacao?.produto || { id: i.produto_id, nome: i.produto?.nome || 'Camiseta' };
-                      const jaAvaliado = avaliadosIds.includes(prodObj.id);
+                      const avaliacoesExistentes = obterAvaliacoesProduto(prodObj.id);
+                      const jaAvaliado = avaliacoesExistentes.length > 0;
 
                       return (
                         <tr key={i.id}>
@@ -1534,8 +1453,16 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                                 type="button"
                                 onClick={() => {
                                   setProdutoParaAvaliar(prodObj);
-                                  setFormAvaliacao({ nota: 5, titulo: '', comentario: '' });
                                   setMsgAvaliacao({ tipo: '', texto: '' });
+                                  if (jaAvaliado) {
+                                    setAvaliacaoAtualModal(avaliacoesExistentes[0]);
+                                    setFormAvaliacao({ nota: 5, titulo: '', comentario: '' });
+                                    setModoModalAvaliacao('visualizar');
+                                  } else {
+                                    setAvaliacaoAtualModal(null);
+                                    setFormAvaliacao({ nota: 5, titulo: '', comentario: '' });
+                                    setModoModalAvaliacao('nova');
+                                  }
                                 }}
                                 style={{
                                   background: jaAvaliado ? '#f0fdf4' : '#fef3c7',
@@ -1553,7 +1480,11 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                                 }}
                                 onMouseOver={(e) => { e.currentTarget.style.opacity = '0.85'; }}
                                 onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
-                                title="Deixe sua avaliação com estrelas sobre este produto"
+                                title={
+                                  jaAvaliado
+                                    ? 'Ver, editar ou fazer outra avaliação para este produto'
+                                    : 'Deixe sua avaliação com estrelas sobre este produto'
+                                }
                               >
                                 {jaAvaliado ? '✓ Avaliado' : '⭐ Avaliar'}
                               </button>
@@ -1813,27 +1744,29 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                                     Imprima o documento para fixar na embalagem ou entregar ao atendente da agência.
                                   </span>
                                 </div>
-                                <a
-                                  href={p.devolucao.declaracao_conteudo_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  download={p.devolucao.declaracao_conteudo_nome || 'declaracao_conteudo.pdf'}
+                                <button
+                                  type="button"
+                                  disabled={baixandoDeclaracaoId === p.devolucao.id}
+                                  onClick={() => handleBaixarDeclaracao(p.devolucao)}
                                   style={{
                                     background: '#166534',
                                     color: '#fff',
+                                    border: 'none',
                                     padding: '7px 15px',
                                     borderRadius: '6px',
                                     fontSize: '12px',
                                     fontWeight: 700,
-                                    textDecoration: 'none',
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '6px',
+                                    cursor: baixandoDeclaracaoId === p.devolucao.id ? 'wait' : 'pointer',
                                     boxShadow: '0 2px 5px rgba(22,101,52,0.25)',
                                   }}
                                 >
-                                  📥 Baixar Declaração de Conteúdo ↗
-                                </a>
+                                  {baixandoDeclaracaoId === p.devolucao.id
+                                    ? '⏳ Baixando Declaração...'
+                                    : '📥 Baixar Declaração de Conteúdo'}
+                                </button>
                               </div>
                             )}
 
@@ -1863,7 +1796,13 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
 
                             {p.devolucao.instrucoes_admin && (
                               <p style={{ margin: '8px 0 14px', fontSize: '12px', color: '#555', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #eee' }}>
-                                💡 <em>Orientações adicionais do lojista: {p.devolucao.instrucoes_admin}</em>
+                                💡{' '}
+                                <em>
+                                  Orientações adicionais do lojista:{' '}
+                                  {isDemoMode
+                                    ? String(p.devolucao.instrucoes_admin).replace(/\(48\)\s*99620-5153|5548996205153|48996205153/g, telLojaFmt)
+                                    : p.devolucao.instrucoes_admin}
+                                </em>
                               </p>
                             )}
 
@@ -1873,7 +1812,7 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                                 💬 Ficou com alguma dúvida sobre a postagem? Fale conosco:
                               </span>
                               <a
-                                href={`https://wa.me/5548996205153?text=${encodeURIComponent(
+                                href={`https://wa.me/${whatsNumeroLoja}?text=${encodeURIComponent(
                                   `Olá! Gostaria de tirar uma dúvida sobre a devolução do meu Pedido #${p.id}`
                                 )}`}
                                 target="_blank"
@@ -1892,7 +1831,7 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                                   boxShadow: '0 2px 6px rgba(37,211,102,0.3)',
                                 }}
                               >
-                                Fale no WhatsApp (48) 99620-5153 ↗
+                                Fale no WhatsApp {telLojaFmt} ↗
                               </a>
                             </div>
                           </div>
@@ -2307,15 +2246,17 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
             zIndex: 1300,
             padding: '20px',
           }}
-          onClick={() => !enviandoAvaliacao && setProdutoParaAvaliar(null)}
+          onClick={() => !enviandoAvaliacao && !excluindoAvaliacaoId && setProdutoParaAvaliar(null)}
         >
           <div
             style={{
               background: '#fff',
               borderRadius: '14px',
               padding: '28px 30px',
-              maxWidth: '480px',
+              maxWidth: '520px',
               width: '100%',
+              maxHeight: '88vh',
+              overflowY: 'auto',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -2337,7 +2278,13 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                   Compra Verificada
                 </span>
                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '8px 0 2px 0' }}>
-                  Avaliar Produto
+                  {modoModalAvaliacao === 'visualizar'
+                    ? avaliacoesModalProduto.length > 1
+                      ? `Suas Avaliações Publicadas (${avaliacoesModalProduto.length})`
+                      : 'Sua Avaliação Publicada'
+                    : modoModalAvaliacao === 'editar'
+                      ? 'Editar Avaliação'
+                      : 'Avaliar Produto'}
                 </h3>
                 <p style={{ fontSize: '13px', color: '#64748b' }}>
                   {produtoParaAvaliar.nome}
@@ -2346,7 +2293,7 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
               <button
                 type="button"
                 onClick={() => setProdutoParaAvaliar(null)}
-                disabled={enviandoAvaliacao}
+                disabled={enviandoAvaliacao || Boolean(excluindoAvaliacaoId)}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -2377,7 +2324,156 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
               </div>
             )}
 
+            {modoModalAvaliacao === 'visualizar' && avaliacoesModalProduto.length > 0 ? (
+              <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+                  {avaliacoesModalProduto.map((av) => (
+                    <div
+                      key={av.id}
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '14px 16px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '8px',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '18px', color: '#f59e0b' }}>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <span key={n} style={{ color: n <= Number(av.nota) ? '#f59e0b' : '#cbd5e1' }}>
+                              ★
+                            </span>
+                          ))}
+                          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155', marginLeft: '6px' }}>
+                            {av.nota}/5
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '11.5px', color: '#64748b', marginRight: '4px' }}>
+                            {dataBR(av.updated_at || av.created_at)}
+                          </span>
+                          <button
+                            type="button"
+                            title="Editar avaliação"
+                            aria-label="Editar avaliação"
+                            disabled={excluindoAvaliacaoId === av.id}
+                            onClick={() => {
+                              setAvaliacaoAtualModal(av);
+                              setFormAvaliacao({
+                                nota: Number(av.nota) || 5,
+                                titulo: av.titulo || '',
+                                comentario: av.comentario || '',
+                              });
+                              setMsgAvaliacao({ tipo: '', texto: '' });
+                              setModoModalAvaliacao('editar');
+                            }}
+                            style={{
+                              background: '#fff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '6px',
+                              width: '30px',
+                              height: '30px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                            }}
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            title="Excluir avaliação"
+                            aria-label="Excluir avaliação"
+                            disabled={excluindoAvaliacaoId === av.id}
+                            onClick={() => handleExcluirAvaliacao(av.id)}
+                            style={{
+                              background: '#fff',
+                              border: '1px solid #fca5a5',
+                              color: '#dc2626',
+                              borderRadius: '6px',
+                              width: '30px',
+                              height: '30px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: excluindoAvaliacaoId === av.id ? 'wait' : 'pointer',
+                              fontSize: '14px',
+                              opacity: excluindoAvaliacaoId === av.id ? 0.6 : 1,
+                            }}
+                          >
+                            {excluindoAvaliacaoId === av.id ? '⏳' : '🗑️'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {av.titulo && (
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                          {av.titulo}
+                        </div>
+                      )}
+
+                      <p style={{ margin: 0, fontSize: '13.5px', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                        {av.comentario}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAvaliacaoAtualModal(null);
+                      setFormAvaliacao({ nota: 5, titulo: '', comentario: '' });
+                      setMsgAvaliacao({ tipo: '', texto: '' });
+                      setModoModalAvaliacao('nova');
+                    }}
+                    style={{
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    📝 Fazer outra avaliação
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProdutoParaAvaliar(null)}
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#475569',
+                      border: 'none',
+                      padding: '10px 18px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            ) : (
             <form onSubmit={handleSubmeterAvaliacao}>
+
               {/* Seletor de Estrelas */}
               <div style={{ marginBottom: '18px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
@@ -2446,43 +2542,74 @@ function Pedidos({ pedidos, pedidoSelecionadoInicial, autoAvaliar, recarregar, c
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setProdutoParaAvaliar(null)}
-                  disabled={enviandoAvaliacao}
-                  style={{
-                    background: '#f1f5f9',
-                    color: '#475569',
-                    border: 'none',
-                    padding: '9px 18px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={enviandoAvaliacao}
-                  style={{
-                    background: '#0f172a',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '9px 20px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: enviandoAvaliacao ? 'not-allowed' : 'pointer',
-                    opacity: enviandoAvaliacao ? 0.7 : 1,
-                  }}
-                >
-                  {enviandoAvaliacao ? 'Publicando...' : 'Publicar Avaliação'}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div>
+                  {avaliacoesModalProduto.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMsgAvaliacao({ tipo: '', texto: '' });
+                        setModoModalAvaliacao('visualizar');
+                      }}
+                      disabled={enviandoAvaliacao}
+                      style={{
+                        background: 'transparent',
+                        color: '#475569',
+                        border: 'none',
+                        padding: '6px 4px',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      ← Ver {avaliacoesModalProduto.length > 1 ? `avaliações (${avaliacoesModalProduto.length})` : 'avaliação atual'}
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
+                  <button
+                    type="button"
+                    onClick={() => setProdutoParaAvaliar(null)}
+                    disabled={enviandoAvaliacao}
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#475569',
+                      border: 'none',
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={enviandoAvaliacao}
+                    style={{
+                      background: '#0f172a',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '9px 20px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: enviandoAvaliacao ? 'not-allowed' : 'pointer',
+                      opacity: enviandoAvaliacao ? 0.7 : 1,
+                    }}
+                  >
+                    {enviandoAvaliacao
+                      ? 'Salvando...'
+                      : modoModalAvaliacao === 'editar'
+                        ? 'Salvar Alterações'
+                        : 'Publicar Avaliação'}
+                  </button>
+                </div>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}
@@ -4365,6 +4492,8 @@ export default function MinhaContaPage() {
   });
   const [enderecos, setEnderecos] = useState([]);
   const [cartoes, setCartoes] = useState([]);
+  const [avaliacoesUsuario, setAvaliacoesUsuario] = useState([]);
+  const [configsLoja, setConfigsLoja] = useState({});
   const [excluindoConta, setExcluindoConta] = useState(false);
   const [modalExcluirConta, setModalExcluirConta] = useState(false);
 
@@ -4441,6 +4570,14 @@ export default function MinhaContaPage() {
       .catch(() => {});
   }, []);
 
+  const carregarAvaliacoes = useCallback(() => {
+    return listarMinhasAvaliacoes()
+      .then(({ data }) => {
+        setAvaliacoesUsuario(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     let ativo = true;
     if (isAuthenticated && user?.id) {
@@ -4454,12 +4591,19 @@ export default function MinhaContaPage() {
           carregarPedidos();
           carregarEnderecos();
           carregarCartoes();
+          carregarAvaliacoes();
         });
+
+      api.get('/configuracoes/publicas')
+        .then((res) => {
+          if (ativo && res?.data) setConfigsLoja(res.data);
+        })
+        .catch(() => {});
     }
     return () => {
       ativo = false;
     };
-  }, [isAuthenticated, user?.id, carregarResumo, carregarPedidos, carregarEnderecos, carregarCartoes]);
+  }, [isAuthenticated, user?.id, carregarResumo, carregarPedidos, carregarEnderecos, carregarCartoes, carregarAvaliacoes]);
 
   useEffect(() => {
     const handleAtualizados = () => {
@@ -4602,6 +4746,14 @@ export default function MinhaContaPage() {
                 resumo={resumo}
                 irPara={setAba}
                 carregando={carregandoDados}
+                avaliacoesUsuario={avaliacoesUsuario}
+                onAvaliacaoAtualizada={carregarAvaliacoes}
+                configsLoja={configsLoja}
+                recarregar={() => {
+                  carregarPedidos();
+                  carregarResumo();
+                  carregarAvaliacoes();
+                }}
               />
             )}
             {aba === 'pedidos' && (
@@ -4610,9 +4762,13 @@ export default function MinhaContaPage() {
                 pedidoSelecionadoInicial={urlPedido}
                 autoAvaliar={urlAvaliar === '1' || urlAvaliar === 'true'}
                 carregando={carregandoPedidos}
+                avaliacoesUsuario={avaliacoesUsuario}
+                onAvaliacaoAtualizada={carregarAvaliacoes}
+                configsLoja={configsLoja}
                 recarregar={() => {
                   carregarPedidos();
                   carregarResumo();
+                  carregarAvaliacoes();
                 }}
               />
             )}

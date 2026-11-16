@@ -101,7 +101,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('avisos-estoque',                 [\App\Http\Controllers\AvisoEstoqueController::class, 'index']);
     Route::post('avisos-estoque',                [\App\Http\Controllers\AvisoEstoqueController::class, 'toggle']);
     Route::post('produtos/{produto}/avaliacoes', [\App\Http\Controllers\AvaliacaoController::class, 'store']);
+    Route::put('avaliacoes/{avaliacao}',         [\App\Http\Controllers\AvaliacaoController::class, 'update']);
     Route::delete('avaliacoes/{avaliacao}',      [\App\Http\Controllers\AvaliacaoController::class, 'destroy']);
+    Route::get('devolucoes/{devolucao}/declaracao', [\App\Http\Controllers\DevolucaoController::class, 'baixarDeclaracao']);
 
     // ── Minha Conta (cliente autenticado) ─────────────────────────────
     Route::prefix('conta')->group(function () {
@@ -122,6 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('favoritos/sincronizar',[\App\Http\Controllers\ContaController::class, 'sincronizarFavoritos']);
         Route::post('favoritos/{produto}', [\App\Http\Controllers\ContaController::class, 'toggleFavorito']);
         Route::get('vales-compra',              [\App\Http\Controllers\CupomController::class, 'meusVales']);
+        Route::get('avaliacoes',                [\App\Http\Controllers\ContaController::class, 'avaliacoes']);
         Route::post('enviar-verificacao-email', [\App\Http\Controllers\ContaController::class, 'enviarVerificacaoEmail']);
         Route::delete('excluir',                [\App\Http\Controllers\ContaController::class, 'excluirConta']);
     });

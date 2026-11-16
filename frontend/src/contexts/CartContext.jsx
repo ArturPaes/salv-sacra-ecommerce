@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
-import { listarEnderecos, obterUltimoEndereco } from '../services/contaService';
+import { listarEnderecos } from '../services/contaService';
 import { listarCuponsDisponiveis, listarMeusVales } from '../services/cupomService';
 
 const CartContext = createContext({});
@@ -63,19 +63,8 @@ export function CartProvider({ children }) {
                 const formatado = `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
                 setCep(formatado);
                 localStorage.setItem('@SalvSacra:cep', formatado);
-                return;
               }
             }
-            return obterUltimoEndereco().then((res) => {
-              if (res?.data?.cep) {
-                const limpo = String(res.data.cep).replace(/\D/g, '');
-                if (limpo.length === 8) {
-                  const formatado = `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
-                  setCep(formatado);
-                  localStorage.setItem('@SalvSacra:cep', formatado);
-                }
-              }
-            });
           })
           .catch(() => {});
       }
