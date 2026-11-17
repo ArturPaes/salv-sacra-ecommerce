@@ -910,7 +910,18 @@ function SiteFooter({ configs }) {
         {/* Quem somos */}
         <div className="footer-col">
           <h4>Quem somos</h4>
-          <Link to="/quem-somos">Salv Sacra</Link>
+          <Link to="/quem-somos">{configs.nome_loja || 'Salv Sacra'}</Link>
+          <p
+            style={{
+              margin: '6px 0 0',
+              fontSize: '12px',
+              color: '#666',
+              lineHeight: 1.5,
+              fontStyle: 'italic',
+            }}
+          >
+            {configs.slogan_loja || 'Vestindo a Fé com Elegância'}
+          </p>
         </div>
 
         {/* Institucional */}
@@ -1010,7 +1021,7 @@ function SiteFooter({ configs }) {
       {/* Copyright */}
       <div className="footer-copyright">
         <p>
-          Copyright <a href="#">{configs.nome_loja || 'SALV SACRA'}</a> · {new Date().getFullYear()}. Todos os direitos reservados.
+          Copyright <a href="#">{configs.nome_loja || 'SALV SACRA'}</a> · {configs.slogan_loja || 'Vestindo a Fé com Elegância'} · {new Date().getFullYear()}. Todos os direitos reservados.
         </p>
       </div>
     </footer>
@@ -1022,14 +1033,34 @@ export default function MainLayout({ children, breadcrumbs }) {
   const [configs, setConfigs] = useState({});
 
   useEffect(() => {
-    fetch('/api/configuracoes')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && typeof data === 'object') {
-          setConfigs(data);
-        }
-      })
-      .catch(() => {});
+    const carregarConfigsVitrine = () => {
+      api.get('/configuracoes/publicas', { params: { _t: Date.now() } })
+        .then((res) => {
+          if (res.data && typeof res.data === 'object') {
+            setConfigs(res.data);
+          }
+        })
+        .catch(() => {});
+    };
+
+    carregarConfigsVitrine();
+    const handleStorage = (e) => {
+      if (e.key === 'salv_sync_trigger') carregarConfigsVitrine();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') carregarConfigsVitrine();
+    };
+    window.addEventListener('salv-config-atualizadas', carregarConfigsVitrine);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', carregarConfigsVitrine);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('salv-config-atualizadas', carregarConfigsVitrine);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', carregarConfigsVitrine);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   return (

@@ -107,7 +107,14 @@ class DemoSandboxMiddleware
             return true;
         }
 
-        if ($request->is('up', 'api/demo', 'api/demo/*', 'api/webhooks/*')) {
+        if ($request->is(
+            'up',
+            'api/demo',
+            'api/demo/*',
+            'api/webhooks/*',
+            'api/auth/verificar-email',
+            'api/auth/reenviar-validacao'
+        )) {
             return true;
         }
 

@@ -33,7 +33,9 @@ class ConfiguracaoController extends Controller
             }
         }
 
-        return response()->json($configs);
+        return response()
+            ->json($configs)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     /**
@@ -42,46 +44,42 @@ class ConfiguracaoController extends Controller
     public function publicas(): JsonResponse
     {
         $isDemo = DemoSandboxService::isDemo();
-        $cacheKey = $isDemo
-            ? 'config_publicas:demo:' . DemoSandboxService::currentSessionId()
-            : 'config_publicas:real';
 
-        $configs = Cache::store('file')->remember($cacheKey, 300, function () use ($isDemo) {
-            $chavesPublicas = [
-                'nome_loja',
-                'slogan_loja',
-                'frete_gratis_minimo',
-                'aviso_topo_texto',
-                'aviso_topo_ativo',
-                'pix_desconto_pct',
-                'mercadopago_public_key',
-                'cartao_parcelas_max',
-                'cartao_parcela_minima',
-                'cartao_gateway_modo',
-                'contato_email',
-                'contato_telefone',
-                'contato_whatsapp',
-                'contato_endereco',
-                'instagram_url',
-                'carrossel_slides',
-            ];
+        $chavesPublicas = [
+            'nome_loja',
+            'slogan_loja',
+            'frete_gratis_minimo',
+            'aviso_topo_texto',
+            'aviso_topo_ativo',
+            'pix_desconto_pct',
+            'mercadopago_public_key',
+            'cartao_parcelas_max',
+            'cartao_parcela_minima',
+            'cartao_gateway_modo',
+            'contato_email',
+            'contato_telefone',
+            'contato_whatsapp',
+            'contato_endereco',
+            'instagram_url',
+            'carrossel_slides',
+        ];
 
-            $rows = Configuracao::whereIn('chave', $chavesPublicas)
-                ->pluck('valor', 'chave');
+        $configs = Configuracao::whereIn('chave', $chavesPublicas)
+            ->pluck('valor', 'chave')
+            ->toArray();
 
-            if ($isDemo) {
-                $overrides = DemoSandboxService::getDemoConfigOverrides();
-                foreach (['mercadopago_public_key', 'cartao_gateway_modo'] as $chave) {
-                    if (isset($overrides[$chave])) {
-                        $rows[$chave] = $overrides[$chave]['valor'];
-                    }
+        if ($isDemo) {
+            $overrides = DemoSandboxService::getDemoConfigOverrides();
+            foreach (['mercadopago_public_key', 'cartao_gateway_modo'] as $chave) {
+                if (isset($overrides[$chave])) {
+                    $configs[$chave] = $overrides[$chave]['valor'];
                 }
             }
+        }
 
-            return $rows;
-        });
-
-        return response()->json($configs);
+        return response()
+            ->json($configs)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     /**

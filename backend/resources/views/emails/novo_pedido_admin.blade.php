@@ -12,7 +12,8 @@
           <!-- Header -->
           <tr>
             <td align="center" style="background-color: #111111; padding: 26px 20px;">
-              <h1 style="margin: 0; color: #c4953a; font-size: 22px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;">SALV SACRA</h1>
+              <h1 style="margin: 0; color: #c4953a; font-size: 22px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;">{{ strtoupper($lojaNome ?? 'SALV SACRA') }}</h1>
+              <p style="margin: 5px 0 0; color: #cbd5e1; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;">{{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }}</p>
               <span style="color: #ffffff; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; display: block;">Notificação de Novo Pedido</span>
             </td>
           </tr>
@@ -102,7 +103,7 @@
           <!-- Footer -->
           <tr>
             <td align="center" style="background-color: #fafafa; padding: 18px 20px; font-size: 11px; color: #888888; border-top: 1px solid #eeeeee;">
-              Salv Sacra — Notificação automática do sistema para o administrador.
+              {{ $lojaNome ?? 'Salv Sacra' }} · {{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }} — Notificação automática do sistema para o administrador.
             </td>
           </tr>
         </table>

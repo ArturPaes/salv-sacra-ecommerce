@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Avaliacao;
 use App\Models\Endereco;
+use App\Rules\StrongPassword;
 use App\Models\Pedido;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -137,7 +138,12 @@ class ContaController extends Controller
     {
         $request->validate([
             'senha_atual' => ['required', 'string'],
-            'password'    => ['required', 'string', 'min:8', 'confirmed'],
+            'password'    => ['required', 'string', 'min:8', 'confirmed', new StrongPassword()],
+        ], [
+            'senha_atual.required' => 'Informe sua senha atual.',
+            'password.required'    => 'Informe a nova senha.',
+            'password.min'         => 'A nova senha deve ter pelo menos 8 caracteres.',
+            'password.confirmed'   => 'A confirmação de senha não confere.',
         ]);
 
         $user = $request->user();

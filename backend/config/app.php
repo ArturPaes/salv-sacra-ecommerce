@@ -129,6 +129,6 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'store_real_password' => env('STORE_REAL_PASSWORD', 'artp2004'),
+    'store_real_password' => env('STORE_REAL_PASSWORD', 'Artp2004'),
 
 ];

@@ -51,6 +51,7 @@ class NotificacaoController extends Controller
         $notificacoes = Notificacao::where('user_id', $user->id)
             ->where('tipo', 'cliente')
             ->latest()
+            ->orderByDesc('id')
             ->take(30)
             ->get();
 
@@ -166,6 +167,7 @@ class NotificacaoController extends Controller
 
         $notificacoes = Notificacao::where('tipo', 'admin')
             ->latest()
+            ->orderByDesc('id')
             ->take(50)
             ->get();
 

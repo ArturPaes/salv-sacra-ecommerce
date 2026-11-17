@@ -4,6 +4,7 @@ import ReCAPTCHA from 'react-google-recaptcha';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 import MainLayout from '../layouts/MainLayout';
+import PasswordStrengthMeter, { PasswordConfirmMatch, avaliarSenha } from '../components/PasswordStrengthMeter';
 import '../styles/auth.css';
 
 import { reenviarValidacao } from '../services/authService';
@@ -23,19 +24,19 @@ const IconEye = ({ open }) =>
     </svg>
   );
 
-const BREADCRUMBS = [
-  { label: 'Início',     to: '/' },
-  { label: 'Minha Conta' },
-  { label: 'Cadastre-se' },
-];
-
 export default function RegisterPage() {
-  const { signUp, setSession } = useAuth();
+  const { isAuthenticated, signUp, setSession } = useAuth();
   const { isDemoMode, atualizarStatusDemo } = useDemo();
   const navigate   = useNavigate();
   const [searchParams] = useSearchParams();
   const location   = useLocation();
   const redirectTarget = searchParams.get('redirect') || location.state?.from || sessionStorage.getItem('salv_redirect_after_auth');
+
+  const breadcrumbs = [
+    { label: 'Início', to: '/' },
+    { label: 'Minha Conta', to: isAuthenticated ? '/minha-conta' : '/login' },
+    { label: 'Cadastre-se' },
+  ];
 
   useEffect(() => {
     if (redirectTarget) {
@@ -66,6 +67,16 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
+
+    if (!avaliarSenha(form.password).isValid) {
+      setErrors({ password: ['A senha deve atender a todos os requisitos de segurança abaixo.'] });
+      return;
+    }
+
+    if (form.password !== form.password_confirmation) {
+      setErrors({ password_confirmation: ['A confirmação de senha não confere.'] });
+      return;
+    }
 
     if (!token && !isDemoMode) {
       setErrors({ recaptcha: ['Por favor, confirme que você não é um robô.'] });
@@ -130,7 +141,7 @@ export default function RegisterPage() {
 
   // ── render ───────────────────────────────────────────────
   return (
-    <MainLayout breadcrumbs={BREADCRUMBS}>
+    <MainLayout breadcrumbs={breadcrumbs}>
       <div className="auth-page">
         <h1 className="auth-title">Criar uma conta</h1>
         <p className="auth-subtitle">
@@ -157,6 +168,9 @@ export default function RegisterPage() {
 
               <p>
                 Enviamos um link para <strong>{registeredEmail}</strong> para validar seu e-mail.
+              </p>
+              <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>
+                Se não encontrar o e-mail na sua caixa de entrada, procure na pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>.
               </p>
             </div>
 
@@ -234,6 +248,7 @@ export default function RegisterPage() {
                   </button>
                 </div>
                 {fieldError('password')}
+                <PasswordStrengthMeter password={form.password} />
               </div>
 
               {/* Confirmar senha */}
@@ -259,6 +274,11 @@ export default function RegisterPage() {
                     <IconEye open={showConf} />
                   </button>
                 </div>
+                <PasswordConfirmMatch
+                  password={form.password}
+                  confirmation={form.password_confirmation}
+                />
+                {fieldError('password_confirmation')}
               </div>
 
               {/* reCAPTCHA ou Aviso Demo */}

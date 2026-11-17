@@ -211,17 +211,39 @@ class RastreioService
                         return $resultado;
                     }
 
-                    // 2. Em trânsito / Postado / Em transporte
+                    // 2. Em trânsito:
+                    // - Em Produção e Sandbox: quando status for in_transit / transit / em_transporte.
+                    // - No Sandbox do Melhor Envio: o simulador avança de released/generated -> posted -> delivered
+                    //   (não há etapa intermediária in_transit dedicada), então 'posted' ou posted_at preenchido
+                    //   (sem delivered_at) já representa o pacote em trânsito e avança automaticamente para "Em transporte".
+                    $isSandbox = self::getAmbiente() === 'sandbox';
+                    $isPostado = in_array($statusMe, ['posted', 'postado', 'shipped', 'enviado'], true)
+                        || (! empty($postedAt) && empty($deliveredAt));
+
                     $isEmTransito = in_array($statusMe, [
                         'in_transit', 'in-transit', 'transit', 'em_transporte', 'em transporte',
-                        'em_transito', 'em transito', 'em trânsito', 'posted', 'postado', 'shipped', 'enviado'
-                    ], true) || (! empty($postedAt) && empty($deliveredAt));
+                        'em_transito', 'em transito', 'em trânsito',
+                    ], true) || ($isSandbox && $isPostado);
 
-                    if ($isEmTransito && $pedido->status !== 'Em transporte' && $pedido->status !== 'Entregue' && $pedido->status !== 'Cancelado') {
+                    if ($isEmTransito && ! in_array($pedido->status, ['Em transporte', 'Entregue', 'Cancelado'], true)) {
                         $this->atualizarParaEmTransporte($pedido);
                         $resultado['atualizado'] = true;
                         $resultado['novo_status'] = 'Em transporte';
                         $resultado['mensagem'] = 'Pacote em trânsito para o destinatário.';
+                        return $resultado;
+                    }
+
+                    // 3. Postado nos Correios (Enviado) — automatizado apenas em Produção real;
+                    // no Sandbox do Melhor Envio o status Enviado permanece manual pelo Admin (só rastreio, Em transporte e Entregue são automáticos)
+                    if (
+                        ! $isSandbox
+                        && $isPostado
+                        && in_array($pedido->status, ['Pago', 'Em separação', 'Em montagem'], true)
+                    ) {
+                        $this->atualizarParaEnviado($pedido);
+                        $resultado['atualizado'] = true;
+                        $resultado['novo_status'] = 'Enviado';
+                        $resultado['mensagem'] = 'Objeto postado nos Correios! Código de rastreio e notificação atualizados.';
                         return $resultado;
                     }
                 }
@@ -234,6 +256,35 @@ class RastreioService
     }
 
     /**
+     * Dispara o e-mail e notificação de status "Enviado" com código de rastreio para o cliente.
+     */
+    public function dispararComunicacaoEnviado(Pedido $pedido): void
+    {
+        $pedidoEnvio = $pedido->fresh(['user']) ?: $pedido->load('user');
+        $pedidoEnvio->status = 'Enviado';
+
+        try {
+            $destinatario = $pedidoEnvio->email_contato ?: $pedidoEnvio->user?->email;
+            if ($destinatario) {
+                Mail::to($destinatario)->send(new StatusPedidoMail($pedidoEnvio));
+            }
+        } catch (\Throwable $e) {
+            Log::error("Erro ao enviar e-mail de postagem do pedido #{$pedidoEnvio->id}: " . $e->getMessage());
+        }
+
+        if ($pedidoEnvio->user_id) {
+            NotificacaoService::notificarCliente(
+                $pedidoEnvio->user_id,
+                'pedido',
+                "Pedido #{$pedidoEnvio->id} Postado nos Correios!",
+                "Seu pedido foi postado nos Correios. Código de rastreio: " . ($pedidoEnvio->codigo_rastreio ?: 'Disponível em breve') . ". Acompanhe a entrega!",
+                "/minha-conta?aba=pedidos&pedido={$pedidoEnvio->id}",
+                $pedidoEnvio->id
+            );
+        }
+    }
+
+    /**
      * Atualiza o pedido para Enviado e dispara o e-mail de aviso de postagem para o cliente.
      */
     public function atualizarParaEnviado(Pedido $pedido): void
@@ -242,54 +293,45 @@ class RastreioService
         $pedido->update(['status' => 'Enviado']);
 
         if ($statusAnterior !== 'Enviado') {
-            try {
-                $destinatario = $pedido->email_contato ?: $pedido->user?->email;
-                if ($destinatario) {
-                    Mail::to($destinatario)->send(new StatusPedidoMail($pedido->load('user')));
-                }
-            } catch (\Throwable $e) {
-                Log::error("Erro ao enviar e-mail de postagem do pedido #{$pedido->id}: " . $e->getMessage());
-            }
-
-            if ($pedido->user_id) {
-                NotificacaoService::notificarCliente(
-                    $pedido->user_id,
-                    'pedido',
-                    "Pedido #{$pedido->id} Postado nos Correios!",
-                    "Seu pedido foi postado nos Correios. Código de rastreio: " . ($pedido->codigo_rastreio ?: 'Disponível em breve') . ". Acompanhe a entrega!",
-                    "/minha-conta?aba=pedidos&pedido={$pedido->id}",
-                    $pedido->id
-                );
-            }
+            $this->dispararComunicacaoEnviado($pedido);
         }
     }
 
     /**
-     * Atualiza o pedido para Em transporte e dispara o e-mail transacional para o cliente caso ainda não enviado.
+     * Atualiza o pedido para Em transporte e dispara o e-mail transacional para o cliente.
+     * Se o pedido ainda não passou por "Enviado", envia cronologicamente primeiro a comunicação de "Enviado"
+     * (com o código de rastreio) e em seguida a de "Em transporte".
      */
     public function atualizarParaEmTransporte(Pedido $pedido): void
     {
         $statusAnterior = $pedido->status;
+
+        if (in_array($statusAnterior, ['Pendente', 'Pago', 'Em separação', 'Em montagem'], true)) {
+            $this->atualizarParaEnviado($pedido);
+            $pedido->refresh();
+        }
+
         $pedido->update(['status' => 'Em transporte']);
 
         if ($statusAnterior !== 'Em transporte') {
+            $pedidoAtualizado = $pedido->fresh(['user']) ?: $pedido->load('user');
             try {
-                $destinatario = $pedido->email_contato ?: $pedido->user?->email;
+                $destinatario = $pedidoAtualizado->email_contato ?: $pedidoAtualizado->user?->email;
                 if ($destinatario) {
-                    Mail::to($destinatario)->send(new StatusPedidoMail($pedido->load('user')));
+                    Mail::to($destinatario)->send(new StatusPedidoMail($pedidoAtualizado));
                 }
             } catch (\Throwable $e) {
-                Log::error("Erro ao enviar e-mail de envio do pedido #{$pedido->id}: " . $e->getMessage());
+                Log::error("Erro ao enviar e-mail de envio do pedido #{$pedidoAtualizado->id}: " . $e->getMessage());
             }
 
-            if ($pedido->user_id) {
+            if ($pedidoAtualizado->user_id) {
                 NotificacaoService::notificarCliente(
-                    $pedido->user_id,
+                    $pedidoAtualizado->user_id,
                     'pedido',
-                    "Pedido #{$pedido->id} Em Transporte!",
-                    "Seu pacote já está a caminho do seu endereço! Acompanhe o rastreio " . ($pedido->codigo_rastreio ?: '') . ".",
-                    "/minha-conta?aba=pedidos&pedido={$pedido->id}",
-                    $pedido->id
+                    "Pedido #{$pedidoAtualizado->id} Em Transporte!",
+                    "Seu pacote já está a caminho do seu endereço! Acompanhe o rastreio " . ($pedidoAtualizado->codigo_rastreio ?: '') . ".",
+                    "/minha-conta?aba=pedidos&pedido={$pedidoAtualizado->id}",
+                    $pedidoAtualizado->id
                 );
             }
         }

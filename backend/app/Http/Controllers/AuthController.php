@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\AtivarContaMail;
 use App\Mail\BoasVindasMail;
 use App\Models\User;
+use App\Rules\StrongPassword;
 use App\Services\DemoSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,7 +52,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name'                  => ['required', 'string', 'max:255'],
             'email'                 => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password'              => ['required', 'string', 'min:8', 'confirmed'],
+            'password'              => ['required', 'string', 'min:8', 'confirmed', new StrongPassword()],
             'recaptcha'             => [$isDemo ? 'nullable' : 'required', 'string'],
         ], [
             'name.required'         => 'Informe o seu nome completo.',
@@ -274,21 +275,32 @@ class AuthController extends Controller
             'password.required' => 'Informe a sua senha.',
         ]);
 
-        if (! Auth::attempt($request->only('email', 'password'))) {
+        $email = trim(strtolower((string) $request->input('email', '')));
+        $password = (string) $request->input('password', '');
+
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if (! $user || ! Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['As credenciais fornecidas estão incorretas.'],
             ]);
         }
 
-        /** @var User $user */
-        $user = Auth::user();
-
         if ($user->bloqueado) {
-            Auth::logout();
             throw ValidationException::withMessages([
                 'email' => [
                     'Sua conta foi bloqueada pela administração.' .
                     ($user->bloqueado_motivo ? " Motivo: {$user->bloqueado_motivo}" : ''),
+                ],
+            ]);
+        }
+
+        // Contas criadas antes da nova política de segurança mantêm suas senhas antigas no banco,
+        // mas não podem entrar enquanto não redefinirem para uma senha que atenda aos requisitos atuais.
+        if (! StrongPassword::passes($password)) {
+            throw ValidationException::withMessages([
+                'email' => [
+                    'Sua senha atual não atende aos novos requisitos de segurança (mínimo de 8 caracteres, letra maiúscula, letra minúscula e número). Utilize "Esqueci minha senha" para cadastrar uma nova senha.',
                 ],
             ]);
         }

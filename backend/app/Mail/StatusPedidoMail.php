@@ -22,6 +22,7 @@ class StatusPedidoMail extends Mailable
      */
     public function __construct(Pedido $pedido)
     {
+        $pedido->loadMissing(['itens.variacao.produto', 'user']);
         $this->pedido = $pedido;
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
         $emailParam = urlencode($pedido->user?->email ?? $pedido->email_contato ?? '');

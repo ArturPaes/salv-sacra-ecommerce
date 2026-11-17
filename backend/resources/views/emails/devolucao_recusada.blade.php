@@ -11,7 +11,8 @@
                 <table role="presentation" width="100%" style="max-width: 590px; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
                     <tr>
                         <td align="center" style="background-color: #111111; padding: 26px 20px;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 22px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;">SALV SACRA</h1>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 22px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;">{{ strtoupper($lojaNome ?? 'SALV SACRA') }}</h1>
+                            <p style="margin: 6px 0 0; color: #c4953a; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">{{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }}</p>
                         </td>
                     </tr>
                     <tr>
@@ -59,7 +60,7 @@
                             </div>
 
                             <p style="margin: 32px 0 0; font-size: 12px; line-height: 1.6; color: #888888; text-align: center;">
-                                Salv Sacra &mdash; Vista a sua fé com elegância e propósito.<br/>
+                                {{ $lojaNome ?? 'Salv Sacra' }} &mdash; {{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }}.<br/>
                                 Este é um e-mail transacional automático do seu pedido.
                             </p>
                         </td>

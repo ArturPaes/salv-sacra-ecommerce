@@ -21,7 +21,7 @@ class DemoSandboxTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Config::set('app.store_real_password', 'artp2004');
+        Config::set('app.store_real_password', 'Artp2004');
     }
 
     protected function tearDown(): void
@@ -67,13 +67,21 @@ class DemoSandboxTest extends TestCase
             ->assertStatus(403)
             ->assertJsonPath('code', 'STORE_ACCESS_REQUIRED');
 
-        // Senha incorreta -> 403
-        $this->postJson('/api/demo/validar-acesso-real', ['senha' => 'senha-errada'])
+        // Validação/reenvio de e-mail não é bloqueada pelo portão real (token único enviado apenas para quem já cadastrou na loja real)
+        $verifResp = $this->withHeaders(['X-Enforce-Store-Gate' => '1'])
+            ->postJson('/api/auth/verificar-email', [
+                'email' => 'pendente@salvsacra.test',
+                'token' => 'token-inexistente-teste',
+            ]);
+        $this->assertNotEquals(403, $verifResp->getStatusCode());
+
+        // Senha incorreta (incluindo versão antiga sem maiúscula) -> 403
+        $this->postJson('/api/demo/validar-acesso-real', ['senha' => 'artp2004'])
             ->assertStatus(403)
             ->assertJsonPath('valid', false);
 
-        // Senha correta (artp2004) -> libera token
-        $gateResp = $this->postJson('/api/demo/validar-acesso-real', ['senha' => 'artp2004'])
+        // Senha correta (Artp2004) -> libera token
+        $gateResp = $this->postJson('/api/demo/validar-acesso-real', ['senha' => 'Artp2004'])
             ->assertStatus(200)
             ->assertJsonPath('valid', true);
 
@@ -194,8 +202,8 @@ class DemoSandboxTest extends TestCase
             ->postJson('/api/auth/register', [
                 'name'                  => 'Avaliador TCC',
                 'email'                 => 'avaliador@demo.test',
-                'password'              => 'senha1234',
-                'password_confirmation' => 'senha1234',
+                'password'              => 'Senha1234',
+                'password_confirmation' => 'Senha1234',
             ]);
 
         $regResp->assertStatus(201)
@@ -388,8 +396,8 @@ class DemoSandboxTest extends TestCase
             ->postJson('/api/auth/register', [
                 'name'                  => 'Usuario Exclusivo A',
                 'email'                 => 'exclusivo.a@demo.test',
-                'password'              => 'senha1234',
-                'password_confirmation' => 'senha1234',
+                'password'              => 'Senha1234',
+                'password_confirmation' => 'Senha1234',
             ])->assertStatus(201);
 
         $this->withHeaders([
@@ -510,8 +518,8 @@ class DemoSandboxTest extends TestCase
             ->postJson('/api/auth/register', [
                 'name'                  => 'Cliente Extra Demo',
                 'email'                 => 'extra.demo@test.com',
-                'password'              => 'senha1234',
-                'password_confirmation' => 'senha1234',
+                'password'              => 'Senha1234',
+                'password_confirmation' => 'Senha1234',
             ])->assertStatus(201);
         $cliente2Id = (int) $reg2->json('user.id');
 
@@ -617,5 +625,364 @@ class DemoSandboxTest extends TestCase
         ])->getJson('/api/conta/avaliacoes')->assertStatus(200);
         $this->assertCount(1, $minhasDepois->json());
         $this->assertSame($av2Id, $minhasDepois->json('0.id'));
+    }
+
+    public function test_07_politica_de_senha_forte_e_bloqueio_login_senha_antiga_fraca(): void
+    {
+        $sid = $this->novoSessionId('pwdpolicy');
+        $this->withHeaders(['X-Demo-Session' => $sid])->postJson('/api/demo/iniciar')->assertStatus(200);
+
+        // 1. Cadastro rejeita senhas que não atendam aos 4 requisitos
+        foreach (['Abc123', 'semmaiuscula1', 'SEMMINUSCULA1', 'SemNumeroAqui'] as $senhaFraca) {
+            $this->withHeaders(['X-Demo-Session' => $sid])
+                ->postJson('/api/auth/register', [
+                    'name'                  => 'Teste Fraco',
+                    'email'                 => 'fraco@demo.test',
+                    'password'              => $senhaFraca,
+                    'password_confirmation' => $senhaFraca,
+                ])->assertStatus(422)->assertJsonValidationErrors(['password']);
+        }
+
+        // 2. Cadastro aceita senha forte (mín 8, maiúscula, minúscula e número)
+        $regOk = $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/auth/register', [
+                'name'                  => 'Teste Forte',
+                'email'                 => 'forte@demo.test',
+                'password'              => 'Artp2004',
+                'password_confirmation' => 'Artp2004',
+            ])->assertStatus(201);
+        $tokenForte = $regOk->json('token');
+
+        // 3. Alteração de senha rejeita senha fraca e aceita senha forte
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$tokenForte}",
+        ])->putJson('/api/conta/senha', [
+            'senha_atual'           => 'Artp2004',
+            'password'              => 'fraca123',
+            'password_confirmation' => 'fraca123',
+        ])->assertStatus(422)->assertJsonValidationErrors(['password']);
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$tokenForte}",
+        ])->putJson('/api/conta/senha', [
+            'senha_atual'           => 'Artp2004',
+            'password'              => 'NovaSenha2026',
+            'password_confirmation' => 'NovaSenha2026',
+        ])->assertStatus(200);
+
+        // 4. Usuário criado anteriormente com senha antiga fraca é mantido na sessão Demo, mas bloqueado no login
+        DemoSandboxService::activateSession($sid);
+        try {
+            User::create([
+                'name'              => 'Cliente Legado',
+                'email'             => 'legado@demo.test',
+                'password'          => 'antiga123',
+                'papel'             => 'cliente',
+                'email_verified_at' => now(),
+            ]);
+        } finally {
+            DemoSandboxService::restoreDefaultConnection('pgsql');
+        }
+
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/auth/login', [
+                'email'    => 'legado@demo.test',
+                'password' => 'antiga123',
+            ])->assertStatus(422)->assertJsonValidationErrors(['email']);
+
+        // 5. Após redefinir senha com token seguindo os requisitos, o login volta a funcionar
+        $resetToken = Str::random(64);
+        DemoSandboxService::activateSession($sid);
+        try {
+            DB::table('password_reset_tokens')->insert([
+                'email'      => 'legado@demo.test',
+                'token'      => \Illuminate\Support\Facades\Hash::make($resetToken),
+                'created_at' => now(),
+            ]);
+        } finally {
+            DemoSandboxService::restoreDefaultConnection('pgsql');
+        }
+
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/auth/redefinir-senha', [
+                'email'                 => 'legado@demo.test',
+                'token'                 => $resetToken,
+                'password'              => 'semnumero',
+                'password_confirmation' => 'semnumero',
+            ])->assertStatus(422)->assertJsonValidationErrors(['password']);
+
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/auth/redefinir-senha', [
+                'email'                 => 'legado@demo.test',
+                'token'                 => $resetToken,
+                'password'              => 'Artp2004',
+                'password_confirmation' => 'Artp2004',
+            ])->assertStatus(200);
+
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/auth/login', [
+                'email'    => 'legado@demo.test',
+                'password' => 'Artp2004',
+            ])->assertStatus(200);
+    }
+
+    public function test_08_webhook_e_atualizacao_enviado_preenchem_rastreio_e_notificam_cliente(): void
+    {
+        $produto = Produto::with('variacoes')->first();
+        if (! $produto || $produto->variacoes->isEmpty()) {
+            $this->markTestSkipped('Catálogo oficial sem produto/variação.');
+        }
+        $variacao = $produto->variacoes->first();
+
+        $sid = $this->novoSessionId('webhookenvio');
+        $init = $this->withHeaders(['X-Demo-Session' => $sid])->postJson('/api/demo/iniciar')->assertStatus(200);
+        $clienteToken = $init->json('tokens.cliente');
+        $adminToken = $init->json('tokens.admin');
+
+        if ($variacao->estoque < 2) {
+            $this->withHeaders([
+                'X-Demo-Session' => $sid,
+                'Authorization'  => "Bearer {$adminToken}",
+            ])->patchJson("/api/admin/estoque/{$variacao->id}", ['estoque' => 5])->assertStatus(200);
+        }
+
+        $ped = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->postJson('/api/pedidos', [
+            'email_contato'    => 'cliente.demo@salvsacra.test',
+            'cep'              => '88701-000',
+            'logradouro'       => 'Rua Teste Rastreio',
+            'numero'           => '50',
+            'bairro'           => 'Centro',
+            'cidade'           => 'Tubarão',
+            'estado'           => 'SC',
+            'tipo_frete'       => 'Correios SEDEX',
+            'valor_frete'      => 15.00,
+            'metodo_pagamento' => 'pix',
+            'itens'            => [
+                [
+                    'produto_id'  => $produto->id,
+                    'variacao_id' => $variacao->id,
+                    'quantidade'  => 1,
+                    'preco'       => (float) $produto->preco,
+                ],
+            ],
+        ])->assertStatus(201);
+
+        $pedidoId = $ped->json('pedido.id');
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->patchJson("/api/admin/pedidos/{$pedidoId}/status", ['status' => 'Em separação'])
+            ->assertStatus(200);
+
+        // Simula ambiente de produção real para validar transição automática posted -> Enviado
+        DemoSandboxService::activateSession($sid);
+        try {
+            \App\Models\Configuracao::updateOrCreate(
+                ['chave' => 'melhor_envio_ambiente'],
+                ['valor' => 'production', 'grupo' => 'frete']
+            );
+        } finally {
+            DemoSandboxService::restoreDefaultConnection('pgsql');
+        }
+
+        // Simula webhook de postagem do Melhor Envio com tracking e status "posted"
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/webhooks/melhor-envio', [
+                'order_id'  => 'DEMO-ME-ORDER-999',
+                'custom_id' => $pedidoId,
+                'tracking'  => 'NL987654321BR',
+                'status'    => 'posted',
+            ])->assertStatus(200);
+
+        $pedidoResp = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson("/api/pedidos/{$pedidoId}")->assertStatus(200);
+
+        $this->assertSame('Enviado', $pedidoResp->json('status'));
+        $this->assertSame('NL987654321BR', $pedidoResp->json('codigo_rastreio'));
+
+        $notifs = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson('/api/notificacoes')->assertStatus(200);
+
+        $mensagens = collect($notifs->json('notificacoes') ?? $notifs->json())->pluck('mensagem')->implode(' ');
+        $this->assertStringContainsString('NL987654321BR', $mensagens);
+    }
+
+    public function test_09_automacao_logistica_reversa_e_separacao_sandbox_enviado(): void
+    {
+        $produto = Produto::with('variacoes')->first();
+        if (! $produto || $produto->variacoes->isEmpty()) {
+            $this->markTestSkipped('Catálogo oficial sem produto/variação.');
+        }
+        $variacao = $produto->variacoes->first();
+
+        $sid = $this->novoSessionId('reversa');
+        $init = $this->withHeaders(['X-Demo-Session' => $sid])->postJson('/api/demo/iniciar')->assertStatus(200);
+        $clienteToken = $init->json('tokens.cliente');
+        $adminToken = $init->json('tokens.admin');
+
+        if ($variacao->estoque < 2) {
+            $this->withHeaders([
+                'X-Demo-Session' => $sid,
+                'Authorization'  => "Bearer {$adminToken}",
+            ])->patchJson("/api/admin/estoque/{$variacao->id}", ['estoque' => 5])->assertStatus(200);
+        }
+
+        // 1. Cria pedido, marca como Entregue e solicita devolução
+        $ped = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->postJson('/api/pedidos', [
+            'email_contato'    => 'cliente.demo@salvsacra.test',
+            'cep'              => '88701-000',
+            'logradouro'       => 'Rua Logistica Reversa',
+            'numero'           => '88',
+            'bairro'           => 'Centro',
+            'cidade'           => 'Tubarão',
+            'estado'           => 'SC',
+            'tipo_frete'       => 'Correios SEDEX',
+            'valor_frete'      => 15.00,
+            'metodo_pagamento' => 'pix',
+            'itens'            => [
+                [
+                    'produto_id'  => $produto->id,
+                    'variacao_id' => $variacao->id,
+                    'quantidade'  => 1,
+                    'preco'       => (float) $produto->preco,
+                ],
+            ],
+        ])->assertStatus(201);
+
+        $pedidoId = $ped->json('pedido.id');
+
+        // Em Sandbox, webhook 'posted' preenche codigo_rastreio sem mudar para 'Enviado' automaticamente
+        DemoSandboxService::activateSession($sid);
+        try {
+            \App\Models\Configuracao::updateOrCreate(
+                ['chave' => 'melhor_envio_ambiente'],
+                ['valor' => 'sandbox', 'grupo' => 'frete']
+            );
+        } finally {
+            DemoSandboxService::restoreDefaultConnection('pgsql');
+        }
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->patchJson("/api/admin/pedidos/{$pedidoId}/status", ['status' => 'Em separação'])
+            ->assertStatus(200);
+
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/webhooks/melhor-envio', [
+                'custom_id' => $pedidoId,
+                'tracking'  => 'SB123456789BR',
+                'status'    => 'released',
+            ])->assertStatus(200);
+
+        $pedSandbox = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson("/api/pedidos/{$pedidoId}")->assertStatus(200);
+
+        $this->assertSame('SB123456789BR', $pedSandbox->json('codigo_rastreio'));
+        $this->assertSame('Em separação', $pedSandbox->json('status'));
+
+        // Transições automáticas de Em transporte e Entregue continuam ativas no Sandbox
+        // (inclusive quando o simulador do Sandbox envia 'posted' ou 'in_transit');
+        // como pulou Enviado direto para Em transporte, deve registrar cronologicamente Enviado e depois Em transporte
+        \Illuminate\Support\Facades\Mail::fake();
+
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/webhooks/melhor-envio', [
+                'custom_id' => $pedidoId,
+                'status'    => 'posted',
+            ])->assertStatus(200);
+
+        $pedTransito = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson("/api/pedidos/{$pedidoId}")->assertStatus(200);
+        $this->assertSame('Em transporte', $pedTransito->json('status'));
+
+        $notifs = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson('/api/notificacoes')->assertStatus(200);
+
+        $listaNotifs = collect($notifs->json('notificacoes'));
+        $notifEnviado = $listaNotifs->first(fn ($n) => str_contains((string) ($n['titulo'] ?? ''), 'Postado nos Correios'));
+        $notifTransito = $listaNotifs->first(fn ($n) => str_contains((string) ($n['titulo'] ?? ''), 'Em Transporte'));
+        $this->assertNotNull($notifEnviado);
+        $this->assertNotNull($notifTransito);
+        $this->assertLessThan($notifTransito['id'], $notifEnviado['id']);
+        $this->assertStringContainsString('SB123456789BR', $notifEnviado['mensagem']);
+
+        $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/webhooks/melhor-envio', [
+                'custom_id' => $pedidoId,
+                'status'    => 'delivered',
+            ])->assertStatus(200);
+
+        $pedEntregue = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson("/api/pedidos/{$pedidoId}")->assertStatus(200);
+        $this->assertSame('Entregue', $pedEntregue->json('status'));
+
+        // Também ao trocar manualmente direto de Em separação -> Em transporte no painel Admin
+        $pedManual = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->postJson('/api/pedidos', [
+            'email_contato'    => 'cliente.demo@salvsacra.test',
+            'cep'              => '88701-000',
+            'logradouro'       => 'Rua Teste Manual',
+            'numero'           => '10',
+            'bairro'           => 'Centro',
+            'cidade'           => 'Tubarão',
+            'estado'           => 'SC',
+            'tipo_frete'       => 'Correios SEDEX',
+            'valor_frete'      => 15.00,
+            'metodo_pagamento' => 'pix',
+            'itens'            => [
+                [
+                    'produto_id'  => $produto->id,
+                    'variacao_id' => $variacao->id,
+                    'quantidade'  => 1,
+                    'preco'       => (float) $produto->preco,
+                ],
+            ],
+        ])->assertStatus(201);
+        $pedManualId = $pedManual->json('pedido.id');
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->patchJson("/api/admin/pedidos/{$pedManualId}/status", [
+            'status'          => 'Em transporte',
+            'codigo_rastreio' => 'MN111222333BR',
+        ])->assertStatus(200);
+
+        $notifs2 = $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->getJson('/api/notificacoes')->assertStatus(200);
+
+        $lista2 = collect($notifs2->json('notificacoes'))->where('referencia_id', $pedManualId);
+        $env2 = $lista2->first(fn ($n) => str_contains((string) ($n['titulo'] ?? ''), 'Postado nos Correios'));
+        $tr2 = $lista2->first(fn ($n) => str_contains((string) ($n['titulo'] ?? ''), "Pedido #{$pedManualId}: Em transporte"));
+        $this->assertNotNull($env2);
+        $this->assertNotNull($tr2);
+        $this->assertLessThan($tr2['id'], $env2['id']);
+        $this->assertStringContainsString('MN111222333BR', $env2['mensagem']);
     }
 }

@@ -1,0 +1,625 @@
+{
+  "info": {
+    "name": "Salv Sacra - Integracao Demo (Completa e Isolada)",
+    "description": "Suite completa de testes de integracao em ambiente Demo isolado (X-Demo-Session). Nao altera o banco oficial nem o visual da loja real.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Demo & Sessao Isolada",
+      "item": [
+        {
+          "name": "Iniciar / Resetar Sessao Demo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status HTTP 200 ao iniciar Demo', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Tokens cliente e admin retornados', function () {",
+                  "    pm.expect(res.tokens.cliente).to.be.a('string').and.not.empty;",
+                  "    pm.expect(res.tokens.admin).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.environment.set('cliente_token', res.tokens.cliente);",
+                  "pm.environment.set('admin_token', res.tokens.admin);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reset\": true\n}"
+            },
+            "url": "{{base_url}}/demo/iniciar"
+          }
+        },
+        {
+          "name": "Consultar Status da Sessao Demo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Sessao com zero pedidos iniciais', function () {",
+                  "    pm.expect(res.total_pedidos).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "url": "{{base_url}}/demo/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Catalogo & Frete",
+      "item": [
+        {
+          "name": "Listar Produtos e Capturar Item com Estoque",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const lista = pm.response.json();",
+                  "const prods = Array.isArray(lista) ? lista : (lista.data || []);",
+                  "pm.test('Catalogo possui produtos', function () {",
+                  "    pm.expect(prods.length).to.be.above(0);",
+                  "});",
+                  "let escolhido = prods.find(p => Array.isArray(p.variacoes) && p.variacoes.some(v => v.estoque > 1));",
+                  "if (!escolhido) escolhido = prods.find(p => Array.isArray(p.variacoes) && p.variacoes.length > 0);",
+                  "const varEscolhida = escolhido.variacoes.find(v => v.estoque > 1) || escolhido.variacoes[0];",
+                  "pm.environment.set('produto_id', String(escolhido.id));",
+                  "pm.environment.set('variacao_id', String(varEscolhida.id));",
+                  "pm.environment.set('produto_preco', String(escolhido.preco_base || 70));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "url": "{{base_url}}/produtos"
+          }
+        },
+        {
+          "name": "Calcular Frete SEDEX (Demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status HTTP 200 no calculo de frete', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Retornou opcoes de frete', function () {",
+                  "    const opcoes = Array.isArray(res) ? res : (res.opcoes || []);",
+                  "    pm.expect(opcoes.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cep\": \"88701-000\",\n  \"subtotal\": 70,\n  \"quantidade\": 1\n}"
+            },
+            "url": "{{base_url}}/frete/calcular"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Autenticacao, Senha Forte & Seguranca",
+      "item": [
+        {
+          "name": "Rejeitar Cadastro com Senha Fraca (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Bloqueia senha fraca com HTTP 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teste Senha Fraca\",\n  \"email\": \"fraca.postman@demo.test\",\n  \"password\": \"12345678\",\n  \"password_confirmation\": \"12345678\"\n}"
+            },
+            "url": "{{base_url}}/auth/register"
+          }
+        },
+        {
+          "name": "Cadastrar Conta com Senha Forte (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('novo_cliente_email', 'postman.' + Date.now() + '@demo.test');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cadastro criado com HTTP 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.environment.set('novo_cliente_token', res.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Avaliador Postman\",\n  \"email\": \"{{novo_cliente_email}}\",\n  \"password\": \"Senha1234\",\n  \"password_confirmation\": \"Senha1234\"\n}"
+            },
+            "url": "{{base_url}}/auth/register"
+          }
+        },
+        {
+          "name": "Login com Conta Criada (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login bem-sucedido (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.environment.set('novo_cliente_token', pm.response.json().token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{novo_cliente_email}}\",\n  \"password\": \"Senha1234\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Bloquear Cliente na Rota Admin (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cliente bloqueado no painel Admin (403)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/admin/pedidos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Checkout, Cupom, Pagamento & Cancelamento",
+      "item": [
+        {
+          "name": "Validar Cupom PROMO10",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cupom PROMO10 valido (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cupom_codigo\": \"PROMO10\",\n  \"valor_frete\": 15,\n  \"itens\": [\n    {\n      \"produto_id\": {{produto_id}},\n      \"preco\": {{produto_preco}},\n      \"quantidade\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/cupons/validar"
+          }
+        },
+        {
+          "name": "Garantir Estoque para Testes (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Estoque ajustado para testes (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estoque\": 10\n}"
+            },
+            "url": "{{base_url}}/admin/estoque/{{variacao_id}}"
+          }
+        },
+        {
+          "name": "Criar Pedido #1 PIX com Cupom",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Pedido criado com HTTP 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.environment.set('pedido_id', String(res.pedido.id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email_contato\": \"cliente@demo.salvsacra.com\",\n  \"cep\": \"88701-000\",\n  \"logradouro\": \"Av. Marcolino Martins Cabral\",\n  \"numero\": \"100\",\n  \"bairro\": \"Centro\",\n  \"cidade\": \"Tubarão\",\n  \"estado\": \"SC\",\n  \"tipo_frete\": \"Correios SEDEX\",\n  \"valor_frete\": 15,\n  \"metodo_pagamento\": \"pix\",\n  \"cupom_codigo\": \"PROMO10\",\n  \"itens\": [\n    {\n      \"produto_id\": {{produto_id}},\n      \"variacao_id\": {{variacao_id}},\n      \"quantidade\": 1,\n      \"preco\": {{produto_preco}}\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/pedidos"
+          }
+        },
+        {
+          "name": "Simular Pagamento PIX (Demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Pagamento PIX simulado (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Status mudou para Pago', function () {",
+                  "    pm.expect(pm.response.json().pedido.status).to.eql('Pago');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/demo/pedidos/{{pedido_id}}/simular-pagamento"
+          }
+        },
+        {
+          "name": "Cancelar Pedido #1 pelo Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Pedido cancelado com HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_restituicao\": \"reembolso\",\n  \"motivo\": \"Teste de integracao Postman\"\n}"
+            },
+            "url": "{{base_url}}/pedidos/{{pedido_id}}/cancelar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Painel Admin, Entrega & Multiplas Avaliacoes",
+      "item": [
+        {
+          "name": "Criar Pedido #2 para Entrega e Avaliacoes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Pedido #2 criado (201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.environment.set('pedido2_id', String(pm.response.json().pedido.id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email_contato\": \"cliente@demo.salvsacra.com\",\n  \"cep\": \"88701-000\",\n  \"logradouro\": \"Av. Marcolino Martins Cabral\",\n  \"numero\": \"100\",\n  \"bairro\": \"Centro\",\n  \"cidade\": \"Tubarão\",\n  \"estado\": \"SC\",\n  \"tipo_frete\": \"Correios SEDEX\",\n  \"valor_frete\": 15,\n  \"metodo_pagamento\": \"pix\",\n  \"itens\": [\n    {\n      \"produto_id\": {{produto_id}},\n      \"variacao_id\": {{variacao_id}},\n      \"quantidade\": 1,\n      \"preco\": {{produto_preco}}\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/pedidos"
+          }
+        },
+        {
+          "name": "Admin Atualizar Pedido #2 para Em transporte",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status atualizado para Em transporte (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Em transporte\",\n  \"codigo_rastreio\": \"PM123456789BR\"\n}"
+            },
+            "url": "{{base_url}}/admin/pedidos/{{pedido2_id}}/status"
+          }
+        },
+        {
+          "name": "Admin Marcar Pedido #2 como Entregue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Pedido marcado como Entregue (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Entregue\"\n}"
+            },
+            "url": "{{base_url}}/admin/pedidos/{{pedido2_id}}/status"
+          }
+        },
+        {
+          "name": "Cliente Publicar 1a Avaliacao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('1a avaliacao criada (201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nota\": 5,\n  \"comentario\": \"Excelente tecido e estampa impecavel!\"\n}"
+            },
+            "url": "{{base_url}}/produtos/{{produto_id}}/avaliacoes"
+          }
+        },
+        {
+          "name": "Cliente Publicar 2a Avaliacao no Mesmo Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('2a avaliacao criada (201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.environment.set('avaliacao2_id', String(pm.response.json().avaliacao.id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nota\": 4,\n  \"comentario\": \"Segunda compra, continua muito boa apos lavar.\"\n}"
+            },
+            "url": "{{base_url}}/produtos/{{produto_id}}/avaliacoes"
+          }
+        },
+        {
+          "name": "Cliente Editar 2a Avaliacao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Avaliacao editada com HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Nota atualizada para 5', function () {",
+                  "    pm.expect(pm.response.json().avaliacao.nota).to.eql(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Demo-Session", "value": "{{demo_session}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nota\": 5,\n  \"comentario\": \"Avaliacao editada para 5 estrelas.\"\n}"
+            },
+            "url": "{{base_url}}/avaliacoes/{{avaliacao2_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

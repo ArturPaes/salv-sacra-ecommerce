@@ -13,7 +13,7 @@ class MelhorEnvioService
     /**
      * Identifica se está operando em sandbox ou produção.
      */
-    private function getAmbiente(): string
+    public function getAmbiente(): string
     {
         $amb = Configuracao::where('chave', 'melhor_envio_ambiente')->value('valor')
             ?: env('MELHOR_ENVIO_ENV', 'production');
@@ -23,7 +23,7 @@ class MelhorEnvioService
     /**
      * URL base da API do Melhor Envio (produção ou sandbox).
      */
-    private function getBaseUrl(): string
+    public function getBaseUrl(): string
     {
         return $this->getAmbiente() === 'sandbox'
             ? 'https://sandbox.melhorenvio.com.br'
@@ -31,9 +31,19 @@ class MelhorEnvioService
     }
 
     /**
+     * Obtém o URL do painel/carrinho web do Melhor Envio conforme ambiente ativo.
+     */
+    public function getCartWebUrl(): string
+    {
+        return $this->getAmbiente() === 'sandbox'
+            ? 'https://sandbox.melhorenvio.com.br/carrinho'
+            : 'https://app.melhorenvio.com.br/carrinho';
+    }
+
+    /**
      * Obtém o token de acesso da loja conforme o ambiente ativo.
      */
-    private function getToken(): ?string
+    public function getToken(): ?string
     {
         if ($this->getAmbiente() === 'sandbox') {
             $sandboxToken = Configuracao::where('chave', 'melhor_envio_sandbox_token')->value('valor');
@@ -240,7 +250,7 @@ class MelhorEnvioService
                     'mensagem'        => 'Pedido inserido no carrinho do Melhor Envio com sucesso! O pacote já está pronto para pagamento e impressão.',
                     'melhor_envio_id' => $shipmentId,
                     'protocol'        => $protocol,
-                    'link_carrinho'   => 'https://app.melhorenvio.com.br/carrinho',
+                    'link_carrinho'   => $this->getCartWebUrl(),
                 ];
             }
 

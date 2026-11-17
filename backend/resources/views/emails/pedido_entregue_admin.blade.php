@@ -9,7 +9,8 @@
     <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;">
         <!-- Header -->
         <div style="background-color: #0f172a; padding: 32px 24px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 2px;">SALV SACRA</h1>
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 2px;">{{ strtoupper($lojaNome ?? 'SALV SACRA') }}</h1>
+            <p style="color: #c4953a; margin: 5px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;">{{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }}</p>
             <p style="color: #94a3b8; margin: 6px 0 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">Painel Administrativo — Notificação de Entrega</p>
         </div>
 
@@ -55,7 +56,7 @@
 
         <div style="background-color: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
             <p style="font-size: 12px; color: #94a3b8; margin: 0;">
-                Salv Sacra E-commerce &bull; Notificação Interna do Sistema
+                {{ $lojaNome ?? 'Salv Sacra' }} · {{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }} &bull; Notificação Interna do Sistema
             </p>
         </div>
     </div>

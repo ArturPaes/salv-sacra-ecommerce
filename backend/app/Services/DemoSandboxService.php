@@ -297,7 +297,7 @@ class DemoSandboxService
      */
     public static function verifyRealPassword(string $password): bool
     {
-        $expected = (string) Config::get('app.store_real_password', 'artp2004');
+        $expected = (string) Config::get('app.store_real_password', 'Artp2004');
         return $expected !== '' && hash_equals($expected, trim($password));
     }
 
@@ -306,7 +306,7 @@ class DemoSandboxService
      */
     public static function generateStoreAccessToken(): string
     {
-        $expected = (string) Config::get('app.store_real_password', 'artp2004');
+        $expected = (string) Config::get('app.store_real_password', 'Artp2004');
         $key = (string) Config::get('app.key', 'salv-sacra-fallback-key');
 
         return hash_hmac('sha256', 'salv-sacra-real-store-gate|' . $expected, $key);
@@ -654,7 +654,7 @@ TEXT;
         $adminDemo = User::create([
             'name'              => 'Administrador Demo',
             'email'             => 'admin@demo.salvsacra.com',
-            'password'          => Hash::make('demo1234'),
+            'password'          => Hash::make('Demo1234'),
             'papel'             => 'admin',
             'email_verified_at' => now(),
         ]);
@@ -662,7 +662,7 @@ TEXT;
         $clienteDemo = User::create([
             'name'              => 'Cliente Demo',
             'email'             => 'cliente@demo.salvsacra.com',
-            'password'          => Hash::make('demo1234'),
+            'password'          => Hash::make('Demo1234'),
             'papel'             => 'cliente',
             'cpf'               => '52998224725',
             'telefone'          => '(48) 99999-0000',

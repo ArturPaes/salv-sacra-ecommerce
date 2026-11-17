@@ -13,7 +13,8 @@
                     <!-- Header -->
                     <tr>
                         <td align="center" style="background-color: #111111; padding: 24px 20px;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 22px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase;">SALV SACRA</h1>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 22px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase;">{{ strtoupper($lojaNome ?? 'SALV SACRA') }}</h1>
+                            <p style="margin: 6px 0 0; color: #c4953a; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">{{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }}</p>
                             <p style="margin: 6px 0 0; color: #aaaaaa; font-size: 13px;">Nova mensagem pelo formulário de contato</p>
                         </td>
                     </tr>
@@ -53,7 +54,7 @@
                     <tr>
                         <td align="center" style="background-color: #fafafa; padding: 16px; border-top: 1px solid #eeeeee;">
                             <p style="margin: 0; font-size: 12px; color: #999999;">
-                                © {{ date('Y') }} Salv Sacra Ecommerce.
+                                © {{ date('Y') }} {{ $lojaNome ?? 'Salv Sacra' }} · {{ $lojaSlogan ?? 'Vestindo a Fé com Elegância' }}.
                             </p>
                         </td>
                     </tr>

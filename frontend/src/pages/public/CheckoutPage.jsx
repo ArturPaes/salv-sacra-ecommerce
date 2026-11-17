@@ -458,18 +458,39 @@ export default function CheckoutPage() {
   }, [user]);
 
   useEffect(() => {
-    api.get('/configuracoes/publicas')
-      .then((res) => {
-        if (res.data?.cartao_parcelas_max) {
-          const max = parseInt(res.data.cartao_parcelas_max, 10);
-          if (max >= 1 && max <= 12) setMaxParcelas(max);
-        }
-        if (res.data?.cartao_parcela_minima) {
-          const min = parseFloat(res.data.cartao_parcela_minima);
-          if (!isNaN(min) && min > 0) setParcelaMinima(min);
-        }
-      })
-      .catch(() => {});
+    const carregarConfigPublicas = () => {
+      api.get('/configuracoes/publicas', { params: { _t: Date.now() } })
+        .then((res) => {
+          if (res.data?.cartao_parcelas_max) {
+            const max = parseInt(res.data.cartao_parcelas_max, 10);
+            if (max >= 1 && max <= 12) setMaxParcelas(max);
+          }
+          if (res.data?.cartao_parcela_minima) {
+            const min = parseFloat(res.data.cartao_parcela_minima);
+            if (!isNaN(min) && min > 0) setParcelaMinima(min);
+          }
+        })
+        .catch(() => {});
+    };
+
+    carregarConfigPublicas();
+    const handleStorage = (e) => {
+      if (e.key === 'salv_sync_trigger') carregarConfigPublicas();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') carregarConfigPublicas();
+    };
+    window.addEventListener('salv-config-atualizadas', carregarConfigPublicas);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', carregarConfigPublicas);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('salv-config-atualizadas', carregarConfigPublicas);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', carregarConfigPublicas);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -548,8 +569,8 @@ export default function CheckoutPage() {
   const cobertoPorBeneficios =
     totalFinal <= 0.009 && (abatimentoVale > 0 || descontoProdutoEfetivo > 0);
 
-  // Calcula o número máximo de parcelas permitidas (parcela mínima configurada, padrão R$ 50,00, máximo 12x)
-  const maxParcelasDisponiveis = Math.max(1, Math.min(12, Math.floor(totalFinal / (parcelaMinima || 50.00))));
+  // Calcula o número máximo de parcelas sem juros permitidas (parcela mínima configurada e limite escolhido no Admin)
+  const maxParcelasDisponiveis = Math.max(1, Math.min(maxParcelas || 1, Math.floor(totalFinal / (parcelaMinima || 50.00))));
 
   useEffect(() => {
     if (parcelasCartao > maxParcelasDisponiveis) {
@@ -2184,21 +2205,10 @@ export default function CheckoutPage() {
                               style={{ cursor: 'pointer', background: '#fff' }}
                             >
                               {Array.from({ length: maxParcelasDisponiveis }, (_, i) => i + 1).map((n) => {
-                                if (n <= maxParcelas) {
-                                  const valorParcela = (totalFinal / n).toFixed(2).replace('.', ',');
-                                  return (
-                                    <option key={n} value={n}>
-                                      {n}x de R$ {valorParcela} sem juros {n === 1 ? '(À vista)' : ''}
-                                    </option>
-                                  );
-                                }
-                                const taxaJuros = 0.025 + (n - maxParcelas) * 0.015;
-                                const totalComJuros = totalFinal * (1 + taxaJuros);
-                                const valorParcela = (totalComJuros / n).toFixed(2).replace('.', ',');
-                                const totalFmt = totalComJuros.toFixed(2).replace('.', ',');
+                                const valorParcela = (totalFinal / n).toFixed(2).replace('.', ',');
                                 return (
                                   <option key={n} value={n}>
-                                    {n}x de R$ {valorParcela} com juros (Total: R$ {totalFmt})
+                                    {n}x de R$ {valorParcela} sem juros {n === 1 ? '(À vista)' : ''}
                                   </option>
                                 );
                               })}

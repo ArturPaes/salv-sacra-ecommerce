@@ -193,6 +193,12 @@ export default function ConfiguracoesPage() {
         carrossel_slides: JSON.stringify(slidesCarrossel),
       };
       await updateConfiguracoesAdmin(payload);
+      window.dispatchEvent(new Event('salv-config-atualizadas'));
+      try {
+        localStorage.setItem('salv_sync_trigger', String(Date.now()));
+      } catch {
+        // ignore storage errors
+      }
       setFeedback({ tipo: 'sucesso', texto: 'Configurações atualizadas com sucesso!' });
       setTimeout(() => setFeedback({ tipo: '', texto: '' }), 4000);
     } catch {
@@ -311,9 +317,14 @@ export default function ConfiguracoesPage() {
           {abaAtiva === 'loja' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>
-                  Nome da Loja
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#333' }}>
+                    Nome da Loja
+                  </label>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    Onde aparece: título da logo no cabeçalho, rodapé da loja (Quem somos e Copyright) e cabeçalho/rodapé dos e-mails.
+                  </span>
+                </div>
                 <input
                   type="text"
                   name="nome_loja"
@@ -325,9 +336,14 @@ export default function ConfiguracoesPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>
-                  Slogan ou Frase Institucional
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#333' }}>
+                    Slogan ou Frase Institucional
+                  </label>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    Onde aparece: rodapé da loja (em Quem somos e na barra de Copyright) e cabeçalho/rodapé de todos os e-mails enviados.
+                  </span>
+                </div>
                 <input
                   type="text"
                   name="slogan_loja"

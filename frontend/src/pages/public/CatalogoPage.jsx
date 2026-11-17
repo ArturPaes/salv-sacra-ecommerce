@@ -263,29 +263,34 @@ export default function CatalogoPage({ modoFixo = null }) {
     if (buscaParam) {
       return {
         title: `Busca: "${buscaParam}"`,
-        breadcrumb: `BUSCA > ${buscaParam.toUpperCase()}`,
+        parentCrumb: { label: 'CATÁLOGO', to: '/produtos' },
+        breadcrumb: buscaParam.toUpperCase(),
       };
     }
     if (colecaoParam.toLowerCase().includes('regular')) {
       return {
         title: 'Regular Fit',
-        breadcrumb: 'CAMISETAS > REGULAR FIT',
+        parentCrumb: { label: 'CAMISETAS', to: '/produtos?categoria=camisetas' },
+        breadcrumb: 'REGULAR FIT',
       };
     }
     if (colecaoParam.toLowerCase().includes('over')) {
       return {
         title: 'Oversized',
-        breadcrumb: 'CAMISETAS > OVERSIZED',
+        parentCrumb: { label: 'CAMISETAS', to: '/produtos?categoria=camisetas' },
+        breadcrumb: 'OVERSIZED',
       };
     }
     if (categoriaParam.toLowerCase().includes('camisetas')) {
       return {
         title: 'Camisetas',
+        parentCrumb: null,
         breadcrumb: 'CAMISETAS',
       };
     }
     return {
       title: 'Mais Vendidos',
+      parentCrumb: null,
       breadcrumb: 'MAIS VENDIDOS',
     };
   };
@@ -550,6 +555,12 @@ export default function CatalogoPage({ modoFixo = null }) {
           <div className="catalogo-breadcrumb">
             <Link to="/">Início</Link>
             <span>&gt;</span>
+            {contextInfo.parentCrumb && (
+              <>
+                <Link to={contextInfo.parentCrumb.to}>{contextInfo.parentCrumb.label}</Link>
+                <span>&gt;</span>
+              </>
+            )}
             <span className="current">{contextInfo.breadcrumb}</span>
           </div>
 

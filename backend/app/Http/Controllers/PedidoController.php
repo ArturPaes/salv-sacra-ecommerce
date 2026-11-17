@@ -1705,6 +1705,11 @@ class PedidoController extends Controller
 
         // Notifica o cliente por e-mail e na loja quando o status muda ou quando um código de rastreio é salvo
         if ($novoStatus !== $statusAnterior || (in_array($novoStatus, ['Enviado', 'Em transporte'], true) && ! empty($validated['codigo_rastreio']))) {
+            // Se pulou direto para Em transporte sem ter passado por Enviado, dispara primeiro Enviado (ordem cronológica)
+            if ($novoStatus === 'Em transporte' && in_array($statusAnterior, ['Pendente', 'Pago', 'Em separação', 'Em montagem'], true)) {
+                app(RastreioService::class)->dispararComunicacaoEnviado($pedido);
+            }
+
             try {
                 $destinatario = $pedido->email_contato ?: $pedido->user?->email;
                 if ($destinatario) {
@@ -1929,12 +1934,19 @@ class PedidoController extends Controller
                 $pedido->update(['codigo_rastreio' => $tracking]);
             }
 
+            $ambienteMe = strtolower((string) (Configuracao::where('chave', 'melhor_envio_ambiente')->value('valor') ?: env('MELHOR_ENVIO_ENV', 'production')));
+            $ehSandboxMe = str_contains($ambienteMe, 'sandbox');
+
             if (in_array($status, ['delivered', 'entregue', 'shipment.delivered'], true) && $pedido->status !== 'Entregue') {
                 $rastreioService->atualizarParaEntregue($pedido);
-            } elseif (in_array($status, ['posted', 'postado', 'shipment.posted'], true) && in_array($pedido->status, ['Pago', 'Em separação'], true)) {
+            } elseif (! $ehSandboxMe && in_array($status, ['posted', 'postado', 'shipment.posted'], true) && in_array($pedido->status, ['Pago', 'Em separação', 'Em montagem'], true)) {
                 $rastreioService->atualizarParaEnviado($pedido);
-            } elseif (in_array($status, ['in_transit', 'shipment.in_transit'], true) && $pedido->status !== 'Entregue') {
-                $pedido->update(['status' => 'Em transporte']);
+            } elseif (
+                (in_array($status, ['in_transit', 'shipment.in_transit'], true)
+                    || ($ehSandboxMe && in_array($status, ['posted', 'postado', 'shipment.posted'], true)))
+                && ! in_array($pedido->status, ['Em transporte', 'Entregue', 'Cancelado'], true)
+            ) {
+                $rastreioService->atualizarParaEmTransporte($pedido);
             }
         }
 

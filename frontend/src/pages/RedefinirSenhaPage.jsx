@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import MainLayout from '../layouts/MainLayout';
+import PasswordStrengthMeter, { PasswordConfirmMatch, avaliarSenha } from '../components/PasswordStrengthMeter';
 import '../styles/auth.css';
 
 const IconEye = ({ open }) =>
@@ -17,14 +19,16 @@ const IconEye = ({ open }) =>
     </svg>
   );
 
-const BREADCRUMBS = [
-  { label: 'Início', to: '/' },
-  { label: 'Redefinir Senha' },
-];
-
 export default function RedefinirSenhaPage() {
+  const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const breadcrumbs = [
+    { label: 'Início', to: '/' },
+    { label: 'Minha Conta', to: isAuthenticated ? '/minha-conta' : '/login' },
+    { label: 'Redefinir Senha' },
+  ];
 
   const token = searchParams.get('token') || '';
   const emailParam = searchParams.get('email') || '';
@@ -32,6 +36,7 @@ export default function RedefinirSenhaPage() {
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [showConf, setShowConf] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState('');
@@ -41,8 +46,8 @@ export default function RedefinirSenhaPage() {
     e.preventDefault();
     setErro('');
 
-    if (password.length < 8) {
-      setErro('A senha deve ter no mínimo 8 caracteres.');
+    if (!avaliarSenha(password).isValid) {
+      setErro('A nova senha deve atender a todos os requisitos de segurança.');
       return;
     }
 
@@ -74,7 +79,7 @@ export default function RedefinirSenhaPage() {
   };
 
   return (
-    <MainLayout breadcrumbs={BREADCRUMBS}>
+    <MainLayout breadcrumbs={breadcrumbs}>
       <div className="auth-page">
         <h1 className="auth-title">Nova Senha</h1>
         <p className="auth-subtitle">
@@ -113,19 +118,31 @@ export default function RedefinirSenhaPage() {
                   <IconEye open={showPass} />
                 </button>
               </div>
+              <PasswordStrengthMeter password={password} />
             </div>
 
             <div className="auth-field">
               <label htmlFor="password_confirmation">Confirmar Nova Senha</label>
-              <input
-                id="password_confirmation"
-                type={showPass ? 'text' : 'password'}
-                name="password_confirmation"
-                required
-                placeholder="Repita a nova senha"
-                value={passwordConfirmation}
-                onChange={(e) => setPasswordConfirmation(e.target.value)}
-              />
+              <div className="auth-password-wrapper">
+                <input
+                  id="password_confirmation"
+                  type={showConf ? 'text' : 'password'}
+                  name="password_confirmation"
+                  required
+                  placeholder="Repita a nova senha"
+                  value={passwordConfirmation}
+                  onChange={(e) => setPasswordConfirmation(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="auth-eye-btn"
+                  aria-label={showConf ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                  onClick={() => setShowConf((v) => !v)}
+                >
+                  <IconEye open={showConf} />
+                </button>
+              </div>
+              <PasswordConfirmMatch password={password} confirmation={passwordConfirmation} />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>

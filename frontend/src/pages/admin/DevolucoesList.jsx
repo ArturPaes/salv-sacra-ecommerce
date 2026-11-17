@@ -828,9 +828,32 @@ export default function DevolucoesList() {
             {/* ── Ações Conforme o Status ── */}
             {devolucaoSelecionada.status === 'Pendente' && (
               <div style={{ background: '#fffbeb', border: '1.5px solid #fde047', borderRadius: '10px', padding: '20px', marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#854d0e', margin: '0 0 12px' }}>
-                  1. Aprovar Solicitação & Gerar Postagem Reversa
-                </h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#854d0e', margin: 0 }}>
+                    1. Aprovar Solicitação & Gerar Postagem Reversa
+                  </h4>
+                  <a
+                    href="https://sandbox.melhorenvio.com.br/painel/meus-envios#postados"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="admin-btn admin-btn-secondary"
+                    style={{
+                      fontSize: '12px',
+                      padding: '7px 14px',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      border: '1px solid #cbd5e1',
+                      fontWeight: 700,
+                      borderRadius: '6px',
+                    }}
+                  >
+                    📦 Abrir Meus Envios no Melhor Envio ↗
+                  </a>
+                </div>
 
                 <form onSubmit={handleAprovar}>
                   <div style={{ marginBottom: '14px' }}>

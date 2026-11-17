@@ -5,19 +5,19 @@ import { verificarEmail, reenviarValidacao } from '../services/authService';
 import MainLayout from '../layouts/MainLayout';
 import '../styles/auth.css';
 
-const BREADCRUMBS = [
-  { label: 'Início', to: '/' },
-  { label: 'Minha Conta', to: '/login' },
-  { label: 'Validação de E-mail' },
-];
-
 export default function VerificarEmailPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email');
 
-  const { setSession } = useAuth();
+  const { isAuthenticated, setSession } = useAuth();
   const navigate = useNavigate();
+
+  const breadcrumbs = [
+    { label: 'Início', to: '/' },
+    { label: 'Minha Conta', to: isAuthenticated ? '/minha-conta' : '/login' },
+    { label: 'Validação de E-mail' },
+  ];
 
   const [status, setStatus] = useState('processando'); // 'processando' | 'sucesso' | 'erro'
   const [mensagem, setMensagem] = useState('');
@@ -64,7 +64,7 @@ export default function VerificarEmailPage() {
   };
 
   return (
-    <MainLayout breadcrumbs={BREADCRUMBS}>
+    <MainLayout breadcrumbs={breadcrumbs}>
       <div className="auth-page">
         <div className="auth-confirmation-card" style={{ maxWidth: 520, margin: '40px auto' }}>
           {status === 'processando' && (

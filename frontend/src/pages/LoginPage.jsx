@@ -18,19 +18,18 @@ const IconEye = ({ open }) =>
     </svg>
   );
 
-const BREADCRUMBS = [
-  { label: 'Início',     to: '/' },
-  { label: 'Minha Conta' },
-  { label: 'Login' },
-];
-
 export default function LoginPage() {
-  const { user, signIn } = useAuth();
+  const { user, isAuthenticated, signIn } = useAuth();
   const navigate   = useNavigate();
   const [searchParams] = useSearchParams();
   const location   = useLocation();
   const from       = location.state?.from || searchParams.get('redirect') || sessionStorage.getItem('salv_redirect_after_auth');
-  const isAdminRedirect = searchParams.get('admin') === '1' || (typeof from === 'string' && from.startsWith('/admin'));
+
+  const breadcrumbs = [
+    { label: 'Início', to: '/' },
+    { label: 'Minha Conta', to: isAuthenticated ? '/minha-conta' : '/login' },
+    { label: 'Login' },
+  ];
 
   // ── estado (lógica intacta) ──────────────────────────────
   const [form, setForm]         = useState({ email: '', password: '' });
@@ -72,36 +71,9 @@ export default function LoginPage() {
 
   // ── render ───────────────────────────────────────────────
   return (
-    <MainLayout breadcrumbs={BREADCRUMBS}>
+    <MainLayout breadcrumbs={breadcrumbs}>
       <div className="auth-page">
         <h1 className="auth-title">Iniciar sessão</h1>
-
-        {isAdminRedirect && (
-          <div style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#991b1b',
-            padding: '14px 18px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            lineHeight: '1.45',
-            marginBottom: '20px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <span>🔒</span> Acesso Restrito ao Painel Administrativo
-            </div>
-            {user && user.papel !== 'admin' ? (
-              <div>
-                Você está conectado atualmente como cliente (<strong>{user.nome || user.email}</strong>).
-                <br />
-                Para acessar e gerenciar a área de pedidos da loja, faça login com sua conta de administrador.
-              </div>
-            ) : (
-              <div>Por favor, insira as credenciais de administrador para acessar o painel de controle.</div>
-            )}
-          </div>
-        )}
 
         {error && <p className="auth-error">{error}</p>}
 

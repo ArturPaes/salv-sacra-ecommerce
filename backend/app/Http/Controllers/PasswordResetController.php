@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\RecuperarSenhaMail;
 use App\Models\User;
+use App\Rules\StrongPassword;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +68,7 @@ class PasswordResetController extends Controller
         $request->validate([
             'email'                 => ['required', 'email'],
             'token'                 => ['required', 'string'],
-            'password'              => ['required', 'string', 'min:8', 'confirmed'],
+            'password'              => ['required', 'string', 'min:8', 'confirmed', new StrongPassword()],
         ], [
             'password.required'  => 'Informe a nova senha.',
             'password.min'       => 'A senha deve conter no mínimo 8 caracteres.',

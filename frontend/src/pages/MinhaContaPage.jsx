@@ -10,6 +10,7 @@ import { simularPagamentoPedidoDemo } from '../services/demoService';
 import IconPix from '../components/IconPix';
 import CardBrandIcon, { detectarBandeira } from '../components/CardBrandIcon';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PasswordStrengthMeter, { IconEye, PasswordConfirmMatch, avaliarSenha } from '../components/PasswordStrengthMeter';
 import { imprimirReciboPedido } from '../utils/imprimirRecibo';
 import {
   alterarSenha,
@@ -3912,12 +3913,26 @@ function Senha() {
   const [form, setForm] = useState(vazio);
   const [msg, setMsg] = useState({ tipo: '', texto: '' });
   const [salvando, setSalvando] = useState(false);
+  const [showAtual, setShowAtual] = useState(false);
+  const [showNova, setShowNova] = useState(false);
+  const [showConf, setShowConf] = useState(false);
 
   const change = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const submit = async (e) => {
     e.preventDefault();
     setMsg({ tipo: '', texto: '' });
+
+    if (!avaliarSenha(form.password).isValid) {
+      setMsg({ tipo: 'erro', texto: 'A nova senha deve atender a todos os requisitos de segurança.' });
+      return;
+    }
+
+    if (form.password !== form.password_confirmation) {
+      setMsg({ tipo: 'erro', texto: 'A confirmação de nova senha não confere.' });
+      return;
+    }
+
     setSalvando(true);
     try {
       const { data } = await alterarSenha(form);
@@ -3947,39 +3962,71 @@ function Senha() {
               Esqueceu a senha atual?
             </Link>
           </div>
-          <input
-            id="s-atual"
-            type="password"
-            name="senha_atual"
-            placeholder="Digite sua senha atual"
-            value={form.senha_atual}
-            onChange={change}
-            required
-          />
+          <div className="auth-password-wrapper">
+            <input
+              id="s-atual"
+              type={showAtual ? 'text' : 'password'}
+              name="senha_atual"
+              placeholder="Digite sua senha atual"
+              value={form.senha_atual}
+              onChange={change}
+              required
+            />
+            <button
+              type="button"
+              className="auth-eye-btn"
+              aria-label={showAtual ? 'Ocultar senha atual' : 'Mostrar senha atual'}
+              onClick={() => setShowAtual((v) => !v)}
+            >
+              <IconEye open={showAtual} />
+            </button>
+          </div>
         </div>
         <div className="auth-field">
           <label htmlFor="s-nova">Nova senha</label>
-          <input
-            id="s-nova"
-            type="password"
-            name="password"
-            placeholder="Mínimo de 8 caracteres"
-            value={form.password}
-            onChange={change}
-            required
-          />
+          <div className="auth-password-wrapper">
+            <input
+              id="s-nova"
+              type={showNova ? 'text' : 'password'}
+              name="password"
+              placeholder="Mínimo de 8 caracteres"
+              value={form.password}
+              onChange={change}
+              required
+            />
+            <button
+              type="button"
+              className="auth-eye-btn"
+              aria-label={showNova ? 'Ocultar nova senha' : 'Mostrar nova senha'}
+              onClick={() => setShowNova((v) => !v)}
+            >
+              <IconEye open={showNova} />
+            </button>
+          </div>
+          <PasswordStrengthMeter password={form.password} />
         </div>
         <div className="auth-field">
           <label htmlFor="s-conf">Confirmar nova senha</label>
-          <input
-            id="s-conf"
-            type="password"
-            name="password_confirmation"
-            placeholder="Repita a nova senha"
-            value={form.password_confirmation}
-            onChange={change}
-            required
-          />
+          <div className="auth-password-wrapper">
+            <input
+              id="s-conf"
+              type={showConf ? 'text' : 'password'}
+              name="password_confirmation"
+              placeholder="Repita a nova senha"
+              value={form.password_confirmation}
+              onChange={change}
+              required
+            />
+            <button
+              type="button"
+              className="auth-eye-btn"
+              aria-label={showConf ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+              onClick={() => setShowConf((v) => !v)}
+            >
+              <IconEye open={showConf} />
+            </button>
+          </div>
+          <PasswordConfirmMatch password={form.password} confirmation={form.password_confirmation} />
         </div>
         <button type="submit" className="auth-btn" disabled={salvando}>
           {salvando ? 'Salvando...' : 'Alterar senha'}

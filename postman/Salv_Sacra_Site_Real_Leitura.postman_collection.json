@@ -1,0 +1,922 @@
+{
+  "info": {
+    "name": "Salv Sacra - Site Real (Seguro / Somente Leitura)",
+    "description": "Bateria completa e segura (30 requisicoes) para o Site Real sem alterar produtos, banners ou visuais e sem criar pedidos de teste. Testa o portao de senha, catalogo completo, frete, cupons, estoque, portal do cliente, seguranca/permissoes (401/403/422) e todos os modulos de leitura do Admin.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Bloqueio e Liberacao do Portao Real",
+      "item": [
+        {
+          "name": "Bloquear Login sem Token do Portao (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Portao real bloqueia sem X-Store-Access-Token (403)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test('Codigo STORE_ACCESS_REQUIRED retornado', function () {",
+                  "    pm.expect(pm.response.json().code).to.eql('STORE_ACCESS_REQUIRED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tucopaes@gmail.com\",\n  \"password\": \"Artp2004\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Bloquear Calculo de Frete sem Token do Portao (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Frete protegido pelo portao real (403)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cep\": \"88701-000\"\n}"
+            },
+            "url": "{{base_url}}/frete/calcular"
+          }
+        },
+        {
+          "name": "Rejeitar Senha Errada no Portao Real (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Senha errada rejeitada (403)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"senhaerrada\"\n}"
+            },
+            "url": "{{base_url}}/demo/validar-acesso-real"
+          }
+        },
+        {
+          "name": "Desbloquear Portao Real com Senha Correta (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Portao desbloqueado (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.expect(res.store_access_token).to.be.a('string').and.not.empty;",
+                  "pm.environment.set('store_token', res.store_access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"Artp2004\"\n}"
+            },
+            "url": "{{base_url}}/demo/validar-acesso-real"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Vitrine, Catalogo & Consultas Publicas",
+      "item": [
+        {
+          "name": "Listar Produtos Oficiais",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Produtos carregados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const lista = pm.response.json();",
+                  "const prods = Array.isArray(lista) ? lista : (lista.data || []);",
+                  "pm.expect(prods.length).to.be.above(0);",
+                  "const prod = prods.find(p => Array.isArray(p.variacoes) && p.variacoes.length > 0) || prods[0];",
+                  "pm.environment.set('produto_id', String(prod.id));",
+                  "if (prod.variacoes && prod.variacoes[0]) {",
+                  "    pm.environment.set('variacao_id', String(prod.variacoes[0].id));",
+                  "}",
+                  "pm.environment.set('produto_preco', String(prod.preco_base || 70));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/produtos"
+          }
+        },
+        {
+          "name": "Detalhe de Produto Oficial",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Detalhe do produto retornado (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/produtos/{{produto_id}}"
+          }
+        },
+        {
+          "name": "Avaliacoes do Produto Oficial",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Avaliacoes do produto carregadas (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/produtos/{{produto_id}}/avaliacoes"
+          }
+        },
+        {
+          "name": "Listar Categorias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Categorias retornadas (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/categorias"
+          }
+        },
+        {
+          "name": "Listar Devocoes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Devocoes retornadas (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/devocaos"
+          }
+        },
+        {
+          "name": "Listar Colecoes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Colecoes retornadas (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/colecoes"
+          }
+        },
+        {
+          "name": "Listar Modelos de Camiseta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Modelos retornados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/modelos"
+          }
+        },
+        {
+          "name": "Configuracoes Publicas da Vitrine",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Configuracoes publicas OK (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/configuracoes/publicas"
+          }
+        },
+        {
+          "name": "Cupons Disponiveis na Loja",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lista de cupons disponiveis OK (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/cupons/disponiveis"
+          }
+        },
+        {
+          "name": "Verificar Estoque em Tempo Real",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Verificacao de estoque OK (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    {\n      \"variacao_id\": {{variacao_id}},\n      \"quantidade\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/carrinho/verificar-estoque"
+          }
+        },
+        {
+          "name": "Calcular Frete Real (CEP Tubarao/SC)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Frete calculado (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cep\": \"88701-000\",\n  \"subtotal\": 70,\n  \"quantidade\": 1\n}"
+            },
+            "url": "{{base_url}}/frete/calcular"
+          }
+        },
+        {
+          "name": "Rejeitar Cupom Inexistente (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cupom invalido rejeitado (422)', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cupom_codigo\": \"CUPOM_INEXISTENTE_TESTE\",\n  \"valor_frete\": 15,\n  \"itens\": [\n    {\n      \"produto_id\": {{produto_id}},\n      \"preco\": {{produto_preco}},\n      \"quantidade\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/cupons/validar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Autenticacao & Portal do Cliente Real",
+      "item": [
+        {
+          "name": "Bloquear Acesso sem Token Bearer (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Conta protegida exige autenticacao Sanctum (401)', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "url": "{{base_url}}/conta/resumo"
+          }
+        },
+        {
+          "name": "Rejeitar Senha Incorreta no Login Real (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Credenciais invalidas rejeitadas (422)', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tucopaes@gmail.com\",\n  \"password\": \"SenhaErrada999\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Login Cliente Real (tucopaes@gmail.com)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login cliente real OK (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.environment.set('cliente_token', pm.response.json().token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tucopaes@gmail.com\",\n  \"password\": \"Artp2004\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Dados do Usuario Autenticado (/auth/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('/auth/me OK (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/auth/me"
+          }
+        },
+        {
+          "name": "Consultar Resumo da Conta Real",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Resumo da conta carregado (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/conta/resumo"
+          }
+        },
+        {
+          "name": "Consultar Pedidos do Cliente Real",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Pedidos do cliente carregados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/conta/pedidos"
+          }
+        },
+        {
+          "name": "Consultar Enderecos, Favoritos & Vales do Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Enderecos carregados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/conta/enderecos"
+          }
+        },
+        {
+          "name": "Consultar Favoritos & Notificacoes do Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Notificacoes carregadas (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/notificacoes"
+          }
+        },
+        {
+          "name": "Bloquear Cliente Real no Painel Admin (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cliente real nao acessa rota admin (403)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{cliente_token}}" }
+            ],
+            "url": "{{base_url}}/admin/dashboard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Painel Administrativo Real (Somente Leitura)",
+      "item": [
+        {
+          "name": "Login Admin Real (salvsacra2@gmail.com)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login admin real OK (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.environment.set('admin_token', pm.response.json().token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"salvsacra2@gmail.com\",\n  \"password\": \"Artp2004\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Dashboard Admin Real",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dashboard admin retornado (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/dashboard"
+          }
+        },
+        {
+          "name": "Listar Pedidos no Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Pedidos admin retornados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/pedidos"
+          }
+        },
+        {
+          "name": "Listar Clientes no Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Clientes admin retornados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/clientes"
+          }
+        },
+        {
+          "name": "Listar Devolucoes no Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Devolucoes admin retornadas (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/devolucoes"
+          }
+        },
+        {
+          "name": "Consultar Estoque & Relatorios Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Estoque admin retornado (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/estoque"
+          }
+        },
+        {
+          "name": "Consultar Relatorios / Faturamento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Relatorios retornados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/relatorios"
+          }
+        },
+        {
+          "name": "Consultar Configuracoes & Notificacoes Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Configuracoes admin retornadas (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/configuracoes"
+          }
+        },
+        {
+          "name": "Consultar Contadores Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Contadores admin retornados (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Store-Access-Token", "value": "{{store_token}}" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": "{{base_url}}/admin/contadores"
+          }
+        }
+      ]
+    }
+  ]
+}

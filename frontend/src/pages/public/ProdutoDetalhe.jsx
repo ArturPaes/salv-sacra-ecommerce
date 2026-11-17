@@ -167,14 +167,35 @@ export default function ProdutoDetalhe() {
   const [maxParcelasSemJuros, setMaxParcelasSemJuros] = useState(6);
 
   useEffect(() => {
-    api.get('/configuracoes/publicas')
-      .then((res) => {
-        if (res.data?.cartao_parcelas_max) {
-          const max = parseInt(res.data.cartao_parcelas_max, 10);
-          if (max >= 1 && max <= 12) setMaxParcelasSemJuros(max);
-        }
-      })
-      .catch(() => {});
+    const carregarConfigPublicas = () => {
+      api.get('/configuracoes/publicas', { params: { _t: Date.now() } })
+        .then((res) => {
+          if (res.data?.cartao_parcelas_max) {
+            const max = parseInt(res.data.cartao_parcelas_max, 10);
+            if (max >= 1 && max <= 12) setMaxParcelasSemJuros(max);
+          }
+        })
+        .catch(() => {});
+    };
+
+    carregarConfigPublicas();
+    const handleStorage = (e) => {
+      if (e.key === 'salv_sync_trigger') carregarConfigPublicas();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') carregarConfigPublicas();
+    };
+    window.addEventListener('salv-config-atualizadas', carregarConfigPublicas);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', carregarConfigPublicas);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('salv-config-atualizadas', carregarConfigPublicas);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', carregarConfigPublicas);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   // Ref do carrossel similar
