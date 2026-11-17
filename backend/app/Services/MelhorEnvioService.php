@@ -16,7 +16,7 @@ class MelhorEnvioService
     public function getAmbiente(): string
     {
         $amb = Configuracao::where('chave', 'melhor_envio_ambiente')->value('valor')
-            ?: env('MELHOR_ENVIO_ENV', 'production');
+            ?: config('services.melhor_envio.env');
         return str_contains(strtolower($amb), 'sandbox') ? 'sandbox' : 'production';
     }
 
@@ -51,7 +51,7 @@ class MelhorEnvioService
         }
 
         return Configuracao::where('chave', 'melhor_envio_token')->value('valor')
-            ?: env('MELHOR_ENVIO_TOKEN');
+            ?: config('services.melhor_envio.token');
     }
 
     /**

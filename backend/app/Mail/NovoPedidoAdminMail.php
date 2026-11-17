@@ -22,7 +22,7 @@ class NovoPedidoAdminMail extends Mailable
     public function __construct(Pedido $pedido)
     {
         $this->pedido = $pedido;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $this->adminUrl = rtrim($frontendUrl, '/') . '/admin/pedidos';
     }
 

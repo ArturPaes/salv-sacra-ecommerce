@@ -22,7 +22,7 @@ class PedidoCriadoMail extends Mailable
     public function __construct(Pedido $pedido)
     {
         $this->pedido = $pedido;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $this->minhaContaUrl = rtrim($frontendUrl, '/') . '/minha-conta?aba=pedidos&pedido=' . $pedido->id . '&email=' . urlencode($pedido->user?->email ?? $pedido->email_contato ?? '');
     }
 

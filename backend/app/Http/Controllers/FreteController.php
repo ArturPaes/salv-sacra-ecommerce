@@ -95,12 +95,12 @@ class FreteController extends Controller
             'melhor_envio_sandbox_token',
         ])->pluck('valor', 'chave');
 
-        $cepOrigem        = preg_replace('/\D/', '', $configs['cep_origem'] ?? env('FRETE_CEP_ORIGEM', '88702280'));
-        $ambienteFrete    = $configs['melhor_envio_ambiente'] ?? env('MELHOR_ENVIO_ENV', 'production');
+        $cepOrigem        = preg_replace('/\D/', '', $configs['cep_origem'] ?? config('services.frete.cep_origem'));
+        $ambienteFrete    = $configs['melhor_envio_ambiente'] ?? config('services.melhor_envio.env');
         $isSandbox        = str_contains(strtolower($ambienteFrete), 'sandbox');
         $tokenMelhorEnvio = $isSandbox
-            ? ($configs['melhor_envio_sandbox_token'] ?? $configs['melhor_envio_token'] ?? env('MELHOR_ENVIO_TOKEN'))
-            : ($configs['melhor_envio_token'] ?? env('MELHOR_ENVIO_TOKEN'));
+            ? ($configs['melhor_envio_sandbox_token'] ?? $configs['melhor_envio_token'] ?? config('services.melhor_envio.token'))
+            : ($configs['melhor_envio_token'] ?? config('services.melhor_envio.token'));
 
         // Frete grátis apenas via cupom promocional
         $temFreteGratis = false;
@@ -172,7 +172,7 @@ class FreteController extends Controller
     private function cotarMelhorEnvio(string $token, string $cepOrigem, string $cepDestino, int $quantidade, float $subtotal): array
     {
         try {
-            $ambiente = Configuracao::where('chave', 'melhor_envio_ambiente')->value('valor') ?: env('MELHOR_ENVIO_ENV', 'production');
+            $ambiente = Configuracao::where('chave', 'melhor_envio_ambiente')->value('valor') ?: config('services.melhor_envio.env');
             $isSandbox = str_contains(strtolower($ambiente), 'sandbox');
             $baseUrl = $isSandbox ? 'https://sandbox.melhorenvio.com.br' : 'https://www.melhorenvio.com.br';
 

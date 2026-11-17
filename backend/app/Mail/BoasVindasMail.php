@@ -22,7 +22,7 @@ class BoasVindasMail extends Mailable
     public function __construct(User $user)
     {
         $this->user = $user;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $this->storeUrl = rtrim($frontendUrl, '/');
     }
 

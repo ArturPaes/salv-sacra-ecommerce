@@ -22,7 +22,7 @@ class ProdutoDisponivelMail extends Mailable
     {
         $this->user = $user;
         $this->variacao = $variacao->loadMissing('produto');
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $this->produtoUrl = rtrim($frontendUrl, '/') . '/produto/' . $variacao->produto_id;
     }
 

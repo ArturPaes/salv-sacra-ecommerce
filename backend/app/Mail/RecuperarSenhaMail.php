@@ -23,7 +23,7 @@ class RecuperarSenhaMail extends Mailable
     {
         $this->token = $token;
         $this->email = $email;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $this->resetUrl = rtrim($frontendUrl, '/') . '/redefinir-senha?token=' . urlencode($token) . '&email=' . urlencode($email);
     }
 

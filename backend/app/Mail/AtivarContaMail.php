@@ -23,7 +23,7 @@ class AtivarContaMail extends Mailable
     {
         $this->name = $name;
         $this->email = $email;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $this->verificationUrl = rtrim($frontendUrl, '/') . '/verificar-email?token=' . urlencode($token) . '&email=' . urlencode($email);
     }
 

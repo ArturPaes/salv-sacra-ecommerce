@@ -89,7 +89,7 @@ class DemoSandboxService
     public static function usesSqliteDriver(): bool
     {
         return extension_loaded('pdo_sqlite')
-            && strtolower((string) env('DEMO_SANDBOX_DRIVER', '')) === 'sqlite';
+            && strtolower((string) config('services.demo.sandbox_driver')) === 'sqlite';
     }
 
     public static function directoryPath(): string

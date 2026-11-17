@@ -29,7 +29,7 @@ class ContatoController extends Controller
             $resposta = Http::withoutVerifying()
                 ->asForm()
                 ->post('https://www.google.com/recaptcha/api/siteverify', [
-                    'secret'   => env('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'),
+                    'secret'   => config('services.recaptcha.secret'),
                     'response' => $dados['recaptcha'],
                     'remoteip' => $request->ip(),
                 ]);
@@ -44,7 +44,7 @@ class ContatoController extends Controller
 
         // Envia cópia da mensagem para o e-mail da loja
         try {
-            $destinatarioAdmin = env('MAIL_FROM_ADDRESS', 'salvsacra2@gmail.com');
+            $destinatarioAdmin = (config('mail.from.address') ?: 'salvsacra2@gmail.com');
             \Illuminate\Support\Facades\Mail::to($destinatarioAdmin)->send(new \App\Mail\ContatoMail($dados));
         } catch (\Throwable $e) {
             Log::error('Erro ao enviar e-mail de contato: ' . $e->getMessage());

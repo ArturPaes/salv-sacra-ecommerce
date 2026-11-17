@@ -62,4 +62,35 @@ class Produto extends Model
     {
         return $this->hasMany(Favorito::class);
     }
+
+    /**
+     * Normaliza URLs de imagens salvas com localhost:8000 para o APP_URL atual em produção.
+     */
+    public function toArray(): array
+    {
+        $array = parent::toArray();
+        $appUrl = rtrim((string) config('app.url', 'http://localhost:8000'), '/');
+
+        if ($appUrl !== '' && ! str_contains($appUrl, 'localhost:8000')) {
+            $normalizar = function ($valor) use (&$normalizar, $appUrl) {
+                if (is_string($valor)) {
+                    return preg_replace('#^https?://(localhost|127\.0\.0\.1):8000/storage/#i', $appUrl . '/storage/', $valor);
+                }
+                if (is_array($valor)) {
+                    foreach ($valor as $k => $v) {
+                        $valor[$k] = $normalizar($v);
+                    }
+                }
+                return $valor;
+            };
+
+            foreach (['imagem_url', 'imagens', 'imagens_vitrine', 'cores_config'] as $campo) {
+                if (isset($array[$campo])) {
+                    $array[$campo] = $normalizar($array[$campo]);
+                }
+            }
+        }
+
+        return $array;
+    }
 }

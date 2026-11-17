@@ -24,7 +24,7 @@ class StatusPedidoMail extends Mailable
     {
         $pedido->loadMissing(['itens.variacao.produto', 'user']);
         $this->pedido = $pedido;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $emailParam = urlencode($pedido->user?->email ?? $pedido->email_contato ?? '');
         $this->minhaContaUrl = rtrim($frontendUrl, '/') . '/minha-conta?aba=pedidos&pedido=' . $pedido->id . '&email=' . $emailParam;
         $this->avaliarUrl = rtrim($frontendUrl, '/') . '/minha-conta?aba=pedidos&pedido=' . $pedido->id . '&avaliar=1&email=' . $emailParam;

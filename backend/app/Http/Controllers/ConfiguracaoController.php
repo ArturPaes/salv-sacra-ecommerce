@@ -77,6 +77,15 @@ class ConfiguracaoController extends Controller
             }
         }
 
+        $appUrl = rtrim((string) config('app.url', 'http://localhost:8000'), '/');
+        if (! empty($configs['carrossel_slides']) && $appUrl !== '' && ! str_contains($appUrl, 'localhost:8000')) {
+            $configs['carrossel_slides'] = preg_replace(
+                '#https?:\\\\?/\\\\?/(localhost|127\.0\.0\.1):8000\\\\?/storage\\\\?/#i',
+                $appUrl . '/storage/',
+                (string) $configs['carrossel_slides']
+            );
+        }
+
         return response()
             ->json($configs)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate');

@@ -69,7 +69,7 @@ class AuthController extends Controller
             $resposta = Http::withoutVerifying()
                 ->asForm()
                 ->post('https://www.google.com/recaptcha/api/siteverify', [
-                    'secret'   => env('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'),
+                    'secret'   => config('services.recaptcha.secret'),
                     'response' => $validated['recaptcha'],
                     'remoteip' => $request->ip(),
                 ]);

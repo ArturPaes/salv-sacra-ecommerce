@@ -187,7 +187,7 @@ class PedidoController extends Controller
         }
 
         $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-            ?: env('MERCADOPAGO_ACCESS_TOKEN');
+            ?: config('services.mercadopago.access_token');
 
         if (! empty($mpToken)) {
             try {
@@ -329,11 +329,11 @@ class PedidoController extends Controller
         $mpToken = $isDemo
             ? null
             : (Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-                ?: env('MERCADOPAGO_ACCESS_TOKEN'));
+                ?: config('services.mercadopago.access_token'));
         $mpPublicKey = $isDemo
             ? null
             : (Configuracao::where('chave', 'mercadopago_public_key')->value('valor')
-                ?: env('MERCADOPAGO_PUBLIC_KEY'));
+                ?: config('services.mercadopago.public_key'));
 
         $numeroLimpo = preg_replace('/\D/', '', $dadosCartao['numero'] ?? '');
         $cvvLimpo = preg_replace('/\D/', '', $dadosCartao['cvv'] ?? '');
@@ -961,7 +961,7 @@ class PedidoController extends Controller
         }
 
         $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-            ?: env('MERCADOPAGO_ACCESS_TOKEN');
+            ?: config('services.mercadopago.access_token');
 
         if (empty($mpToken)) {
             return;
@@ -1013,7 +1013,7 @@ class PedidoController extends Controller
                     && ! str_starts_with((string) $pedido->pagamento_id, 'CARD-SIMUL-')
                 ) {
                     $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-                        ?: env('MERCADOPAGO_ACCESS_TOKEN');
+                        ?: config('services.mercadopago.access_token');
                     if (! empty($mpToken)) {
                         try {
                             $resp = Http::withoutVerifying()
@@ -1069,7 +1069,7 @@ class PedidoController extends Controller
             && ! str_starts_with((string) $pedido->pagamento_id, 'CARD-SIMUL-')
         ) {
             $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-                ?: env('MERCADOPAGO_ACCESS_TOKEN');
+                ?: config('services.mercadopago.access_token');
 
             if (! empty($mpToken)) {
                 try {
@@ -1323,7 +1323,7 @@ class PedidoController extends Controller
         }
 
         $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-            ?: env('MERCADOPAGO_ACCESS_TOKEN');
+            ?: config('services.mercadopago.access_token');
 
         if (empty($mpToken)) {
             return ['sucesso' => false, 'mensagem' => 'Token do Mercado Pago não configurado para estorno automático.'];
@@ -1552,7 +1552,7 @@ class PedidoController extends Controller
         if ($paymentId) {
             $pedido = Pedido::where('pagamento_id', (string) $paymentId)->first();
             $mpToken = Configuracao::where('chave', 'mercadopago_access_token')->value('valor')
-                ?: env('MERCADOPAGO_ACCESS_TOKEN');
+                ?: config('services.mercadopago.access_token');
 
             if ($pedido && ! empty($mpToken)) {
                 try {
@@ -1934,7 +1934,7 @@ class PedidoController extends Controller
                 $pedido->update(['codigo_rastreio' => $tracking]);
             }
 
-            $ambienteMe = strtolower((string) (Configuracao::where('chave', 'melhor_envio_ambiente')->value('valor') ?: env('MELHOR_ENVIO_ENV', 'production')));
+            $ambienteMe = strtolower((string) (Configuracao::where('chave', 'melhor_envio_ambiente')->value('valor') ?: config('services.melhor_envio.env')));
             $ehSandboxMe = str_contains($ambienteMe, 'sandbox');
 
             if (in_array($status, ['delivered', 'entregue', 'shipment.delivered'], true) && $pedido->status !== 'Entregue') {

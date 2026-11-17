@@ -22,7 +22,7 @@ class NovaDevolucaoAdminMail extends Mailable
     public function __construct(Devolucao $devolucao)
     {
         $this->devolucao = $devolucao;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $this->adminUrl = rtrim($frontendUrl, '/') . '/admin/devolucoes';
     }
 
