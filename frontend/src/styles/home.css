@@ -492,8 +492,12 @@
   color: #fff;
 }
 
+.produto-card--ver-mais {
+  min-width: 220px;
+}
+
 /* ── 8. RESPONSIVO ───────────────────────────────────────────── */
-@media (max-width: 991px) and (min-width: 680px) {
+@media (max-width: 991px) and (min-width: 641px) {
   .produto-card,
   .skeleton-card {
     flex: 0 0 calc((100% - 40px) / 3);
@@ -502,48 +506,232 @@
   }
 }
 
-@media (max-width: 679px) and (min-width: 480px) {
-  .produto-card,
-  .skeleton-card {
-    flex: 0 0 calc((100% - 20px) / 2);
-    width: calc((100% - 20px) / 2);
-    max-width: calc((100% - 20px) / 2);
-  }
-}
-
 @media (max-width: 768px) {
-  .hero-banner  { height: 280px; }
-  .hero-title   { font-size: 34px; }
-  .hero-content { padding: 0 56px; }
+  .hero-banner {
+    min-height: 290px;
+    height: auto;
+    padding: 36px 48px 44px;
+    background-size: cover;
+    background-position: center top;
+  }
+
+  .hero-banner--claro::before,
+  .hero-banner--escuro::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .hero-banner--claro::before {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.52) 62%, rgba(0, 0, 0, 0.16) 100%);
+  }
+
+  .hero-banner--escuro::before {
+    background: radial-gradient(circle at center, rgba(15, 15, 15, 0.72) 0%, rgba(15, 15, 15, 0.44) 62%, rgba(0, 0, 0, 0.24) 100%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 18px 22px;
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+    max-width: calc(100vw - 96px);
+    gap: 10px;
+  }
+
+  .hero-banner--claro .hero-content {
+    background: rgba(255, 255, 255, 0.84);
+    backdrop-filter: blur(6px);
+  }
+
+  .hero-banner--escuro .hero-content {
+    background: rgba(20, 20, 20, 0.78);
+    backdrop-filter: blur(6px);
+  }
+
+  .hero-tag {
+    font-size: clamp(11px, 2.8vw, 13px);
+  }
+
+  .hero-title {
+    font-size: clamp(26px, 7vw, 38px);
+  }
+
+  .hero-cta {
+    padding: 10px 24px;
+    margin-top: 4px;
+  }
+
+  .hero-arrow {
+    width: 34px;
+    height: 34px;
+    z-index: 6;
+  }
+
+  .hero-arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .hero-arrow--prev { left: 8px; }
+  .hero-arrow--next { right: 8px; }
+
+  .hero-banner--claro .hero-arrow {
+    background: rgba(255, 255, 255, 0.88);
+    color: #1e1e1e;
+    border-color: rgba(30, 30, 30, 0.25);
+  }
+
+  .hero-banner--escuro .hero-arrow {
+    background: rgba(24, 24, 24, 0.8);
+    color: #f2f2f2;
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  /* Faixa de Benefícios em Grid 2x2 compacto */
+  .benefits-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 14px 12px 24px;
+    background: transparent;
+    border-top: none;
+    border-bottom: none;
+  }
 
   .benefit-item {
-    padding: 16px 20px;
-    min-width: 160px;
+    min-width: 0;
+    max-width: none;
+    padding: 12px 10px;
+    gap: 10px;
+    background: #f0f0f0;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   }
 
-  .home-section { padding: 32px 16px; }
+  .benefit-item:last-child {
+    border-right: 1px solid #d8d8d8;
+  }
+
+  .benefit-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .benefit-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .benefit-text strong {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .benefit-text span {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .home-section { padding: 24px 14px 16px; }
+  .home-section-title { font-size: 20px; margin-bottom: 20px; }
   .carousel-wrapper { gap: 8px; }
 }
 
-@media (max-width: 519px) {
+@media (max-width: 640px) {
+  .carousel-btn {
+    display: none;
+  }
+
+  .home-section .carousel-track,
+  .home-section .carousel-skeleton {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    overflow: visible;
+    padding: 4px 0 8px;
+  }
+
+  .home-section .produto-card,
+  .home-section .skeleton-card {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    border-radius: 14px;
+  }
+
+  .home-section .produto-card--ver-mais {
+    grid-column: 1 / -1;
+    min-width: 0 !important;
+    width: 100%;
+    padding: 18px 14px !important;
+  }
+
   .produto-card,
   .skeleton-card {
-    flex: 0 0 78%;
-    width: 78%;
-    min-width: 170px;
-    border-radius: 16px;
+    flex: 0 0 calc((100% - 12px) / 2);
+    width: calc((100% - 12px) / 2);
+    max-width: calc((100% - 12px) / 2);
+    min-width: 0;
+    border-radius: 14px;
+  }
+
+  .produto-card-dots {
+    padding: 6px;
+    gap: 6px;
+    min-height: 22px;
+  }
+
+  .produto-card-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .produto-card-info {
+    padding: 9px 8px 12px;
+  }
+
+  .produto-card-nome {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  .produto-card-preco {
+    font-size: 13px;
   }
 }
 
 @media (max-width: 480px) {
-  .hero-banner  { height: 220px; }
-  .hero-title   { font-size: 26px; }
-  .hero-content { padding: 0 48px; }
+  .hero-banner {
+    min-height: 250px;
+    padding: 28px 44px 36px;
+  }
+
+  .hero-content {
+    padding: 14px 16px;
+    max-width: calc(100vw - 88px);
+  }
+
   .hero-subtitle { display: none; }
 
-  .benefits-bar { flex-direction: column; }
-  .benefit-item { border-right: none; border-bottom: 1px solid #d8d8d8; max-width: 100%; }
-  .benefit-item:last-child { border-bottom: none; }
+  .instagram-cta {
+    padding: 36px 16px 48px;
+  }
+}
+
+@media (max-width: 359px) {
+  .home-section .carousel-track,
+  .home-section .carousel-skeleton {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Setas de navegação entre fotos na vitrine/card ── */

@@ -128,7 +128,6 @@ function CardCarousel({ items, loading, emptyMsg }) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '220px',
             background: 'linear-gradient(135deg, #1e1e1e 0%, #121212 100%)',
             borderRadius: '16px',
             padding: '24px 18px',

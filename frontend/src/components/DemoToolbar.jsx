@@ -57,7 +57,13 @@ export default function DemoToolbar() {
   useEffect(() => {
     if (isDemoMode) {
       setMinimizado(true);
+      document.body.classList.add('demo-mode-active');
+    } else {
+      document.body.classList.remove('demo-mode-active');
     }
+    return () => {
+      document.body.classList.remove('demo-mode-active');
+    };
   }, [isDemoMode]);
 
   if (!isDemoMode) return null;
@@ -165,6 +171,7 @@ export default function DemoToolbar() {
       {/* Notificação discreta acima da barra */}
       {toastMsg && (
         <div
+          className="demo-toolbar-toast"
           style={{
             position: 'fixed',
             bottom: minimizado ? '62px' : '74px',
@@ -187,6 +194,7 @@ export default function DemoToolbar() {
       {/* Modo Minimizado */}
       {minimizado ? (
         <div
+          className="demo-toolbar-pill-wrap"
           style={{
             position: 'fixed',
             bottom: '16px',
@@ -200,6 +208,7 @@ export default function DemoToolbar() {
         >
           <button
             type="button"
+            className="demo-toolbar-pill-btn"
             onClick={() => {
               setMinimizado(false);
               atualizarStatusDemo();
@@ -229,6 +238,7 @@ export default function DemoToolbar() {
       ) : (
         /* Barra Flutuante Expandida */
         <div
+          className="demo-toolbar-expanded-wrap"
           style={{
             position: 'fixed',
             bottom: '12px',
@@ -243,6 +253,7 @@ export default function DemoToolbar() {
           <div
             role="region"
             aria-label="Barra de Controle do Modo Demo"
+            className="demo-toolbar-expanded-panel"
             style={{
               pointerEvents: 'auto',
               width: 'fit-content',
@@ -292,6 +303,7 @@ export default function DemoToolbar() {
 
             {/* Ações de Troca e Controles */}
             <div
+              className="demo-toolbar-actions"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -650,7 +662,7 @@ export default function DemoToolbar() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
                 gap: '10px',
                 fontSize: '12.5px',
                 color: '#334155',

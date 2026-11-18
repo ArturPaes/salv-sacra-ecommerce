@@ -115,7 +115,7 @@ export default function AccessGateModal() {
           'radial-gradient(circle at top center, rgba(42, 34, 22, 0.96) 0%, rgba(12, 13, 17, 0.98) 65%)',
         backdropFilter: 'blur(8px)',
         overflowY: 'auto',
-        padding: '44px 16px 36px',
+        padding: 'clamp(20px, 4vw, 44px) 12px 28px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -230,7 +230,7 @@ export default function AccessGateModal() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
             gap: '20px',
             alignItems: 'stretch',
           }}
@@ -241,7 +241,7 @@ export default function AccessGateModal() {
               background: '#ffffff',
               color: '#111827',
               borderRadius: '16px',
-              padding: '26px',
+              padding: 'clamp(18px, 3vw, 26px)',
               border: '2px solid #c5a880',
               boxShadow:
                 hoverBtn === 'demo' && !loadingAction
@@ -487,7 +487,7 @@ export default function AccessGateModal() {
               background: 'rgba(24, 26, 32, 0.9)',
               color: '#f1f5f9',
               borderRadius: '16px',
-              padding: '26px',
+              padding: 'clamp(18px, 3vw, 26px)',
               border:
                 (hoverBtn === 'real' || hoverBtn === 'real-submit') && !loadingAction
                   ? '1px solid rgba(197, 168, 128, 0.6)'

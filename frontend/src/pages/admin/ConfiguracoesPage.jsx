@@ -267,12 +267,18 @@ export default function ConfiguracoesPage() {
       )}
 
       {/* ── Abas de Navegação das Configurações ── */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        borderBottom: '2px solid #e5e7eb',
-        marginBottom: '28px',
-      }}>
+      <div
+        className="admin-tabs-scroll"
+        style={{
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '2px solid #e5e7eb',
+          marginBottom: '28px',
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {[
           { id: 'loja', label: 'Identidade da Loja' },
           { id: 'carrossel', label: 'Carrossel da Vitrine' },
@@ -308,11 +314,11 @@ export default function ConfiguracoesPage() {
           <LoadingSpinner size="md" />
         </div>
       ) : abaAtiva === 'cupons' ? (
-        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div className="admin-config-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           <CuponsAdmin />
         </div>
       ) : (
-        <form onSubmit={handleSubmit} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <form onSubmit={handleSubmit} className="admin-config-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           {/* ════════ ABA 1: IDENTIDADE DA LOJA ════════ */}
           {abaAtiva === 'loja' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -712,7 +718,7 @@ export default function ConfiguracoesPage() {
                       padding: '20px',
                       background: '#fafafa',
                       display: 'grid',
-                      gridTemplateColumns: '220px 1fr',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                       gap: '20px',
                       alignItems: 'start',
                     }}

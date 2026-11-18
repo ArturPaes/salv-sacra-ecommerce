@@ -118,7 +118,18 @@ export default function CategoriasDevocoesPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e5e7eb', marginBottom: '24px' }}>
+      <div
+        className="admin-tabs-scroll"
+        style={{
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '2px solid #e5e7eb',
+          marginBottom: '24px',
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {ABAS.map((a) => (
           <button
             key={a.kind}
@@ -160,6 +171,7 @@ export default function CategoriasDevocoesPage() {
         onSubmit={handleCriar}
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: '12px',
           background: '#fff',
           border: '1px solid #eaeaea',
@@ -174,7 +186,7 @@ export default function CategoriasDevocoesPage() {
           onChange={(e) => setNovoNome(e.target.value)}
           placeholder={cfg.placeholder}
           maxLength={100}
-          style={{ flex: 1, padding: '10px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
+          style={{ flex: '1 1 200px', minWidth: 0, padding: '10px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
         />
         <button type="submit" disabled={busy || !novoNome.trim()} className="admin-btn admin-btn-primary">
           + Adicionar {cfg.singular}
@@ -191,6 +203,7 @@ export default function CategoriasDevocoesPage() {
             Nenhuma {cfg.singular} cadastrada ainda.
           </p>
         ) : (
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
               <tr style={{ background: '#f8fafc', color: '#64748b', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
@@ -283,6 +296,7 @@ export default function CategoriasDevocoesPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

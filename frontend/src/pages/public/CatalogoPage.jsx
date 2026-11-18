@@ -231,9 +231,10 @@ export default function CatalogoPage({ modoFixo = null }) {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const ITEMS_PER_PAGE = 12;
 
-  // Ordenação
+  // Ordenação e filtros mobile
   const [ordenacao, setOrdenacao] = useState('Mais vendidos');
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [filtrosMobileAbertos, setFiltrosMobileAbertos] = useState(false);
   const sortRef = useRef(null);
 
   // Parâmetros de URL
@@ -597,9 +598,34 @@ export default function CatalogoPage({ modoFixo = null }) {
         {/* ── 2. Grid de Conteúdo (Sidebar + Cards) ── */}
         <div className="catalogo-layout">
           
-          {/* Barra Lateral de Filtros (Figma) */}
+          {/* Barra Lateral de Filtros (Figma — colapsável no mobile) */}
           <aside className="catalogo-sidebar">
+            <button
+              type="button"
+              className="catalogo-sidebar-toggle"
+              onClick={() => setFiltrosMobileAbertos((v) => !v)}
+              aria-expanded={filtrosMobileAbertos}
+            >
+              <span>
+                Filtrar por
+                {(() => {
+                  const qtd =
+                    coresSelecionadas.length +
+                    (modeloSelecionado ? 1 : 0) +
+                    tamanhosSelecionados.length +
+                    devocoesSelecionadas.length +
+                    colecoesSelecionadas.length +
+                    (precoMin ? 1 : 0) +
+                    (precoMax ? 1 : 0);
+                  return qtd > 0 ? ` (${qtd})` : '';
+                })()}
+              </span>
+              <span>{filtrosMobileAbertos ? '▲' : '▼'}</span>
+            </button>
+
             <h3 className="catalogo-sidebar-title">Filtrar por</h3>
+
+            <div className={`catalogo-sidebar-groups${filtrosMobileAbertos ? ' open' : ''}`}>
 
             {/* Filtro: Cor */}
             <div className="catalogo-filter-group">
@@ -735,6 +761,7 @@ export default function CatalogoPage({ modoFixo = null }) {
                   &gt;
                 </button>
               </div>
+            </div>
             </div>
           </aside>
 

@@ -165,12 +165,11 @@ export default function ProdutosList() {
             )}
           </div>
 
-          <div>
+          <div style={{ flex: '1 1 240px', maxWidth: '100%' }}>
             <input
               type="search"
               placeholder="Buscar por nome, coleção ou categoria..."
               className="admin-search-input"
-              style={{ minWidth: '320px' }}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />

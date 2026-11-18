@@ -410,6 +410,27 @@
   font-weight: 600;
 }
 
+.catalogo-sidebar-toggle {
+  display: none;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  background: #ffffff;
+  border: 1px solid #c8c8c8;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e1e1e;
+  cursor: pointer;
+}
+
+.catalogo-sidebar-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
 /* ── Responsivo ── */
 @media (max-width: 1024px) {
   .catalogo-products-grid {
@@ -420,9 +441,107 @@
 @media (max-width: 800px) {
   .catalogo-layout {
     grid-template-columns: 1fr;
+    gap: 18px;
   }
+
+  .catalogo-sidebar {
+    gap: 10px;
+  }
+
+  .catalogo-sidebar-title {
+    display: none;
+  }
+
+  .catalogo-sidebar-toggle {
+    display: flex;
+  }
+
+  .catalogo-sidebar-groups {
+    display: none;
+    gap: 18px;
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #d4d4d4;
+  }
+
+  .catalogo-sidebar-groups.open {
+    display: flex;
+  }
+
   .catalogo-products-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .catalogo-page {
+    padding: 16px 0 48px;
+  }
+
+  .catalogo-container {
+    padding: 0 12px;
+  }
+
+  .catalogo-top-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .catalogo-breadcrumb {
+    flex-wrap: wrap;
+    line-height: 1.4;
+  }
+
+  .catalogo-sort-wrap {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .catalogo-sort-menu {
+    left: 0;
+    right: 0;
+    min-width: 0;
+  }
+
+  .catalogo-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .catalogo-product-card {
+    border-radius: 14px;
+  }
+
+  .catalogo-card-dots {
+    padding: 6px;
+    gap: 6px;
+    min-height: 22px;
+  }
+
+  .catalogo-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .catalogo-product-info {
+    padding: 10px 8px 12px;
+  }
+
+  .catalogo-product-name {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  .catalogo-product-preco {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 359px) {
+  .catalogo-products-grid {
+    grid-template-columns: 1fr;
   }
 }
 

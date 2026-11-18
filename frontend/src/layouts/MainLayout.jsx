@@ -548,12 +548,13 @@ function SiteHeader({ configs }) {
               {/* Dropdown de Notificações do Cliente */}
               {dropdownNotificacoesAberto && (
                 <div
+                  className="client-notif-dropdown"
                   style={{
                     position: 'absolute',
                     top: 'calc(100% + 12px)',
                     right: 0,
                     width: '370px',
-                    maxWidth: '92vw',
+                    maxWidth: 'calc(100vw - 24px)',
                     background: '#ffffff',
                     borderRadius: '10px',
                     boxShadow: '0 12px 36px rgba(0,0,0,0.22)',

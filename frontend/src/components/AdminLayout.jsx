@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Link, NavLink, Outlet, useNavigate, Navigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import {
@@ -104,6 +104,29 @@ const IconBell = () => (
   </svg>
 );
 
+const IconMenu = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+);
+
+const IconClose = () => (
+  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const IconStore = () => (
+  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3 9l2-5h14l2 5" />
+    <path d="M3 9v1a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0V9" />
+    <path d="M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+  </svg>
+);
+
 // ── Links de navegação ────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { label: 'Início',                  to: '/admin',           icon: <IconHome />,     end: true  },
@@ -132,6 +155,10 @@ function getInitials(name = '') {
 export default function AdminLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Drawer mobile
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
 
   // Contadores
   const [novosPedidosCount, setNovosPedidosCount] = useState(0);
@@ -167,6 +194,19 @@ export default function AdminLayout() {
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    setMenuMobileAberto(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!menuMobileAberto) return;
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setMenuMobileAberto(false);
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [menuMobileAberto]);
 
   const sugestoesAdmin = useMemo(() => {
     const q = (termoBuscaAdmin || '').trim().toLowerCase();
@@ -401,15 +441,40 @@ export default function AdminLayout() {
 
   return (
     <div className="al-root">
-      {/* ════════════════════════════════════
-          SIDEBAR
-          ════════════════════════════════════ */}
-      <aside className="al-sidebar">
+      {/* Backdrop mobile para fechar drawer ao tocar fora */}
+      <div
+        className={`al-sidebar-backdrop${menuMobileAberto ? ' open' : ''}`}
+        onClick={() => setMenuMobileAberto(false)}
+        aria-hidden="true"
+      />
 
-        {/* Logo */}
-        <Link to="/admin" className="al-logo" title="Ir para o início do painel">
-          <img src={logo} alt="Salv Sacra" />
-        </Link>
+      {/* ════════════════════════════════════
+          SIDEBAR (Fixa no desktop / Drawer deslizante no mobile)
+          ════════════════════════════════════ */}
+      <aside
+        id="admin-sidebar-drawer"
+        className={`al-sidebar${menuMobileAberto ? ' open' : ''}`}
+      >
+
+        {/* Logo + botão fechar mobile */}
+        <div className="al-logo-wrap">
+          <Link
+            to="/admin"
+            className="al-logo"
+            title="Ir para o início do painel"
+            onClick={() => setMenuMobileAberto(false)}
+          >
+            <img src={logo} alt="Salv Sacra" />
+          </Link>
+          <button
+            type="button"
+            className="al-sidebar-close-btn"
+            onClick={() => setMenuMobileAberto(false)}
+            aria-label="Fechar menu"
+          >
+            <IconClose />
+          </button>
+        </div>
 
         {/* Navegação */}
         <nav className="al-nav" aria-label="Menu principal">
@@ -440,6 +505,7 @@ export default function AdminLayout() {
                   key={to}
                   to={to}
                   end={end}
+                  onClick={() => setMenuMobileAberto(false)}
                   className={({ isActive }) =>
                     `al-nav-link${isActive ? ' active' : ''}`
                   }
@@ -470,8 +536,17 @@ export default function AdminLayout() {
           </div>
         </nav>
 
-        {/* Rodapé — botão sair */}
+        {/* Rodapé — ver loja e botão sair */}
         <div className="al-sidebar-footer">
+          <Link
+            to="/"
+            className="al-store-btn"
+            onClick={() => setMenuMobileAberto(false)}
+            title="Ir para a loja pública"
+          >
+            <IconStore />
+            <span>Ver Loja</span>
+          </Link>
           <button className="al-logout-btn" onClick={handleSignOut} title="Encerrar sessão">
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -490,6 +565,17 @@ export default function AdminLayout() {
 
         {/* TOP BAR */}
         <header className="al-topbar">
+          {/* Botão Menu Hambúrguer (visível apenas <= 992px) */}
+          <button
+            type="button"
+            className="al-hamburger-btn"
+            onClick={() => setMenuMobileAberto((prev) => !prev)}
+            aria-label={menuMobileAberto ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={menuMobileAberto}
+            aria-controls="admin-sidebar-drawer"
+          >
+            <IconMenu />
+          </button>
 
           {/* Busca Universal */}
           <div ref={searchAdminRef} className="al-search" style={{ position: 'relative' }}>
@@ -514,6 +600,7 @@ export default function AdminLayout() {
             {/* Dropdown de Sugestões em Tempo Real */}
             {sugestoesAdminAbertas && sugestoesAdmin.length > 0 && (
               <div
+                className="al-search-dropdown"
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 6px)',
@@ -593,7 +680,7 @@ export default function AdminLayout() {
           </div>
 
           {/* Ações do Topo: Sino do Admin + Perfil (alinhados à direita) */}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="al-topbar-right" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
 
             {/* Sino de Notificações do Administrador (ao lado esquerdo do perfil) */}
             <div ref={notifAdminRef} style={{ position: 'relative' }}>
@@ -645,12 +732,13 @@ export default function AdminLayout() {
               {/* Dropdown de Notificações do Administrador */}
               {dropdownNotifAdminAberto && (
                 <div
+                  className="al-notif-dropdown"
                   style={{
                     position: 'absolute',
                     top: 'calc(100% + 12px)',
                     right: 0,
                     width: '380px',
-                    maxWidth: '92vw',
+                    maxWidth: 'calc(100vw - 24px)',
                     background: '#ffffff',
                     borderRadius: '10px',
                     boxShadow: '0 12px 36px rgba(0,0,0,0.2)',

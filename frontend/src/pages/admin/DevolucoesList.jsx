@@ -325,7 +325,7 @@ export default function DevolucoesList() {
         justifyContent: 'space-between',
         gap: '14px',
       }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="admin-tabs-scroll" style={{ display: 'flex', gap: '8px', paddingBottom: '4px' }}>
           {[
             { id: '', rotulo: 'Todas' },
             { id: 'Pendente', rotulo: 'Pendentes' },
@@ -356,7 +356,7 @@ export default function DevolucoesList() {
           })}
         </div>
 
-        <form onSubmit={handleBuscar} style={{ display: 'flex', gap: '8px' }}>
+        <form onSubmit={handleBuscar} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '1 1 260px', justifyContent: 'flex-end' }}>
           <input
             type="text"
             placeholder="Buscar por Pedido #, Cliente ou Código..."
@@ -367,7 +367,9 @@ export default function DevolucoesList() {
               borderRadius: '6px',
               border: '1px solid #ccc',
               fontSize: '13px',
-              width: '280px',
+              width: '100%',
+              minWidth: '0',
+              flex: '1 1 220px',
               outline: 'none',
             }}
           />
@@ -586,6 +588,7 @@ export default function DevolucoesList() {
           onClick={() => setDevolucaoSelecionada(null)}
         >
           <div
+            className="admin-modal"
             style={{
               background: '#fff',
               borderRadius: '14px',

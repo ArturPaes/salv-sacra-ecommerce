@@ -283,7 +283,7 @@ export default function RelatoriosPage() {
       {/* ── Seção Dupla: Métodos de Pagamento + Top Produtos Mais Vendidos ── */}
       <div className="print-avoid-break" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
         gap: '24px',
         marginBottom: '28px',
       }}>

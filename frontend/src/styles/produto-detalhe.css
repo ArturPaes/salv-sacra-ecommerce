@@ -1060,7 +1060,7 @@
 @media (max-width: 900px) {
   .pdp-main-grid {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
   }
   .pdp-reviews-grid {
     grid-template-columns: 1fr;
@@ -1072,9 +1072,116 @@
   .pdp-thumbs-list {
     flex-direction: row;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
   }
   .pdp-main-image-container {
-    min-height: 420px;
+    width: 100%;
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pdp-wrapper {
+    padding: 16px 0 50px;
+  }
+
+  .pdp-container {
+    padding: 0 14px;
+  }
+
+  .pdp-main-image-container {
+    min-height: 300px;
+  }
+
+  .pdp-main-img {
+    max-height: 460px;
+  }
+
+  .pdp-product-title {
+    font-size: clamp(20px, 5vw, 24px);
+  }
+
+  .pdp-current-price {
+    font-size: 23px;
+  }
+
+  .pdp-color-thumbnails {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pdp-color-thumb-btn {
+    min-width: 46px;
+    min-height: 54px;
+  }
+
+  .pdp-size-chip {
+    min-width: 44px;
+    min-height: 42px;
+    height: auto;
+    padding: 8px 14px;
+  }
+
+  .pdp-purchase-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pdp-cta-buy {
+    flex: 1 1 200px;
+    min-height: 44px;
+  }
+
+  .pdp-shipping-inline-form {
+    flex-wrap: wrap;
+  }
+
+  .pdp-cep-input {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+
+  .pdp-cep-calc-btn {
+    flex: 1 1 auto;
+    min-height: 40px;
+  }
+
+  .pdp-text-details-section {
+    margin: 36px auto 32px;
+    padding: 0 14px;
+  }
+
+  .pdp-text-details-section table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pdp-similar-products-section {
+    padding: 0 14px;
+  }
+
+  .pdp-similar-title,
+  .pdp-reviews-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .pdp-reviews-summary-card,
+  .pdp-reviews-form-card,
+  .pdp-review-item-card {
+    padding: 16px;
+  }
+
+  .pdp-toast {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 

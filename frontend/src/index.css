@@ -11,12 +11,72 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color-scheme: light;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   background-color: #e8e8e8;
   color: #333;
   line-height: 1.5;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+body.demo-mode-active .main-content,
+body.demo-mode-active .al-content,
+body.demo-mode-active .checkout-page {
+  padding-bottom: 70px;
+}
+
+body.demo-mode-active .footer-copyright {
+  padding-bottom: 70px;
+}
+
+@media (max-width: 768px) {
+  .demo-toolbar-toast {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: calc(100vw - 24px);
+    text-align: center;
+  }
+
+  .demo-toolbar-pill-wrap {
+    bottom: 12px !important;
+    right: 12px !important;
+  }
+
+  .demo-toolbar-pill-btn {
+    padding: 7px 12px !important;
+    font-size: 11.5px !important;
+    gap: 5px !important;
+  }
+
+  .demo-toolbar-expanded-wrap {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    justify-content: center !important;
+  }
+
+  .demo-toolbar-expanded-panel {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    padding: 10px 12px !important;
+  }
+
+  .demo-toolbar-actions {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .demo-toolbar-actions > * {
+    flex-shrink: 0;
+  }
 }
 
 #root {

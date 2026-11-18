@@ -21,14 +21,35 @@
 .al-root {
   display: flex;
   height: 100svh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--content-bg);
   font-family: 'Inter', system-ui, sans-serif;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* ================================================================
-   SIDEBAR
+   SIDEBAR & BACKDROP MOBILE
    ================================================================ */
+.al-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 1190;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.al-sidebar-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .al-sidebar {
   width: var(--sidebar-w);
   flex-shrink: 0;
@@ -41,13 +62,42 @@
 }
 
 /* ── Logo ───────────────────────────────────────────────────── */
-.al-logo {
-  padding: 24px 20px 22px;
+.al-logo-wrap {
   border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.al-logo {
+  padding: 24px 20px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.al-sidebar-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 14px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.al-sidebar-close-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 
 .al-logo img {
@@ -127,8 +177,37 @@
 
 /* ── Rodapé da sidebar ──────────────────────────────────────── */
 .al-sidebar-footer {
-  padding: 16px 20px;
+  padding: 14px 16px;
   border-top: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.al-store-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(212, 172, 13, 0.08);
+  border: 1px solid rgba(212, 172, 13, 0.25);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.al-store-btn:hover {
+  background: rgba(212, 172, 13, 0.18);
+  color: #f3d250;
+}
+
+.al-store-btn svg {
   flex-shrink: 0;
 }
 
@@ -190,9 +269,35 @@
   z-index: 50;
 }
 
+.al-hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(212, 204, 192, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5dfd5;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.al-hamburger-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #d4ccc0;
+  color: #ffffff;
+}
+
+.al-topbar-right {
+  flex-shrink: 0;
+}
+
 /* ── Barra de busca ─────────────────────────────────────────── */
 .al-search {
   flex: 1;
+  min-width: 0;
   position: relative;
   max-width: 520px;
 }
@@ -299,27 +404,101 @@
 }
 
 /* ================================================================
-   RESPONSIVIDADE — colapsa a sidebar em telas pequenas
+   RESPONSIVIDADE — colapsa a sidebar em telas pequenas e tablets (<= 992px)
    ================================================================ */
-@media (max-width: 768px) {
+@media (max-width: 992px) {
+  .al-hamburger-btn {
+    display: inline-flex;
+  }
+
+  .al-sidebar-close-btn {
+    display: inline-flex;
+  }
+
+  .al-logo-wrap {
+    justify-content: space-between;
+  }
+
+  .al-logo {
+    justify-content: flex-start;
+    padding: 16px 18px;
+  }
+
+  .al-logo img {
+    height: 48px;
+  }
+
   .al-sidebar {
     position: fixed;
-    inset: 0 auto 0 0;
+    top: 0;
+    left: 0;
+    height: 100svh;
+    height: 100dvh;
+    width: 268px;
+    max-width: 82vw;
     transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    z-index: 200;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1200;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.38);
   }
 
   .al-sidebar.open {
     transform: translateX(0);
   }
 
-  .al-topbar {
-    padding: 0 16px;
+  .al-main-col {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100vw;
   }
 
+  .al-topbar {
+    padding: 0 12px;
+    gap: 10px;
+    height: 60px;
+  }
+
+  .al-search {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .al-topbar-right {
+    gap: 8px !important;
+    flex-shrink: 0;
+  }
+
+  .al-search-dropdown,
+  .al-notif-dropdown,
+  .al-user-dropdown {
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+@media (max-width: 640px) {
   .al-user-info {
     display: none;
+  }
+
+  .al-search input {
+    padding: 0 10px 0 34px;
+    font-size: 13px;
+  }
+
+  .al-search svg {
+    left: 10px;
+  }
+
+  .al-search-dropdown,
+  .al-notif-dropdown,
+  .al-user-dropdown {
+    position: fixed !important;
+    top: 66px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
   }
 }
 
@@ -353,6 +532,8 @@
   }
 
   .al-sidebar,
+  .al-sidebar-backdrop,
+  .al-hamburger-btn,
   .al-topbar,
   .no-print {
     display: none !important;
