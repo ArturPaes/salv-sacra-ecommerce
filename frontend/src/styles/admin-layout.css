@@ -185,32 +185,6 @@
   gap: 6px;
 }
 
-.al-store-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 14px;
-  background: rgba(212, 172, 13, 0.08);
-  border: 1px solid rgba(212, 172, 13, 0.25);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.al-store-btn:hover {
-  background: rgba(212, 172, 13, 0.18);
-  color: #f3d250;
-}
-
-.al-store-btn svg {
-  flex-shrink: 0;
-}
-
 .al-logout-btn {
   display: flex;
   align-items: center;

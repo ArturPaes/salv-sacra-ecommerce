@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
@@ -25,7 +25,7 @@ const IconEye = ({ open }) =>
   );
 
 export default function RegisterPage() {
-  const { isAuthenticated, signUp, setSession } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, signUp, setSession } = useAuth();
   const { isDemoMode, atualizarStatusDemo } = useDemo();
   const navigate   = useNavigate();
   const [searchParams] = useSearchParams();
@@ -140,6 +140,10 @@ export default function RegisterPage() {
     errors[field]?.[0] ? <span className="auth-field-error">{errors[field][0]}</span> : null;
 
   // ── render ───────────────────────────────────────────────
+  if (!authLoading && isAuthenticated && user?.papel === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
   return (
     <MainLayout breadcrumbs={breadcrumbs}>
       <div className="auth-page">

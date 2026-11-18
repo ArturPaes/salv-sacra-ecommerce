@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import MainLayout from '../layouts/MainLayout';
 import '../styles/auth.css';
@@ -19,7 +19,7 @@ const IconEye = ({ open }) =>
   );
 
 export default function LoginPage() {
-  const { user, isAuthenticated, signIn } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, signIn } = useAuth();
   const navigate   = useNavigate();
   const [searchParams] = useSearchParams();
   const location   = useLocation();
@@ -70,6 +70,10 @@ export default function LoginPage() {
   };
 
   // ── render ───────────────────────────────────────────────
+  if (!authLoading && isAuthenticated && user?.papel === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
   return (
     <MainLayout breadcrumbs={breadcrumbs}>
       <div className="auth-page">

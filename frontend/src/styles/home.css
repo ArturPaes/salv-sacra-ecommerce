@@ -12,6 +12,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background-image: var(--hero-bg-desktop);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -511,8 +512,9 @@
     min-height: 290px;
     height: auto;
     padding: 36px 48px 44px;
+    background-image: var(--hero-bg-mobile, var(--hero-bg-desktop));
     background-size: cover;
-    background-position: center top;
+    background-position: center;
   }
 
   .hero-banner--claro::before,

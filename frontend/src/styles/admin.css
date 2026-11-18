@@ -126,6 +126,17 @@
   background: #fff;
 }
 
+.admin-table-wrapper--card {
+  overflow: hidden !important;
+}
+
+.admin-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -377,7 +388,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.admin-variacoes-header > .admin-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .admin-variacao-row {
@@ -840,6 +859,12 @@
     width: 100%;
   }
 
+  .admin-filters-bar > * {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   .admin-filter-select {
     width: 100%;
     max-width: 100%;
@@ -848,7 +873,8 @@
   .admin-search-input {
     min-width: 0 !important;
     width: 100% !important;
-    flex: 1 1 200px;
+    flex: none !important;
+    height: auto !important;
   }
 
   .admin-table-wrapper,
@@ -947,6 +973,25 @@
 }
 
 /* ── Gestão de Estoque Rápida ── */
+.estoque-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+}
+
+.estoque-variacoes-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.estoque-variacoes-table th,
+.estoque-variacoes-table td {
+  white-space: nowrap;
+}
+
 .estoque-number-input {
   width: 48px;
   height: 32px;

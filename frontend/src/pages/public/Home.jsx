@@ -218,7 +218,10 @@ function HeroBanner({ slidesConfig }) {
   return (
     <section
       className={`hero-banner hero-banner--${slide.tema || 'claro'}`}
-      style={{ backgroundImage: `url(${slide.image})` }}
+      style={{
+        '--hero-bg-desktop': `url(${slide.image})`,
+        '--hero-bg-mobile': `url(${slide.image_mobile || slide.image})`,
+      }}
       aria-label="Banner principal"
     >
       {/* Conteúdo do slide (centralizado) */}
@@ -283,6 +286,7 @@ export default function Home() {
                 cta: s.cta || 'Saiba mais',
                 tema: s.tema || 'claro',
                 image: (s.image && String(s.image).trim()) ? String(s.image).trim() : FALLBACK_BANNER_IMGS[idx % FALLBACK_BANNER_IMGS.length],
+                image_mobile: (s.image_mobile && String(s.image_mobile).trim()) ? String(s.image_mobile).trim() : '',
                 link: s.produto_id ? `/produto/${s.produto_id}` : (s.link || '/produtos?categoria=camisetas'),
               }));
               setSlidesBanner(normalizados);

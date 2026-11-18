@@ -524,25 +524,15 @@ function SiteHeader({ configs }) {
                 title={totalNaoLidas > 0 ? `${totalNaoLidas} nova(s) notificação(ões)` : 'Notificações'}
                 style={{ position: 'relative' }}
               >
-                <IconBell /> <span className="header-action-label">Notificações</span>
-                {totalNaoLidas > 0 && (
-                  <span
-                    style={{
-                      marginLeft: '6px',
-                      background: '#dc2626',
-                      color: '#ffffff',
-                      borderRadius: '999px',
-                      padding: '1px 6px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      lineHeight: '14px',
-                      display: 'inline-block',
-                      boxShadow: '0 2px 6px rgba(220,38,38,0.5)',
-                    }}
-                  >
-                    {totalNaoLidas}
-                  </span>
-                )}
+                <span className="header-bell-wrap">
+                  <IconBell />
+                  {totalNaoLidas > 0 && (
+                    <span className="header-notif-badge">
+                      {totalNaoLidas}
+                    </span>
+                  )}
+                </span>
+                <span className="header-action-label">Notificações</span>
               </button>
 
               {/* Dropdown de Notificações do Cliente */}

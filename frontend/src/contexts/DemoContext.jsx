@@ -68,6 +68,7 @@ export function DemoProvider({ children }) {
   const [loadingAction, setLoadingAction] = useState(false);
   const [demoUsers, setDemoUsers] = useState([]);
   const [demoCupons, setDemoCupons] = useState([]);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
   const atualizarStatusDemo = useCallback(async () => {
     try {
@@ -344,6 +345,8 @@ export function DemoProvider({ children }) {
       loadingAction,
       demoUsers,
       demoCupons,
+      isSwitchingRole,
+      setIsSwitchingRole,
       entrarModoDemo,
       entrarModoReal,
       alternarUsuario,
@@ -360,6 +363,7 @@ export function DemoProvider({ children }) {
       loadingAction,
       demoUsers,
       demoCupons,
+      isSwitchingRole,
       entrarModoDemo,
       entrarModoReal,
       alternarUsuario,

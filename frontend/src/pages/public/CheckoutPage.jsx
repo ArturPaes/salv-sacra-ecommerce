@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDemo } from '../../contexts/DemoContext';
@@ -839,6 +839,7 @@ export default function CheckoutPage() {
   const logoDestino = isAuthenticated && user?.papel === 'admin' ? '/admin' : '/';
 
   if (authLoading || !isAuthenticated) return null;
+  if (user?.papel === 'admin') return <Navigate to="/admin" replace />;
 
   // Fluxo Pós-Finalização: Aguardando Pagamento (PIX) vs. Em Análise (Cartão) vs. Pedido Confirmado
   if (pedidoConcluido) {

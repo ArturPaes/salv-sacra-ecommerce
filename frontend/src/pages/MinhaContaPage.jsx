@@ -4687,6 +4687,7 @@ export default function MinhaContaPage() {
 
   if (loading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.papel === 'admin') return <Navigate to="/admin" replace />;
 
   const sair = async () => {
     localStorage.removeItem('minha_conta_resumo');

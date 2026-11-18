@@ -165,7 +165,7 @@ export default function ProdutosList() {
             )}
           </div>
 
-          <div style={{ flex: '1 1 240px', maxWidth: '100%' }}>
+          <div style={{ flex: '1 1 220px', minWidth: 0, maxWidth: '100%' }}>
             <input
               type="search"
               placeholder="Buscar por nome, coleção ou categoria..."

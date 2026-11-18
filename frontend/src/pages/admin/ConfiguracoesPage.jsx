@@ -18,6 +18,7 @@ const DEFAULT_CARROSSEL_SLIDES = [
     title: 'São José',
     cta: 'Saiba mais',
     image: '',
+    image_mobile: '',
     tema: 'claro',
     produto_id: '',
   },
@@ -27,6 +28,7 @@ const DEFAULT_CARROSSEL_SLIDES = [
     title: 'Desatadora',
     cta: 'Saiba mais',
     image: '',
+    image_mobile: '',
     tema: 'escuro',
     produto_id: '',
   },
@@ -36,6 +38,7 @@ const DEFAULT_CARROSSEL_SLIDES = [
     title: 'Por Você',
     cta: 'Saiba mais',
     image: '',
+    image_mobile: '',
     tema: 'claro',
     produto_id: '',
   },
@@ -163,6 +166,7 @@ export default function ConfiguracoesPage() {
         title: 'Título do Slide',
         cta: 'Saiba mais',
         image: '',
+        image_mobile: '',
         tema: 'claro',
         produto_id: '',
       },
@@ -723,6 +727,40 @@ export default function ConfiguracoesPage() {
                       alignItems: 'start',
                     }}
                   >
+                    {/* Cabeçalho do Card de Carrossel */}
+                    <div
+                      style={{
+                        gridColumn: '1 / -1',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '10px',
+                        paddingBottom: '12px',
+                        borderBottom: '1px solid #e5e7eb',
+                      }}
+                    >
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#111' }}>
+                        Slide #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoverSlide(idx)}
+                        style={{
+                          background: '#fee2e2',
+                          color: '#b91c1c',
+                          border: '1px solid #fecaca',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Apagar Carrossel
+                      </button>
+                    </div>
+
                     {/* Preview da Foto */}
                     <div>
                       <div
@@ -736,33 +774,54 @@ export default function ConfiguracoesPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          position: 'relative',
                         }}
                       >
                         <img
                           src={previewImg}
-                          alt={`Slide ${idx + 1}`}
+                          alt={`Slide ${idx + 1} Desktop`}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
+                        <span style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.68)', color: '#fff', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
+                          Desktop
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#333' }}>Slide #{idx + 1}</span>
-                        {slidesCarrossel.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoverSlide(idx)}
-                            style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+
+                      {slide.image_mobile?.trim() && (
+                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div
+                            style={{
+                              width: '72px',
+                              height: '90px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              background: '#e5e7eb',
+                              border: '1px solid #d1d5db',
+                              flexShrink: 0,
+                              position: 'relative',
+                            }}
                           >
-                            Remover
-                          </button>
-                        )}
-                      </div>
+                            <img
+                              src={slide.image_mobile.trim()}
+                              alt={`Slide ${idx + 1} Mobile`}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                            <span style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.72)', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>
+                              Mobile
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#475569', lineHeight: 1.4 }}>
+                            Imagem específica para celulares ativa (até 768px).
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Campos do Slide */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#333', marginBottom: '6px' }}>
-                          Foto do Banner
+                          Foto do Banner (Desktop)
                         </label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
                           <label
@@ -779,7 +838,7 @@ export default function ConfiguracoesPage() {
                               cursor: 'pointer',
                             }}
                           >
-                            📁 Escolher Foto do Computador
+                            📁 Escolher Foto Desktop
                             <input
                               type="file"
                               accept="image/*"
@@ -798,6 +857,25 @@ export default function ConfiguracoesPage() {
                           </label>
 
                           {slide.image && (
+                            <button
+                              type="button"
+                              onClick={() => handleSlideChange(idx, 'image', '')}
+                              style={{
+                                background: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Remover foto desktop
+                            </button>
+                          )}
+
+                          {slide.image && (
                             <span style={{ fontSize: '11px', color: '#64748b' }}>
                               Arquivo atual: <strong>{slide.image.split('/').pop()}</strong>
                             </span>
@@ -808,7 +886,82 @@ export default function ConfiguracoesPage() {
                           type="text"
                           value={slide.image || ''}
                           onChange={(e) => handleSlideChange(idx, 'image', e.target.value)}
-                          placeholder="Ou cole a URL direta da imagem aqui (ou deixe vazio para foto padrão)"
+                          placeholder="Ou cole a URL direta da imagem desktop aqui (ou deixe vazio para foto padrão)"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px', background: '#fff', color: '#555' }}
+                        />
+                      </div>
+
+                      <div style={{ paddingTop: '10px', borderTop: '1px dashed #e5e7eb' }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#333', marginBottom: '4px' }}>
+                          Foto do Banner — Mobile (Opcional · Recomendado 4:5 ou 1:1)
+                        </label>
+                        <p style={{ margin: '0 0 8px', fontSize: '11px', color: '#64748b' }}>
+                          Se preenchida, substitui a foto do desktop em celulares (até 768px) para evitar cortes laterais nos modelos.
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                          <label
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '8px 14px',
+                              borderRadius: '6px',
+                              background: '#334155',
+                              color: '#fff',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            📱 Escolher Foto Mobile
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                if (e.target.files?.[0]) {
+                                  try {
+                                    const url = await uploadArquivoImagem(e.target.files[0]);
+                                    handleSlideChange(idx, 'image_mobile', url);
+                                  } catch (err) {
+                                    alert(err.response?.data?.message || 'Erro ao enviar a imagem mobile.');
+                                  }
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+
+                          {slide.image_mobile && (
+                            <button
+                              type="button"
+                              onClick={() => handleSlideChange(idx, 'image_mobile', '')}
+                              style={{
+                                background: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Remover foto mobile
+                            </button>
+                          )}
+
+                          {slide.image_mobile && (
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              Mobile atual: <strong>{slide.image_mobile.split('/').pop()}</strong>
+                            </span>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={slide.image_mobile || ''}
+                          onChange={(e) => handleSlideChange(idx, 'image_mobile', e.target.value)}
+                          placeholder="Opcional: URL da imagem mobile (vazio = usa a imagem desktop)"
                           style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '12px', background: '#fff', color: '#555' }}
                         />
                       </div>

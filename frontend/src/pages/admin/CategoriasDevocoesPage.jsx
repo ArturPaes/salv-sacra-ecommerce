@@ -56,7 +56,12 @@ export default function CategoriasDevocoesPage() {
 
   const handleCriar = async (e) => {
     e.preventDefault();
-    if (!novoNome.trim()) return;
+    if (!novoNome.trim()) {
+      mostrar('erro', `Digite o nome antes de adicionar em ${cfg.titulo}.`);
+      const inputEl = e.currentTarget?.querySelector('input[type="text"]');
+      if (inputEl) inputEl.focus();
+      return;
+    }
     setBusy(true);
     try {
       await criarTaxonomia(aba, novoNome.trim());
@@ -172,6 +177,7 @@ export default function CategoriasDevocoesPage() {
         style={{
           display: 'flex',
           flexWrap: 'wrap',
+          alignItems: 'center',
           gap: '12px',
           background: '#fff',
           border: '1px solid #eaeaea',
@@ -185,10 +191,11 @@ export default function CategoriasDevocoesPage() {
           value={novoNome}
           onChange={(e) => setNovoNome(e.target.value)}
           placeholder={cfg.placeholder}
+          aria-label={`Nome em ${cfg.titulo}`}
           maxLength={100}
           style={{ flex: '1 1 200px', minWidth: 0, padding: '10px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
         />
-        <button type="submit" disabled={busy || !novoNome.trim()} className="admin-btn admin-btn-primary">
+        <button type="submit" disabled={busy} className="admin-btn admin-btn-primary">
           + Adicionar {cfg.singular}
         </button>
       </form>

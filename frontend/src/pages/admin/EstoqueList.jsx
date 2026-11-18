@@ -738,16 +738,16 @@ export default function EstoqueList() {
                 </div>
 
                 {/* Tabela de Variações */}
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed' }}>
+                <div className="estoque-table-scroll">
+                  <table className="estoque-variacoes-table">
                     <thead>
                       <tr style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
-                        <th style={{ width: '16%', padding: '14px 16px', textAlign: 'center' }}>Modelo</th>
-                        <th style={{ width: '12%', padding: '14px 16px', textAlign: 'center' }}>Tamanho</th>
-                        <th style={{ width: '20%', padding: '14px 16px', textAlign: 'center' }}>Cor</th>
-                        <th style={{ width: '16%', padding: '14px 16px', textAlign: 'center' }}>Nível</th>
-                        <th style={{ width: '22%', padding: '14px 16px', textAlign: 'center' }}>Quantidade em Estoque</th>
-                        <th style={{ width: '14%', padding: '14px 16px', textAlign: 'center' }}>Ação</th>
+                        <th style={{ padding: '14px 16px', textAlign: 'center' }}>Modelo</th>
+                        <th style={{ padding: '14px 16px', textAlign: 'center' }}>Tamanho</th>
+                        <th style={{ padding: '14px 16px', textAlign: 'center' }}>Cor</th>
+                        <th style={{ padding: '14px 16px', textAlign: 'center' }}>Nível</th>
+                        <th style={{ padding: '14px 16px', textAlign: 'center' }}>Quantidade em Estoque</th>
+                        <th style={{ padding: '14px 16px', textAlign: 'center' }}>Ação</th>
                       </tr>
                     </thead>
                     <tbody>

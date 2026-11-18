@@ -43,6 +43,7 @@ export default function DemoToolbar() {
     resetarDemo,
     atualizarStatusDemo,
     abrirPortaoTrocaModo,
+    setIsSwitchingRole,
   } = useDemo();
 
   const navigate = useNavigate();
@@ -89,10 +90,12 @@ export default function DemoToolbar() {
   const handleVisaoCliente = async () => {
     try {
       setMinimizado(true);
-      navigate('/', { replace: true });
       if (user && user.papel === 'cliente') {
+        navigate('/', { replace: true });
         return;
       }
+      setIsSwitchingRole(true);
+      navigate('/', { replace: true });
       // Garante desmontagem de rotas /admin antes da troca de papel no AuthContext
       await new Promise((resolve) => setTimeout(resolve, 0));
       const nextUser = await alternarUsuario({ papel: 'cliente' });
@@ -101,6 +104,8 @@ export default function DemoToolbar() {
       }
     } catch (err) {
       exibirToast(err?.response?.data?.message || 'Não foi possível alternar para Visão Cliente.');
+    } finally {
+      setIsSwitchingRole(false);
     }
   };
 
@@ -135,6 +140,7 @@ export default function DemoToolbar() {
     try {
       setMinimizado(true);
       if (location.pathname.startsWith('/admin') && indoParaCliente) {
+        setIsSwitchingRole(true);
         navigate('/', { replace: true });
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
@@ -149,6 +155,8 @@ export default function DemoToolbar() {
       }
     } catch (err) {
       exibirToast(err?.response?.data?.message || 'Não foi possível trocar para esta conta.');
+    } finally {
+      setIsSwitchingRole(false);
     }
   };
 
@@ -156,6 +164,7 @@ export default function DemoToolbar() {
     try {
       setModalResetAberto(false);
       setMinimizado(true);
+      setIsSwitchingRole(true);
       navigate('/', { replace: true });
       await new Promise((resolve) => setTimeout(resolve, 0));
       await resetarDemo();
@@ -163,6 +172,8 @@ export default function DemoToolbar() {
     } catch (err) {
       setModalResetAberto(false);
       exibirToast(err?.response?.data?.message || 'Erro ao resetar sessão Demo.');
+    } finally {
+      setIsSwitchingRole(false);
     }
   };
 
@@ -171,7 +182,7 @@ export default function DemoToolbar() {
       {/* Notificação discreta acima da barra */}
       {toastMsg && (
         <div
-          className="demo-toolbar-toast"
+          className={`demo-toolbar-toast${isCartOpen ? ' demo-toolbar-cart-open' : ''}`}
           style={{
             position: 'fixed',
             bottom: minimizado ? '62px' : '74px',
@@ -194,7 +205,7 @@ export default function DemoToolbar() {
       {/* Modo Minimizado */}
       {minimizado ? (
         <div
-          className="demo-toolbar-pill-wrap"
+          className={`demo-toolbar-pill-wrap${isCartOpen ? ' demo-toolbar-cart-open' : ''}`}
           style={{
             position: 'fixed',
             bottom: '16px',
@@ -238,7 +249,7 @@ export default function DemoToolbar() {
       ) : (
         /* Barra Flutuante Expandida */
         <div
-          className="demo-toolbar-expanded-wrap"
+          className={`demo-toolbar-expanded-wrap${isCartOpen ? ' demo-toolbar-cart-open' : ''}`}
           style={{
             position: 'fixed',
             bottom: '12px',

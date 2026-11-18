@@ -36,6 +36,12 @@ body.demo-mode-active .footer-copyright {
 }
 
 @media (max-width: 768px) {
+  .demo-toolbar-pill-wrap.demo-toolbar-cart-open,
+  .demo-toolbar-expanded-wrap.demo-toolbar-cart-open,
+  .demo-toolbar-toast.demo-toolbar-cart-open {
+    display: none !important;
+  }
+
   .demo-toolbar-toast {
     left: 12px !important;
     right: 12px !important;
@@ -64,18 +70,28 @@ body.demo-mode-active .footer-copyright {
   .demo-toolbar-expanded-panel {
     width: calc(100vw - 24px) !important;
     max-width: calc(100vw - 24px) !important;
-    padding: 10px 12px !important;
+    max-height: 75dvh;
+    overflow-y: auto;
+    padding: 12px !important;
   }
 
   .demo-toolbar-actions {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 8px !important;
+    overflow-x: visible !important;
+    padding-bottom: 0;
   }
 
   .demo-toolbar-actions > * {
+    width: 100% !important;
+    max-width: 100% !important;
     flex-shrink: 0;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
   }
 }
 

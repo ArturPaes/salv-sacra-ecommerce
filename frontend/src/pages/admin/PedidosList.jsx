@@ -730,8 +730,9 @@ export default function PedidosList() {
           <p>Nenhum pedido encontrado para os filtros selecionados.</p>
         </div>
       ) : (
-        <div className="admin-table-wrapper">
-          <table className="admin-table admin-pedidos-table" style={{ width: '100%' }}>
+        <div className="admin-table-wrapper admin-table-wrapper--card">
+          <div className="admin-table-scroll">
+            <table className="admin-table admin-pedidos-table" style={{ width: '100%' }}>
             <thead>
               <tr>
                 <th style={{ width: '74px' }}>Pedido</th>
@@ -952,7 +953,8 @@ export default function PedidosList() {
               );
             })}
             </tbody>
-          </table>
+            </table>
+          </div>
 
           {/* ── Controles de Paginação ── */}
           <div

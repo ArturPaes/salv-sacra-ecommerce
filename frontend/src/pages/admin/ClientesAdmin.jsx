@@ -328,7 +328,7 @@ export default function ClientesAdmin() {
             setBusca(e.target.value);
             setPaginaAtual(1);
           }}
-          style={{ flex: '1 1 280px', minWidth: '240px' }}
+          style={{ flex: '1 1 220px', minWidth: 0 }}
         />
 
         <select
@@ -374,8 +374,9 @@ export default function ClientesAdmin() {
           <p>Nenhum cliente encontrado com os filtros selecionados.</p>
         </div>
       ) : (
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
+        <div className="admin-table-wrapper admin-table-wrapper--card">
+          <div className="admin-table-scroll">
+            <table className="admin-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -554,7 +555,8 @@ export default function ClientesAdmin() {
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
 
           {/* ── Controles de Paginação (mesmo padrão das outras telas do Admin) ── */}
           <div
