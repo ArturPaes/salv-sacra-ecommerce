@@ -12,11 +12,13 @@ class Produto extends Model
         'nome',
         'descricao',
         'preco_base',
+        'preco_oversized',
         'imagem_url',
         'imagens',
         'imagens_vitrine',
         'cores_config',
         'disponivel',
+        'destaque',
         'colecao',
         'modelo',
         'categoria_id',
@@ -25,7 +27,9 @@ class Produto extends Model
 
     protected $casts = [
         'preco_base'      => 'decimal:2',
+        'preco_oversized' => 'decimal:2',
         'disponivel'      => 'boolean',
+        'destaque'        => 'boolean',
         'imagens'         => 'array',
         'imagens_vitrine' => 'array',
         'cores_config'    => 'array',

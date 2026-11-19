@@ -139,6 +139,20 @@ class AuthController extends Controller
         $request->validate(['email' => ['required', 'email']]);
         $email = trim(strtolower($request->email));
 
+        $userTroca = User::whereRaw('LOWER(pending_email) = ?', [$email])->first();
+        if ($userTroca) {
+            $token = Str::random(64);
+            $userTroca->forceFill(['pending_email_token' => $token])->save();
+
+            try {
+                Mail::to($email)->send(new AtivarContaMail($userTroca->name, $email, $token, true));
+            } catch (\Throwable $e) {
+                Log::error('Erro ao reenviar e-mail de troca de e-mail: ' . $e->getMessage());
+            }
+
+            return response()->json(['message' => 'Link de verificação para o novo e-mail reenviado com sucesso!']);
+        }
+
         $pendente = DB::table('pending_registrations')->where('email', $email)->first();
         if (! $pendente) {
             // Se já foi ativado
@@ -182,6 +196,47 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Este e-mail foi bloqueado pela administração e não pode ser ativado.',
             ], 403);
+        }
+
+        // 1. Verifica se trata-se de confirmação de troca de e-mail
+        $userTrocaEmail = User::whereRaw('LOWER(pending_email) = ?', [$email])
+            ->where('pending_email_token', $request->token)
+            ->first();
+
+        if ($userTrocaEmail) {
+            if ($userTrocaEmail->bloqueado) {
+                return response()->json([
+                    'message' => 'Sua conta está bloqueada pela administração.',
+                ], 403);
+            }
+
+            $jaEmUso = User::withTrashed()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->where('id', '!=', $userTrocaEmail->id)
+                ->exists();
+
+            if ($jaEmUso) {
+                return response()->json([
+                    'message' => 'Este endereço de e-mail já está em uso por outra conta.',
+                ], 422);
+            }
+
+            $userTrocaEmail->forceFill([
+                'email'               => $email,
+                'email_verified_at'   => now(),
+                'pending_email'       => null,
+                'pending_email_token' => null,
+            ])->save();
+            $userTrocaEmail->refresh();
+
+            $token = $userTrocaEmail->createToken('api-token')->plainTextToken;
+
+            return response()->json([
+                'message'     => 'Novo e-mail validado e atualizado com sucesso!',
+                'troca_email' => true,
+                'token'       => $token,
+                'user'        => $userTrocaEmail,
+            ], 200);
         }
 
         $pendente = DB::table('pending_registrations')

@@ -9,27 +9,81 @@ const CODIGOS_PADRAO_GUIA = [
     codigo: 'PROMO10',
     titulo: '10% OFF nos produtos',
     detalhe: 'Cupom promocional acumulável com vale-compra.',
-    cor: '#15803d',
-    bg: '#f0fdf4',
-    border: '#bbf7d0',
+    cor: '#166534',
+    bg: '#f8faf8',
+    border: '#d1d5db',
   },
   {
     codigo: 'FRETEGRATIS',
     titulo: '100% OFF no frete',
     detalhe: 'Zera o valor do frete SEDEX ou PAC no checkout.',
-    cor: '#0369a1',
-    bg: '#f0f9ff',
-    border: '#bae6fd',
+    cor: '#1e293b',
+    bg: '#f8fafc',
+    border: '#d1d5db',
   },
   {
     codigo: 'VALE50',
     titulo: 'R$ 50,00 em Vale-Compra',
     detalhe: 'Vinculado ao Cliente Demo; preserva saldo restante se o pedido for menor.',
-    cor: '#6b21a8',
-    bg: '#faf5ff',
-    border: '#e9d5ff',
+    cor: '#3f3f46',
+    bg: '#faf9f6',
+    border: '#d6d3cd',
   },
 ];
+
+// Ícones SVG minimalistas (sem emojis de IA)
+const IconLayers = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+    <polyline points="2 17 12 22 22 17" />
+    <polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
+const IconUser = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const IconSliders = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+    <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+    <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
+    <line x1="17" y1="16" x2="23" y2="16" />
+  </svg>
+);
+
+const IconTag = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+    <line x1="7" y1="7" x2="7.01" y2="7" />
+  </svg>
+);
+
+const IconRefresh = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="23 4 23 10 17 10" />
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+  </svg>
+);
+
+const IconSwitch = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
+const IconChevron = ({ up = false }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {up ? <polyline points="18 15 12 9 6 15" /> : <polyline points="6 9 12 15 18 9" />}
+  </svg>
+);
 
 export default function DemoToolbar() {
   const { user } = useAuth();
@@ -185,17 +239,19 @@ export default function DemoToolbar() {
           className={`demo-toolbar-toast${isCartOpen ? ' demo-toolbar-cart-open' : ''}`}
           style={{
             position: 'fixed',
-            bottom: minimizado ? '62px' : '74px',
+            bottom: minimizado ? '60px' : '82px',
             ...(isCartOpen ? { left: '16px' } : { right: '16px' }),
             zIndex: 1120,
-            background: '#111827',
-            color: '#f8fafc',
-            border: '1px solid #c5a880',
-            borderRadius: '10px',
-            padding: '10px 16px',
+            background: '#ffffff',
+            color: '#1e1e1e',
+            border: '1px solid #d6d3cd',
+            borderLeft: '3px solid #1e1e1e',
+            borderRadius: '6px',
+            padding: '9px 14px',
             fontSize: '12.5px',
-            fontWeight: 700,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            fontWeight: 600,
+            fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
           }}
         >
           {toastMsg}
@@ -225,25 +281,30 @@ export default function DemoToolbar() {
               atualizarStatusDemo();
             }}
             style={{
-              background: '#111827',
-              color: '#f8fafc',
-              border: '1.5px solid #c5a880',
-              borderRadius: '999px',
-              padding: '10px 16px',
-              fontSize: '12.5px',
-              fontWeight: 800,
+              background: '#faf9f6',
+              color: '#1e1e1e',
+              border: '1px solid #d6d3cd',
+              borderRadius: '6px',
+              padding: '8px 14px',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+              letterSpacing: '0.02em',
               cursor: 'pointer',
-              boxShadow: '0 8px 25px rgba(0, 0, 0, 0.35)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
             }}
             title="Expandir barra do Modo Demo"
           >
-            <span>🧪 Modo Demo</span>
-            <span style={{ color: '#d4b483', fontWeight: 600 }}>
-              ({ehAdminAtual ? 'Admin' : 'Cliente'}) ▲
+            <IconLayers />
+            <span>Modo Demo</span>
+            <span style={{ color: '#d6d3cd', fontWeight: 400 }}>|</span>
+            <span style={{ color: '#6b5b45', fontWeight: 700 }}>
+              {ehAdminAtual ? 'Admin' : 'Cliente'}
             </span>
+            <IconChevron up />
           </button>
         </div>
       ) : (
@@ -269,13 +330,13 @@ export default function DemoToolbar() {
               pointerEvents: 'auto',
               width: 'fit-content',
               maxWidth: '100%',
-              background: 'rgba(17, 24, 39, 0.96)',
-              backdropFilter: 'blur(8px)',
-              color: '#f8fafc',
-              border: '1.5px solid #c5a880',
-              borderRadius: '14px',
+              background: '#faf9f6',
+              color: '#1e1e1e',
+              border: '1px solid #d6d3cd',
+              borderRadius: '6px',
               padding: '10px 14px',
-              boxShadow: '0 14px 40px rgba(0, 0, 0, 0.45)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+              fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -286,23 +347,29 @@ export default function DemoToolbar() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <span
                 style={{
-                  background: 'linear-gradient(135deg, #c5a880 0%, #a38252 100%)',
-                  color: '#111827',
-                  fontSize: '11px',
-                  fontWeight: 900,
-                  padding: '4px 10px',
-                  borderRadius: '999px',
-                  letterSpacing: '0.4px',
+                  background: '#efede8',
+                  color: '#1e1e1e',
+                  border: '1px solid #d6d3cd',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '3px 9px',
+                  borderRadius: '4px',
+                  letterSpacing: '0.07em',
+                  textTransform: 'uppercase',
                   whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
               >
-                🧪 MODO DEMO (Sessão Isolada Salva)
+                <IconLayers />
+                Modo Demo · Sessão Isolada
               </span>
-              <span style={{ fontSize: '12px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '12px', color: '#57534e', whiteSpace: 'nowrap' }}>
                 {user ? (
                   <>
                     Ativo:{' '}
-                    <strong style={{ color: '#fff' }}>
+                    <strong style={{ color: '#1e1e1e', fontWeight: 700 }}>
                       {user.papel === 'admin' ? 'Admin' : 'Cliente'} · {user.name}
                     </strong>
                   </>
@@ -329,21 +396,25 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={handleVisaoCliente}
               style={{
-                background: !ehAdminAtual && user ? '#2563eb' : 'rgba(255, 255, 255, 0.08)',
-                color: '#fff',
+                background: !ehAdminAtual && user ? '#1e1e1e' : '#ffffff',
+                color: !ehAdminAtual && user ? '#ffffff' : '#3f3f46',
                 border:
                   !ehAdminAtual && user
-                    ? '1px solid #60a5fa'
-                    : '1px solid rgba(255, 255, 255, 0.18)',
-                borderRadius: '8px',
+                    ? '1px solid #1e1e1e'
+                    : '1px solid #d6d3cd',
+                borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: loadingAction ? 'wait' : 'pointer',
                 whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              👤 Visão Cliente
+              <IconUser />
+              Visão Cliente
             </button>
 
             <button
@@ -351,20 +422,24 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={handleVisaoAdmin}
               style={{
-                background: ehAdminAtual ? '#b45309' : 'rgba(255, 255, 255, 0.08)',
-                color: '#fff',
+                background: ehAdminAtual ? '#1e1e1e' : '#ffffff',
+                color: ehAdminAtual ? '#ffffff' : '#3f3f46',
                 border: ehAdminAtual
-                  ? '1px solid #fbbf24'
-                  : '1px solid rgba(255, 255, 255, 0.18)',
-                borderRadius: '8px',
+                  ? '1px solid #1e1e1e'
+                  : '1px solid #d6d3cd',
+                borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: loadingAction ? 'wait' : 'pointer',
                 whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🛠️ Painel Admin
+              <IconSliders />
+              Painel Admin
             </button>
 
             {usuariosAtivos.length > 0 && (
@@ -375,13 +450,13 @@ export default function DemoToolbar() {
                 onFocus={atualizarStatusDemo}
                 onChange={handleSelecionarUsuario}
                 style={{
-                  background: '#1e293b',
-                  color: '#f8fafc',
-                  border: '1px solid rgba(255, 255, 255, 0.22)',
-                  borderRadius: '8px',
+                  background: '#ffffff',
+                  color: '#1e1e1e',
+                  border: '1px solid #d6d3cd',
+                  borderRadius: '5px',
                   padding: '6px 9px',
                   fontSize: '12px',
-                  fontWeight: 600,
+                  fontWeight: 500,
                   maxWidth: '220px',
                   cursor: 'pointer',
                 }}
@@ -403,18 +478,22 @@ export default function DemoToolbar() {
                 setModalGuiaAberto(true);
               }}
               style={{
-                background: 'rgba(197, 168, 128, 0.18)',
-                color: '#f3e3c9',
-                border: '1px solid rgba(197, 168, 128, 0.5)',
-                borderRadius: '8px',
+                background: '#ffffff',
+                color: '#1e1e1e',
+                border: '1px solid #d6d3cd',
+                borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              💡 Guia & Cupons
+              <IconTag />
+              Guia &amp; Cupons
             </button>
 
             <button
@@ -422,18 +501,22 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={() => setModalResetAberto(true)}
               style={{
-                background: 'rgba(239, 68, 68, 0.14)',
-                color: '#fecaca',
-                border: '1px solid rgba(248, 113, 113, 0.45)',
-                borderRadius: '8px',
+                background: '#ffffff',
+                color: '#991b1b',
+                border: '1px solid #e5c5c5',
+                borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: loadingAction ? 'wait' : 'pointer',
                 whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🔄 Resetar Demo
+              <IconRefresh />
+              Resetar Demo
             </button>
 
             <button
@@ -441,18 +524,22 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={abrirPortaoTrocaModo}
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: '#e2e8f0',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
+                background: '#ffffff',
+                color: '#3f3f46',
+                border: '1px solid #d6d3cd',
+                borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🚪 Trocar Modo
+              <IconSwitch />
+              Trocar Modo
             </button>
 
             <button
@@ -461,17 +548,20 @@ export default function DemoToolbar() {
               aria-label="Minimizar barra Demo"
               title="Recolher barra do Modo Demo"
               style={{
-                background: 'transparent',
-                color: '#94a3b8',
-                border: '1px solid rgba(148, 163, 184, 0.3)',
-                borderRadius: '8px',
+                background: '#efede8',
+                color: '#3f3f46',
+                border: '1px solid #d6d3cd',
+                borderRadius: '5px',
                 padding: '6px 9px',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              ▼
+              <IconChevron />
             </button>
             </div>
           </div>
@@ -500,14 +590,16 @@ export default function DemoToolbar() {
             onClick={(e) => e.stopPropagation()}
             style={{
               background: '#ffffff',
-              color: '#1e293b',
-              borderRadius: '16px',
+              color: '#1e1e1e',
+              border: '1px solid #d6d3cd',
+              borderRadius: '6px',
               maxWidth: '680px',
               width: '100%',
               maxHeight: '88vh',
               overflowY: 'auto',
               padding: '24px',
-              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
+              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.14)',
+              fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
             }}
           >
             <div
@@ -517,21 +609,24 @@ export default function DemoToolbar() {
                 alignItems: 'center',
                 gap: '12px',
                 marginBottom: '14px',
+                paddingBottom: '12px',
+                borderBottom: '1px solid #efede8',
               }}
             >
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-                💡 Guia Rápido e Dados de Teste (Modo Demo)
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e1e1e', letterSpacing: '-0.2px' }}>
+                Guia Rápido e Dados de Teste (Modo Demo)
               </h2>
               <button
                 type="button"
                 onClick={() => setModalGuiaAberto(false)}
                 style={{
-                  background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '6px 11px',
-                  fontSize: '14px',
-                  fontWeight: 700,
+                  background: '#faf9f6',
+                  border: '1px solid #d6d3cd',
+                  borderRadius: '5px',
+                  padding: '5px 10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#3f3f46',
                   cursor: 'pointer',
                 }}
               >
@@ -539,14 +634,14 @@ export default function DemoToolbar() {
               </button>
             </div>
 
-            <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55, marginTop: 0 }}>
+            <p style={{ fontSize: '13.5px', color: '#57534e', lineHeight: 1.55, marginTop: 0 }}>
               Tudo o que você criar ou editar nesta sessão fica salvo apenas para você. Use os
               códigos e cartões abaixo para testar todo o fluxo:
             </p>
 
             {/* Cupons e Vales */}
-            <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: '16px 0 8px' }}>
-              🎟️ Cupons e Vales-Compra Disponíveis na Sessão
+            <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#1e1e1e', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '18px 0 8px' }}>
+              Cupons e Vales-Compra Disponíveis na Sessão
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {CODIGOS_PADRAO_GUIA.map((item) => {
@@ -564,7 +659,7 @@ export default function DemoToolbar() {
                     style={{
                       background: item.bg,
                       border: `1px solid ${item.border}`,
-                      borderRadius: '10px',
+                      borderRadius: '6px',
                       padding: '10px 14px',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -577,20 +672,20 @@ export default function DemoToolbar() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <code
                           style={{
-                            fontWeight: 900,
-                            fontSize: '13.5px',
+                            fontWeight: 800,
+                            fontSize: '13px',
                             color: item.cor,
                             background: '#fff',
                             padding: '2px 8px',
-                            borderRadius: '6px',
+                            borderRadius: '4px',
                             border: `1px solid ${item.border}`,
                           }}
                         >
                           {item.codigo}
                         </code>
-                        <strong style={{ fontSize: '13px', color: '#0f172a' }}>{item.titulo}</strong>
+                        <strong style={{ fontSize: '13px', color: '#1e1e1e' }}>{item.titulo}</strong>
                       </div>
-                      <div style={{ fontSize: '12px', color: '#475569', marginTop: '3px' }}>
+                      <div style={{ fontSize: '12px', color: '#57534e', marginTop: '3px' }}>
                         {item.detalhe}
                         {saldoStr}
                       </div>
@@ -599,13 +694,13 @@ export default function DemoToolbar() {
                       type="button"
                       onClick={() => copiarTexto(item.codigo, item.codigo)}
                       style={{
-                        background: copiadoChave === item.codigo ? '#15803d' : '#0f172a',
+                        background: copiadoChave === item.codigo ? '#166534' : '#1e1e1e',
                         color: '#fff',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: '5px',
                         padding: '6px 12px',
                         fontSize: '12px',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         cursor: 'pointer',
                       }}
                     >
@@ -617,17 +712,17 @@ export default function DemoToolbar() {
             </div>
 
             {/* Cartão de Crédito de Teste */}
-            <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: '18px 0 8px' }}>
-              💳 Cartão de Crédito de Teste (Checkout Simulado)
+            <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#1e1e1e', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '20px 0 8px' }}>
+              Cartão de Crédito de Teste (Checkout Simulado)
             </h3>
             <div
               style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
+                background: '#faf9f6',
+                border: '1px solid #d6d3cd',
+                borderRadius: '6px',
                 padding: '12px 14px',
                 fontSize: '12.5px',
-                color: '#334155',
+                color: '#3f3f46',
                 lineHeight: 1.6,
               }}
             >
@@ -641,13 +736,13 @@ export default function DemoToolbar() {
                   type="button"
                   onClick={() => copiarTexto('CARTAO', '4000 1234 5678 9010')}
                   style={{
-                    background: copiadoChave === 'CARTAO' ? '#15803d' : '#1e293b',
+                    background: copiadoChave === 'CARTAO' ? '#166534' : '#1e1e1e',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '6px',
+                    borderRadius: '5px',
                     padding: '4px 10px',
                     fontSize: '11.5px',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     cursor: 'pointer',
                   }}
                 >
@@ -660,15 +755,14 @@ export default function DemoToolbar() {
               <div>
                 <strong>Titular para Simular Análise / Pendente:</strong> <code>CONT</code>
               </div>
-              <div style={{ color: '#0369a1', fontWeight: 600, marginTop: '4px' }}>
-                💡 No Checkout, você também encontra um botão para preencher estes dados com 1
-                clique!
+              <div style={{ color: '#57534e', fontWeight: 600, marginTop: '4px' }}>
+                No Checkout, você também encontra um botão para preencher estes dados com 1 clique.
               </div>
             </div>
 
             {/* Roteiro de Validação */}
-            <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: '18px 0 8px' }}>
-              📋 Sugestões do que testar
+            <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#1e1e1e', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '20px 0 8px' }}>
+              Sugestões do que testar
             </h3>
             <div
               style={{
@@ -676,20 +770,20 @@ export default function DemoToolbar() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
                 gap: '10px',
                 fontSize: '12.5px',
-                color: '#334155',
+                color: '#3f3f46',
                 lineHeight: 1.55,
               }}
             >
               <div
                 style={{
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  borderRadius: '10px',
+                  background: '#faf9f6',
+                  border: '1px solid #d6d3cd',
+                  borderRadius: '6px',
                   padding: '12px',
                 }}
               >
-                <strong style={{ color: '#1e40af', display: 'block', marginBottom: '4px' }}>
-                  👤 Na Visão Cliente:
+                <strong style={{ color: '#1e1e1e', display: 'block', marginBottom: '4px' }}>
+                  Na Visão Cliente:
                 </strong>
                 • Adicionar camisetas ao carrinho e testar <code>PROMO10</code> +{' '}
                 <code>VALE50</code>.<br />• Finalizar compra via PIX e clicar em{' '}
@@ -700,14 +794,14 @@ export default function DemoToolbar() {
               </div>
               <div
                 style={{
-                  background: '#fffbeb',
-                  border: '1px solid #fde68a',
-                  borderRadius: '10px',
+                  background: '#faf9f6',
+                  border: '1px solid #d6d3cd',
+                  borderRadius: '6px',
                   padding: '12px',
                 }}
               >
-                <strong style={{ color: '#92400e', display: 'block', marginBottom: '4px' }}>
-                  🛠️ No Painel Admin:
+                <strong style={{ color: '#1e1e1e', display: 'block', marginBottom: '4px' }}>
+                  No Painel Admin:
                 </strong>
                 • Visualizar seus pedidos criados em <strong>Pedidos e Pagamentos</strong>.<br />•
                 Gerar etiqueta Melhor Envio simulada e avançar rastreio até <strong>Entregue</strong>
@@ -730,8 +824,7 @@ export default function DemoToolbar() {
             position: 'fixed',
             inset: 0,
             zIndex: 9998,
-            background: 'rgba(15, 23, 42, 0.72)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(15, 23, 42, 0.52)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -741,19 +834,21 @@ export default function DemoToolbar() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: '#fff',
-              color: '#1e293b',
-              borderRadius: '14px',
+              background: '#ffffff',
+              color: '#1e1e1e',
+              border: '1px solid #d6d3cd',
+              borderRadius: '6px',
               maxWidth: '440px',
               width: '100%',
               padding: '24px',
-              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
+              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.14)',
+              fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
             }}
           >
-            <h3 style={{ margin: '0 0 10px', fontSize: '18px', fontWeight: 800, color: '#b91c1c' }}>
-              🔄 Resetar Sessão Demo?
+            <h3 style={{ margin: '0 0 10px', fontSize: '17px', fontWeight: 700, color: '#991b1b' }}>
+              Resetar Sessão Demo?
             </h3>
-            <p style={{ margin: '0 0 20px', fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 20px', fontSize: '13.5px', color: '#57534e', lineHeight: 1.6 }}>
               Todas as contas, pedidos, devoluções, alterações de catálogo e movimentações criadas
               por você nesta sessão serão apagadas, restaurando o catálogo oficial, as contas Demo
               padrão e os cupons <strong>PROMO10</strong>, <strong>FRETEGRATIS</strong> e{' '}
@@ -765,13 +860,13 @@ export default function DemoToolbar() {
                 disabled={loadingAction}
                 onClick={() => setModalResetAberto(false)}
                 style={{
-                  background: '#f1f5f9',
-                  color: '#334155',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '9px 16px',
+                  background: '#faf9f6',
+                  color: '#3f3f46',
+                  border: '1px solid #d6d3cd',
+                  borderRadius: '5px',
+                  padding: '8px 14px',
                   fontSize: '13px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
@@ -782,13 +877,13 @@ export default function DemoToolbar() {
                 disabled={loadingAction}
                 onClick={handleConfirmarReset}
                 style={{
-                  background: '#dc2626',
+                  background: '#991b1b',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '8px',
-                  padding: '9px 16px',
+                  borderRadius: '5px',
+                  padding: '8px 14px',
                   fontSize: '13px',
-                  fontWeight: 800,
+                  fontWeight: 600,
                   cursor: loadingAction ? 'wait' : 'pointer',
                 }}
               >

@@ -280,6 +280,7 @@ export function CartProvider({ children }) {
       const payload = itens.map((item) => ({
         variacao_id: item.variacaoId || null,
         produto_id: item.produtoId || null,
+        modelo: item.modelo || null,
         tamanho: item.tamanho || null,
         cor: item.cor || null,
         quantidade: item.quantidade || 1,
@@ -316,11 +317,18 @@ export function CartProvider({ children }) {
         }
 
         // Se a quantidade no carrinho for maior que o estoque atual, ajusta para o limite máximo restante
+        // e sincroniza o preço conforme o modelo cadastrado (Regular Fit vs Oversized)
         const novaQtd = Math.min(item.quantidade, info.estoque_atual);
-        if (novaQtd !== item.quantidade || item.estoque !== info.estoque_atual) {
+        const precoAtualizado = info.preco_atual !== null && info.preco_atual !== undefined
+          ? Number(info.preco_atual)
+          : Number(item.preco);
+        const precoMudou = info.preco_atual !== null && info.preco_atual !== undefined
+          && Math.abs(precoAtualizado - Number(item.preco || 0)) > 0.001;
+        if (novaQtd !== item.quantidade || item.estoque !== info.estoque_atual || precoMudou) {
           houveAlteracao = true;
           atualizados.push({
             ...item,
+            preco: precoAtualizado,
             quantidade: novaQtd,
             estoque: info.estoque_atual,
             variacaoId: info.variacao_id || item.variacaoId,

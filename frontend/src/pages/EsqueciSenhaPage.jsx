@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import MainLayout from '../layouts/MainLayout';
 import '../styles/auth.css';
 
 export default function EsqueciSenhaPage() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
 
   const breadcrumbs = [
@@ -18,6 +18,11 @@ export default function EsqueciSenhaPage() {
   const [mensagemSucesso, setMensagemSucesso] = useState('');
   const [erro, setErro] = useState('');
   const [mostrarLinkCadastro, setMostrarLinkCadastro] = useState(false);
+
+  if (authLoading) return null;
+  if (isAuthenticated) {
+    return <Navigate to={user?.papel === 'admin' ? '/admin' : '/minha-conta'} replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { deleteProduto, getProdutos } from '../../services/produtoService';
+import { deleteProduto, getProdutos, toggleDestaqueProduto } from '../../services/produtoService';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import '../../styles/admin.css';
 
@@ -9,6 +9,21 @@ const IconPlus    = () => <svg width="16" height="16" fill="none" stroke="curren
 const IconEdit    = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IconTrash   = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
 const IconPackage = () => <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>;
+const IconStar    = ({ filled = false, size = 18 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={filled ? '#facc15' : 'transparent'}
+    stroke={filled ? '#ca8a04' : '#9ca3af'}
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
 
 export default function ProdutosList() {
   const navigate = useNavigate();
@@ -34,6 +49,7 @@ export default function ProdutosList() {
   // ── Modal de confirmação ───────────────────────────────────────────────────
   const [modalTarget, setModalTarget] = useState(null); // { id, nome }
   const [deleting, setDeleting]       = useState(false);
+  const [togglingDestaqueId, setTogglingDestaqueId] = useState(null);
 
   // ── Carrega produtos ───────────────────────────────────────────────────────
   const fetchProdutos = async () => {
@@ -68,6 +84,25 @@ export default function ProdutosList() {
     }
   };
 
+  // ── Alternar Destaque ──────────────────────────────────────────────────────
+  const handleToggleDestaque = async (produto) => {
+    setTogglingDestaqueId(produto.id);
+    setError('');
+    try {
+      const { data } = await toggleDestaqueProduto(produto.id);
+      setProdutos((prev) =>
+        prev.map((p) => (p.id === produto.id ? { ...p, destaque: Boolean(data.destaque) } : p))
+      );
+      try {
+        localStorage.setItem('salv_sync_trigger', String(Date.now()));
+      } catch {}
+    } catch {
+      setError('Não foi possível atualizar o status de destaque.');
+    } finally {
+      setTogglingDestaqueId(null);
+    }
+  };
+
   // ── Formatação de moeda ────────────────────────────────────────────────────
   const formatBRL = (value) =>
     Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -75,6 +110,7 @@ export default function ProdutosList() {
   // ── Coleções únicas para o filtro ──────────────────────────────────────────
   const listaProdutos = Array.isArray(produtos) ? produtos : [];
   const colecoes = Array.from(new Set(listaProdutos.map((p) => p.colecao).filter(Boolean)));
+  const qtdDestaques = listaProdutos.filter((p) => Boolean(p.destaque)).length;
 
   // ── Filtragem e Ordenação ──────────────────────────────────────────────────
   const produtosExibidos = listaProdutos
@@ -163,13 +199,24 @@ export default function ProdutosList() {
                 </select>
               </div>
             )}
+
+            <div
+              className="admin-destaque-badge"
+              title="Quantidade de produtos selecionados para aparecer em Destaques na página inicial"
+            >
+              <span>Em destaque</span>
+              <IconStar filled size={15} />
+              <span>:</span>
+              <strong style={{ color: '#111827' }}>{qtdDestaques}</strong>
+            </div>
           </div>
 
-          <div style={{ flex: '1 1 220px', minWidth: 0, maxWidth: '100%' }}>
+          <div style={{ flex: '1 1 200px', minWidth: 0, maxWidth: '100%' }}>
             <input
               type="search"
               placeholder="Buscar por nome, coleção ou categoria..."
               className="admin-search-input"
+              style={{ width: '100%' }}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -196,24 +243,48 @@ export default function ProdutosList() {
           <p>Nenhum produto encontrado para os filtros selecionados.</p>
         </div>
       ) : (
-        /* ── Tabela ── */
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
+        /* ── Tabela (com estrela à esquerda fora do card dos produtos) ── */
+        <div className="admin-table-wrapper admin-produtos-wrapper">
+          <table className="admin-table admin-produtos-table">
             <thead>
               <tr>
+                <th className="admin-star-col" aria-label="Destaque" />
                 <th style={{ width: '80px', textAlign: 'center' }}>Imagem</th>
-                <th style={{ textAlign: 'left', minWidth: '180px', paddingLeft: '36px' }}>Nome</th>
+                <th style={{ textAlign: 'left', minWidth: '170px', paddingLeft: '24px' }}>Nome</th>
                 <th style={{ textAlign: 'left' }}>Categoria</th>
                 <th style={{ textAlign: 'left' }}>Coleção</th>
                 <th style={{ textAlign: 'right', paddingRight: '20px' }}>Preço Base</th>
                 <th style={{ textAlign: 'center' }}>Variações</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
-                <th style={{ textAlign: 'center', width: '180px' }}>Ações</th>
+                <th style={{ textAlign: 'center', width: '175px' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {produtosExibidos.map((produto) => (
                 <tr key={produto.id}>
+                  {/* Estrela à esquerda fora do card do produto */}
+                  <td className="admin-star-col">
+                    <button
+                      type="button"
+                      className="admin-destaque-star-btn"
+                      onClick={() => handleToggleDestaque(produto)}
+                      disabled={togglingDestaqueId === produto.id}
+                      title={
+                        produto.destaque
+                          ? 'Remover da seção Destaques da página inicial'
+                          : 'Marcar para aparecer na seção Destaques da página inicial'
+                      }
+                      aria-label={
+                        produto.destaque
+                          ? `Remover ${produto.nome} dos destaques`
+                          : `Destacar ${produto.nome} na página inicial`
+                      }
+                      aria-pressed={Boolean(produto.destaque)}
+                    >
+                      <IconStar filled={Boolean(produto.destaque)} size={20} />
+                    </button>
+                  </td>
+
                   {/* Thumbnail */}
                   <td style={{ textAlign: 'center' }}>
                     {produto.imagem_url ? (
@@ -232,8 +303,15 @@ export default function ProdutosList() {
                   <td style={{ fontWeight: 600, textAlign: 'left' }}>{produto.nome}</td>
                   <td style={{ textAlign: 'left' }}>{produto.categoria?.nome ?? '—'}</td>
                   <td style={{ textAlign: 'left' }}>{produto.colecao ?? '—'}</td>
-                  <td style={{ fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontWeight: 600, paddingRight: '20px' }}>
-                    {formatBRL(produto.preco_base)}
+                  <td style={{ fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontWeight: 600, paddingRight: '20px', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '13px', color: '#1e1e1e' }}>
+                      {formatBRL(produto.preco_base)}{' '}
+                      <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>(Regular)</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#854d0e', fontWeight: 600, marginTop: '2px' }}>
+                      {formatBRL(produto.preco_oversized ?? produto.preco_base)}{' '}
+                      <span style={{ fontSize: '10.5px', color: '#a16207' }}>(Oversized)</span>
+                    </div>
                   </td>
                   <td style={{ textAlign: 'center', fontWeight: 500 }}>
                     {produto.variacoes?.length ?? 0}

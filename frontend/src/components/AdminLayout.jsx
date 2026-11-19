@@ -276,10 +276,12 @@ export default function AdminLayout() {
     // 4. Produtos do catálogo
     produtosAdminList.forEach((prod) => {
       if (prod.nome?.toLowerCase().includes(q)) {
+        const reg = Number(prod.preco_base || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const over = Number(prod.preco_oversized ?? prod.preco_base ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         resultados.push({
           tipo: 'Produto',
           titulo: prod.nome,
-          sub: `Editar produto · ${Number(prod.preco_base || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+          sub: `Editar produto · Reg: ${reg} / Over: ${over}`,
           rota: `/admin/produtos/editar/${prod.id}`,
           icone: '👕',
           imagem: prod.imagem_url,
@@ -329,7 +331,7 @@ export default function AdminLayout() {
 
   // Proteção contra acesso por usuários que não são admin
   if (user && user.papel !== 'admin') {
-    return <Navigate to="/login?admin=1" replace />;
+    return <Navigate to="/minha-conta" replace />;
   }
 
   const carregarDadosAdmin = () => {

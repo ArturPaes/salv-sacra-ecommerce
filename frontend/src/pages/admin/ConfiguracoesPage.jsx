@@ -1020,7 +1020,7 @@ export default function ConfiguracoesPage() {
                           <option value="">Catálogo Geral de Camisetas (/produtos?categoria=camisetas)</option>
                           {produtosLista.map((prod) => (
                             <option key={prod.id} value={String(prod.id)}>
-                              {prod.nome} — R$ {Number(prod.preco_base || 0).toFixed(2).replace('.', ',')}
+                              {prod.nome} — Reg: R$ {Number(prod.preco_base || 0).toFixed(2).replace('.', ',')} / Over: R$ {Number(prod.preco_oversized ?? prod.preco_base ?? 0).toFixed(2).replace('.', ',')}
                             </option>
                           ))}
                         </select>

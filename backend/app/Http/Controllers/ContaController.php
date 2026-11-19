@@ -2,13 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AtivarContaMail;
 use App\Models\Avaliacao;
 use App\Models\Endereco;
-use App\Rules\StrongPassword;
 use App\Models\Pedido;
+use App\Models\User;
+use App\Rules\StrongPassword;
+use App\Services\DemoSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -67,29 +74,119 @@ class ContaController extends Controller
 
         $dados = $request->validate([
             'name'            => ['required', 'string', 'max:255'],
-            'email'           => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'email'           => ['sometimes', 'nullable', 'email', 'max:255'],
             'telefone'        => ['nullable', 'string', 'max:30'],
             'cpf'             => ['nullable', 'string', 'max:14'],
             'data_nascimento' => ['nullable', 'date', 'before:today'],
         ]);
 
-        $novoEmail = trim(strtolower($dados['email']));
-        if ($novoEmail !== trim(strtolower($user->email))) {
-            $emailBloqueado = \Illuminate\Support\Facades\DB::table('blocked_emails')
-                ->whereRaw('LOWER(email) = ?', [$novoEmail])
-                ->exists();
-            if ($emailBloqueado) {
-                throw ValidationException::withMessages([
-                    'email' => ['Este e-mail está bloqueado pela administração.'],
-                ]);
+        // Alteração de e-mail é processada exclusivamente via solicitarTrocaEmail com validação
+        unset($dados['email'], $dados['email_verified_at']);
+
+        if (array_key_exists('cpf', $dados)) {
+            $cpfLimpo = preg_replace('/\D/', '', (string) ($dados['cpf'] ?? ''));
+            if ($cpfLimpo !== '') {
+                if (! $this->validarCpf($cpfLimpo)) {
+                    throw ValidationException::withMessages([
+                        'cpf' => ['O CPF informado é inválido. Confira os números digitados.'],
+                    ]);
+                }
+                $dados['cpf'] = $cpfLimpo;
+            } else {
+                $dados['cpf'] = null;
             }
-            $dados['email'] = $novoEmail;
-            $dados['email_verified_at'] = null;
         }
 
         $user->update($dados);
 
         return response()->json(['message' => 'Dados atualizados com sucesso.', 'user' => $user->fresh()]);
+    }
+
+    /**
+     * Solicita a alteração de e-mail do usuário autenticado.
+     * - No Modo Demo: altera e valida automaticamente.
+     * - Na Loja Real: envia link de validação para o novo e-mail mantendo o e-mail atual ativo até a confirmação.
+     */
+    public function solicitarTrocaEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $request->merge([
+            'novo_email' => trim(strtolower((string) $request->input('novo_email', ''))),
+        ]);
+
+        $dados = $request->validate([
+            'novo_email' => ['required', 'email', 'max:255'],
+        ], [
+            'novo_email.required' => 'Informe o novo endereço de e-mail.',
+            'novo_email.email'    => 'Informe um endereço de e-mail válido.',
+        ]);
+
+        $novoEmail = trim(strtolower($dados['novo_email']));
+
+        if ($novoEmail === trim(strtolower((string) $user->email))) {
+            throw ValidationException::withMessages([
+                'novo_email' => ['O novo e-mail deve ser diferente do seu e-mail atual.'],
+            ]);
+        }
+
+        $emUso = User::withTrashed()
+            ->whereRaw('LOWER(email) = ?', [$novoEmail])
+            ->where('id', '!=', $user->id)
+            ->exists();
+
+        if ($emUso) {
+            throw ValidationException::withMessages([
+                'novo_email' => ['Este e-mail já está cadastrado em outra conta.'],
+            ]);
+        }
+
+        $emailBloqueado = DB::table('blocked_emails')
+            ->whereRaw('LOWER(email) = ?', [$novoEmail])
+            ->exists();
+
+        if ($emailBloqueado) {
+            throw ValidationException::withMessages([
+                'novo_email' => ['Este e-mail está bloqueado pela administração.'],
+            ]);
+        }
+
+        if (DemoSandboxService::isDemo()) {
+            $user->forceFill([
+                'email'               => $novoEmail,
+                'email_verified_at'   => now(),
+                'pending_email'       => null,
+                'pending_email_token' => null,
+            ])->save();
+
+            return response()->json([
+                'message'            => 'E-mail alterado e validado automaticamente no Modo Demo!',
+                'demo_auto_verified' => true,
+                'user'               => $user->fresh(),
+            ]);
+        }
+
+        $token = Str::random(64);
+        $user->forceFill([
+            'pending_email'       => $novoEmail,
+            'pending_email_token' => $token,
+        ])->save();
+
+        try {
+            Mail::to($novoEmail)->send(new AtivarContaMail($user->name, $novoEmail, $token, true));
+        } catch (\Throwable $e) {
+            Log::error('Erro ao enviar e-mail de confirmação de troca de e-mail: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Não foi possível enviar o e-mail de confirmação no momento. Tente novamente em instantes.',
+            ], 500);
+        }
+
+        return response()->json([
+            'message'            => "Enviamos um link de validação para {$novoEmail}. Caso não valide o novo endereço, seu e-mail atual ({$user->email}) continuará ativo.",
+            'demo_auto_verified' => false,
+            'pending_email'      => $novoEmail,
+            'user'               => $user->fresh(),
+        ]);
     }
 
     /**
@@ -254,6 +351,11 @@ class ContaController extends Controller
 
         $limpo = preg_replace('/\D/', '', $dados['numero']);
         $cpfLimpo = preg_replace('/\D/', '', $dados['cpf']);
+        if (! $this->validarCpf($cpfLimpo)) {
+            throw ValidationException::withMessages([
+                'cpf' => ['O CPF informado para o titular do cartão é inválido.'],
+            ]);
+        }
         $ultimos = substr($limpo, -4);
 
         $cartao = $request->user()->cartoes()->create([
@@ -400,6 +502,24 @@ class ContaController extends Controller
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
+
+    private function validarCpf(string $cpf): bool
+    {
+        $d = preg_replace('/\D/', '', $cpf);
+        if (strlen($d) !== 11 || preg_match('/^(\d)\1{10}$/', $d)) {
+            return false;
+        }
+        for ($t = 9; $t < 11; $t++) {
+            for ($dSum = 0, $c = 0; $c < $t; $c++) {
+                $dSum += (int) $d[$c] * (($t + 1) - $c);
+            }
+            $dSum = ((10 * $dSum) % 11) % 10;
+            if ((int) $d[$c] !== $dSum) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private function identificarBandeira(string $numero): string
     {

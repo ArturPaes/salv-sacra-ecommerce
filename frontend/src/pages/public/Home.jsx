@@ -202,6 +202,9 @@ function HeroBanner({ slidesConfig }) {
   const [current, setCurrent] = useState(0);
   const slides = Array.isArray(slidesConfig) && slidesConfig.length > 0 ? slidesConfig : BANNER_SLIDES;
   const total = slides.length;
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const touchDeltaX = useRef(0);
 
   useEffect(() => {
     if (current >= total) setCurrent(0);
@@ -213,6 +216,35 @@ function HeroBanner({ slidesConfig }) {
     return () => clearInterval(t);
   }, [total]);
 
+  const handleTouchStart = (e) => {
+    if (!e.touches?.[0]) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchDeltaX.current = 0;
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStartX.current === null || !e.touches?.[0]) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      touchDeltaX.current = dx;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (total > 1 && Math.abs(touchDeltaX.current) > 40) {
+      if (touchDeltaX.current < 0) {
+        setCurrent((c) => (c + 1) % total);
+      } else {
+        setCurrent((c) => (c - 1 + total) % total);
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+    touchDeltaX.current = 0;
+  };
+
   const slide = slides[current] || slides[0];
 
   return (
@@ -223,6 +255,9 @@ function HeroBanner({ slidesConfig }) {
         '--hero-bg-mobile': `url(${slide.image_mobile || slide.image})`,
       }}
       aria-label="Banner principal"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Conteúdo do slide (centralizado) */}
       <div className="hero-content" key={slide.id || current}>
@@ -298,14 +333,31 @@ export default function Home() {
       })
       .catch(() => {});
 
-    // Destaques — primeiros 8 produtos
-    api.get('/produtos', { params: { per_page: 8 } })
-      .then(({ data }) => {
-        const lista = Array.isArray(data) ? data : (data.data ?? []);
-        setDestaques(lista.slice(0, 8));
-      })
-      .catch(() => setDestaques([]))
-      .finally(() => setLoadingD(false));
+    // Destaques — produtos marcados com estrela pelo Administrador
+    const carregarDestaques = () => {
+      api.get('/produtos', { params: { destaque: 1 } })
+        .then(({ data }) => {
+          const lista = Array.isArray(data) ? data : (data.data ?? []);
+          setDestaques(lista);
+        })
+        .catch(() => setDestaques([]))
+        .finally(() => setLoadingD(false));
+    };
+
+    carregarDestaques();
+
+    const handleStorage = (e) => {
+      if (e.key === 'salv_sync_trigger') carregarDestaques();
+    };
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') carregarDestaques();
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   return (

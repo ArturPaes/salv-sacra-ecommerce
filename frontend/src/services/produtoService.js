@@ -30,6 +30,12 @@ export const updateProduto = (id, data) => api.put(`/produtos/${id}`, data);
  */
 export const deleteProduto = (id) => api.delete(`/produtos/${id}`);
 
+/**
+ * Alterna o destaque do produto na vitrine principal.
+ * @param {number|string} id
+ */
+export const toggleDestaqueProduto = (id) => api.patch(`/produtos/${id}/destaque`);
+
 // ── Dados de referência para selects ─────────────────────────────────────────
 
 /**

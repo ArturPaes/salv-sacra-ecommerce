@@ -21,34 +21,65 @@
                     <!-- Body -->
                     <tr>
                         <td style="padding: 36px 32px;">
-                            <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #111111;">
-                                Olá, {{ $name }}! Falta pouco para ativar sua conta.
-                            </h2>
-                            <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #444444;">
-                                Recebemos sua solicitação de cadastro na <strong>Salv Sacra</strong>. Para concluir a criação da sua conta e garantir a segurança do seu acesso, confirme seu e-mail clicando no botão abaixo:
-                            </p>
+                            @if(!empty($isEmailChange))
+                                <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #111111;">
+                                    Olá, {{ $name }}! Confirme seu novo e-mail.
+                                </h2>
+                                <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #444444;">
+                                    Recebemos sua solicitação para alterar o endereço de e-mail da sua conta na <strong>Salv Sacra</strong> para <strong>{{ $email }}</strong>. Para concluir a alteração, confirme o novo endereço clicando no botão abaixo:
+                                </p>
 
-                            <!-- CTA Button -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 28px auto 28px;">
-                                <tr>
-                                    <td align="center" style="background-color: #111111; border-radius: 6px;">
-                                        <a href="{{ $verificationUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; letter-spacing: 1px; text-transform: uppercase;">
-                                            Validar e Ativar Conta
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
+                                <!-- CTA Button -->
+                                <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 28px auto 28px;">
+                                    <tr>
+                                        <td align="center" style="background-color: #111111; border-radius: 6px;">
+                                            <a href="{{ $verificationUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; letter-spacing: 1px; text-transform: uppercase;">
+                                                Validar Novo E-mail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
 
-                            <p style="margin: 0 0 10px; font-size: 13px; color: #777777;">
-                                Ou se preferir, copie e cole o link a seguir no seu navegador:
-                            </p>
-                            <p style="margin: 0 0 24px; font-size: 12px; line-height: 1.5; color: #555555; word-break: break-all; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;">
-                                <a href="{{ $verificationUrl }}" style="color: #111111; text-decoration: underline;">{{ $verificationUrl }}</a>
-                            </p>
+                                <p style="margin: 0 0 10px; font-size: 13px; color: #777777;">
+                                    Ou se preferir, copie e cole o link a seguir no seu navegador:
+                                </p>
+                                <p style="margin: 0 0 24px; font-size: 12px; line-height: 1.5; color: #555555; word-break: break-all; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;">
+                                    <a href="{{ $verificationUrl }}" style="color: #111111; text-decoration: underline;">{{ $verificationUrl }}</a>
+                                </p>
 
-                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #888888; border-top: 1px solid #eeeeee; padding-top: 20px;">
-                                Se você não iniciou este cadastro, pode desconsiderar esta mensagem. Sua conta só será criada após essa confirmação.
-                            </p>
+                                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #888888; border-top: 1px solid #eeeeee; padding-top: 20px;">
+                                    Caso você não confirme este link ou não tenha solicitado a alteração, o seu endereço de e-mail antigo permanecerá ativo normalmente.
+                                </p>
+                            @else
+                                <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #111111;">
+                                    Olá, {{ $name }}! Falta pouco para ativar sua conta.
+                                </h2>
+                                <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #444444;">
+                                    Recebemos sua solicitação de cadastro na <strong>Salv Sacra</strong>. Para concluir a criação da sua conta e garantir a segurança do seu acesso, confirme seu e-mail clicando no botão abaixo:
+                                </p>
+
+                                <!-- CTA Button -->
+                                <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 28px auto 28px;">
+                                    <tr>
+                                        <td align="center" style="background-color: #111111; border-radius: 6px;">
+                                            <a href="{{ $verificationUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; letter-spacing: 1px; text-transform: uppercase;">
+                                                Validar e Ativar Conta
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <p style="margin: 0 0 10px; font-size: 13px; color: #777777;">
+                                    Ou se preferir, copie e cole o link a seguir no seu navegador:
+                                </p>
+                                <p style="margin: 0 0 24px; font-size: 12px; line-height: 1.5; color: #555555; word-break: break-all; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;">
+                                    <a href="{{ $verificationUrl }}" style="color: #111111; text-decoration: underline;">{{ $verificationUrl }}</a>
+                                </p>
+
+                                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #888888; border-top: 1px solid #eeeeee; padding-top: 20px;">
+                                    Se você não iniciou este cadastro, pode desconsiderar esta mensagem. Sua conta só será criada após essa confirmação.
+                                </p>
+                            @endif
                         </td>
                     </tr>
 

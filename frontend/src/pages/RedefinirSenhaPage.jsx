@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import MainLayout from '../layouts/MainLayout';
@@ -20,7 +20,7 @@ const IconEye = ({ open }) =>
   );
 
 export default function RedefinirSenhaPage() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -77,6 +77,11 @@ export default function RedefinirSenhaPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading) return null;
+  if (isAuthenticated && (user?.papel === 'admin' || !token)) {
+    return <Navigate to={user?.papel === 'admin' ? '/admin' : '/minha-conta'} replace />;
+  }
 
   return (
     <MainLayout breadcrumbs={breadcrumbs}>

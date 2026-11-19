@@ -200,6 +200,17 @@ export default function ProdutoDetalhe() {
 
   // Ref do carrossel similar
   const similarTrackRef = useRef(null);
+  const pdpSwipeStartX = useRef(null);
+  const pdpSwipeStartY = useRef(null);
+  const pdpSwipeDeltaX = useRef(0);
+
+  // Preço ativo conforme o modelo selecionado (Regular Fit vs Oversized)
+  const isModeloOversized = String(modeloSelecionado || '').toLowerCase().includes('over');
+  const precoAtivo = !produto
+    ? 80
+    : isModeloOversized
+      ? Number(produto.preco_oversized ?? produto.preco_base ?? 90)
+      : Number(produto.preco_base ?? 80);
 
   // Lista de tamanhos padrão: PP, P, M, G, GG, G1, G2
   const TAMANHOS_PADRAO = ['PP', 'P', 'M', 'G', 'GG', 'G1', 'G2'];
@@ -255,6 +266,49 @@ export default function ProdutoDetalhe() {
   })();
 
   const imagemExibida = fotoPrincipal || galeriaFotos[0]?.url || fotosCores[0] || produto?.imagem_url || '';
+
+  const fotosSwipe = Array.from(
+    new Set([
+      ...galeriaFotos.map((g) => g.url),
+      ...fotosCores,
+      produto?.imagem_url,
+    ].filter(Boolean))
+  );
+
+  const handlePdpSwipeStart = (e) => {
+    if (fotosSwipe.length <= 1 || !e.touches?.[0]) return;
+    pdpSwipeStartX.current = e.touches[0].clientX;
+    pdpSwipeStartY.current = e.touches[0].clientY;
+    pdpSwipeDeltaX.current = 0;
+  };
+
+  const handlePdpSwipeMove = (e) => {
+    if (pdpSwipeStartX.current === null || !e.touches?.[0]) return;
+    const dx = e.touches[0].clientX - pdpSwipeStartX.current;
+    const dy = e.touches[0].clientY - pdpSwipeStartY.current;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      pdpSwipeDeltaX.current = dx;
+    }
+  };
+
+  const handlePdpSwipeEnd = () => {
+    if (pdpSwipeStartX.current === null || fotosSwipe.length <= 1) {
+      pdpSwipeStartX.current = null;
+      return;
+    }
+    const dx = pdpSwipeDeltaX.current;
+    pdpSwipeStartX.current = null;
+    pdpSwipeDeltaX.current = 0;
+    if (Math.abs(dx) < 35) return;
+    const idxAtual = Math.max(0, fotosSwipe.indexOf(imagemExibida));
+    const novoIdx = dx < 0
+      ? (idxAtual + 1) % fotosSwipe.length
+      : (idxAtual - 1 + fotosSwipe.length) % fotosSwipe.length;
+    const novaUrl = fotosSwipe[novoIdx];
+    setFotoPrincipal(novaUrl);
+    const matchGal = galeriaFotos.find((g) => g.url === novaUrl && g.cor);
+    if (matchGal?.cor) setCorSelecionada(matchGal.cor);
+  };
 
   const aplicarDadosFrete = useCallback((data, cepFormatado) => {
     if (!data) return;
@@ -314,13 +368,16 @@ export default function ProdutoDetalhe() {
         const galeriaInicial = Array.isArray(prod.imagens) && prod.imagens.filter(Boolean).length > 0
           ? prod.imagens.filter(Boolean)
           : [];
+        const primeiraGaleria = typeof galeriaInicial[0] === 'object' && galeriaInicial[0] !== null
+          ? galeriaInicial[0].url
+          : galeriaInicial[0];
         const vitrineInicial = Array.isArray(prod.imagens_vitrine) && prod.imagens_vitrine.filter(Boolean).length > 0
           ? prod.imagens_vitrine.filter(Boolean)
-          : galeriaInicial;
+          : (primeiraGaleria ? [primeiraGaleria] : []);
 
         // Foto primária correspondente à cor primária
         const fotoPrimaria = cfgPrimaria?.imagem_url
-          || galeriaInicial[0]
+          || primeiraGaleria
           || vitrineInicial[0]
           || prod.imagem_url
           || '';
@@ -372,7 +429,7 @@ export default function ProdutoDetalhe() {
           .then((res) => {
             const prod = res.data;
             if (prod && Array.isArray(prod.variacoes)) {
-              setVariacoes(prod.variacoes);
+              setProduto((prev) => (prev ? { ...prev, ...prod } : prod));
             }
           })
           .catch(() => {});
@@ -404,9 +461,8 @@ export default function ProdutoDetalhe() {
     }
     const limpo = String(cepAlvo || '').replace(/\D/g, '');
     if (limpo.length === 8 && produto && !freteResultado && !calculandoFrete) {
-      const precoItem = Number(produto.preco_base || produto.preco || 79.9);
       setCalculandoFrete(true);
-      calcularFretePorCep(limpo, precoItem * quantidade, quantidade)
+      calcularFretePorCep(limpo, precoAtivo * quantidade, quantidade)
         .then((data) => {
           if (data) {
             const formatado = `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
@@ -593,7 +649,7 @@ export default function ProdutoDetalhe() {
       produtoId: produto.id,
       variacaoId: variacaoEncontrada?.id || null,
       nome: produto.nome,
-      preco: produto.preco_base,
+      preco: precoAtivo,
       imagem: imgCorCarrinho,
       modelo: modeloSelecionado,
       tamanho: tamanhoSelecionado,
@@ -615,7 +671,7 @@ export default function ProdutoDetalhe() {
     try {
       const data = await calcularFretePorCep(
         limpo,
-        Number(produto.preco_base || 79.9) * quantidade,
+        precoAtivo * quantidade,
         quantidade
       );
 
@@ -717,8 +773,8 @@ export default function ProdutoDetalhe() {
     );
   }
 
-  // Preços e cálculos
-  const precoBase = Number(produto.preco_base || 79.9);
+  // Preços e cálculos (reage dinamicamente ao modelo selecionado)
+  const precoBase = precoAtivo;
   const textoParcelamento = (() => {
     const maxSemJuros = Math.min(maxParcelasSemJuros, Math.max(1, Math.floor(precoBase / 50)));
     const valorParcela = (precoBase / maxSemJuros).toFixed(2).replace('.', ',');
@@ -759,7 +815,13 @@ export default function ProdutoDetalhe() {
               })}
             </div>
 
-            <div className="pdp-main-image-container">
+            <div
+              className="pdp-main-image-container"
+              style={{ touchAction: 'pan-y' }}
+              onTouchStart={handlePdpSwipeStart}
+              onTouchMove={handlePdpSwipeMove}
+              onTouchEnd={handlePdpSwipeEnd}
+            >
               {imagemExibida ? (
                 <img
                   src={imagemExibida}

@@ -21,8 +21,7 @@ export default function ProtectedRoute({ children, requiredRole }) {
   }
 
   if (requiredRole && user?.papel !== requiredRole) {
-    const destino = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?admin=1&redirect=${destino}`} replace />;
+    return <Navigate to={user?.papel === 'admin' ? '/admin' : '/minha-conta'} replace />;
   }
 
   return children;

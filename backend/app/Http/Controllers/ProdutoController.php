@@ -112,6 +112,10 @@ class ProdutoController extends Controller
             });
         }
 
+        if ($request->has('destaque') && $request->boolean('destaque')) {
+            $query->where('destaque', true);
+        }
+
         if ($request->filled('per_page')) {
             $limit = min(500, max(1, (int) $request->input('per_page')));
             $query->limit($limit);
@@ -130,9 +134,10 @@ class ProdutoController extends Controller
     {
         $validated = $request->validate([
             // Produto
-            'nome'         => ['required', 'string', 'max:255'],
-            'descricao'    => ['nullable', 'string'],
-            'preco_base'   => ['required', 'numeric', 'min:0'],
+            'nome'            => ['required', 'string', 'max:255'],
+            'descricao'       => ['nullable', 'string'],
+            'preco_base'      => ['required', 'numeric', 'min:0'],
+            'preco_oversized' => ['nullable', 'numeric', 'min:0'],
             'imagem_url'        => ['nullable', 'string', 'max:2048'],
             'imagens'           => ['nullable', 'array'],
             'imagens.*'         => ['nullable'],
@@ -140,6 +145,7 @@ class ProdutoController extends Controller
             'imagens_vitrine.*' => ['nullable', 'string', 'max:2048'],
             'cores_config'      => ['nullable', 'array'],
             'disponivel'        => ['boolean'],
+            'destaque'          => ['sometimes', 'boolean'],
             'colecao'           => ['nullable', 'string', 'max:255'],
             'modelo'            => ['nullable', 'string', 'max:255'],
             'categoria_id'      => ['nullable', 'integer', 'exists:categorias,id'],
@@ -215,9 +221,10 @@ class ProdutoController extends Controller
     {
         $validated = $request->validate([
             // Produto
-            'nome'         => ['sometimes', 'string', 'max:255'],
-            'descricao'    => ['nullable', 'string'],
-            'preco_base'   => ['sometimes', 'numeric', 'min:0'],
+            'nome'            => ['sometimes', 'string', 'max:255'],
+            'descricao'       => ['nullable', 'string'],
+            'preco_base'      => ['sometimes', 'numeric', 'min:0'],
+            'preco_oversized' => ['nullable', 'numeric', 'min:0'],
             'imagem_url'        => ['nullable', 'string', 'max:2048'],
             'imagens'           => ['nullable', 'array'],
             'imagens.*'         => ['nullable'],
@@ -225,6 +232,7 @@ class ProdutoController extends Controller
             'imagens_vitrine.*' => ['nullable', 'string', 'max:2048'],
             'cores_config'      => ['nullable', 'array'],
             'disponivel'        => ['boolean'],
+            'destaque'          => ['sometimes', 'boolean'],
             'colecao'           => ['nullable', 'string', 'max:255'],
             'modelo'            => ['nullable', 'string', 'max:255'],
             'categoria_id'      => ['nullable', 'integer', 'exists:categorias,id'],
@@ -326,6 +334,24 @@ class ProdutoController extends Controller
         return response()->json(null, 204);
     }
 
+    // ─── PATCH /api/produtos/{produto}/destaque ──────────────────────────────
+    /**
+     * Alterna o status de destaque do produto na vitrine principal.
+     */
+    public function toggleDestaque(Produto $produto): JsonResponse
+    {
+        $produto->destaque = ! (bool) $produto->destaque;
+        $produto->save();
+
+        return response()->json([
+            'id'       => $produto->id,
+            'destaque' => (bool) $produto->destaque,
+            'message'  => $produto->destaque
+                ? 'Produto adicionado aos destaques da vitrine.'
+                : 'Produto removido dos destaques da vitrine.',
+        ]);
+    }
+
     /**
      * Valida os itens atuais do carrinho no cliente contra o estoque real em banco.
      * Retorna se cada item está disponível (estoque > 0) e a quantidade máxima permitida.
@@ -344,19 +370,25 @@ class ProdutoController extends Controller
             $qtd = (int) ($item['quantidade'] ?? 1);
 
             if (! $variacaoId) {
-                // Tenta achar pela combinação produto_id, tamanho e cor
+                // Tenta achar pela combinação produto_id, tamanho, cor e modelo
                 $prodId = $item['produto_id'] ?? $item['id'] ?? null;
                 $tam = $item['tamanho'] ?? null;
                 $cor = $item['cor'] ?? null;
+                $mod = $item['modelo'] ?? null;
                 $variacao = null;
                 if ($prodId) {
-                    $q = \App\Models\Variacao::where('produto_id', $prodId);
+                    $q = \App\Models\Variacao::with('produto')->where('produto_id', $prodId);
                     if ($tam) $q->where('tamanho', $tam);
                     if ($cor) $q->where('cor', $cor);
+                    if ($mod) {
+                        $q->where(function ($qm) use ($mod) {
+                            $qm->where('modelo', $mod)->orWhereNull('modelo');
+                        });
+                    }
                     $variacao = $q->first();
                 }
             } else {
-                $variacao = \App\Models\Variacao::find($variacaoId);
+                $variacao = \App\Models\Variacao::with('produto')->find($variacaoId);
             }
 
             if (! $variacao) {
@@ -368,6 +400,7 @@ class ProdutoController extends Controller
                     'estoque_atual'     => 0,
                     'disponivel'        => false,
                     'quantidade_valida' => 0,
+                    'preco_atual'       => null,
                     'mensagem'          => 'Produto ou variação não encontrado no catálogo.',
                 ];
                 continue;
@@ -377,6 +410,15 @@ class ProdutoController extends Controller
             $disponivel = $estoqueReal > 0;
             $quantidadeValida = min($qtd, $estoqueReal);
 
+            $produtoRel = $variacao->produto;
+            $modeloFinal = $variacao->modelo ?: ($item['modelo'] ?? $produtoRel?->modelo ?? 'Regular Fit');
+            $precoAtual = null;
+            if ($produtoRel) {
+                $precoAtual = strcasecmp($modeloFinal, 'Oversized') === 0
+                    ? (float) ($produtoRel->preco_oversized ?? $produtoRel->preco_base)
+                    : (float) $produtoRel->preco_base;
+            }
+
             $resultado[] = [
                 'variacao_id'       => $variacao->id,
                 'produto_id'        => $variacao->produto_id,
@@ -385,6 +427,7 @@ class ProdutoController extends Controller
                 'estoque_atual'     => $estoqueReal,
                 'disponivel'        => $disponivel,
                 'quantidade_valida' => $quantidadeValida,
+                'preco_atual'       => $precoAtual,
                 'ajustado'          => $qtd > $estoqueReal,
                 'mensagem'          => ! $disponivel
                     ? 'Item esgotado no estoque.'

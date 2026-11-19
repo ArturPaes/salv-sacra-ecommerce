@@ -140,8 +140,10 @@ export default function RegisterPage() {
     errors[field]?.[0] ? <span className="auth-field-error">{errors[field][0]}</span> : null;
 
   // ── render ───────────────────────────────────────────────
-  if (!authLoading && isAuthenticated && user?.papel === 'admin') {
-    return <Navigate to="/admin" replace />;
+  if (authLoading) return null;
+
+  if (isAuthenticated && !registeredEmail) {
+    return <Navigate to={user?.papel === 'admin' ? '/admin' : '/minha-conta'} replace />;
   }
 
   return (

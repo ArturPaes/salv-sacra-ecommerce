@@ -198,10 +198,13 @@ function SiteHeader({ configs }) {
     // 4. Produtos do catálogo
     produtosClienteList.forEach((prod) => {
       if (prod.nome?.toLowerCase().includes(q)) {
+        const precoExibido = String(prod.modelo || '').toLowerCase() === 'oversized'
+          ? (prod.preco_oversized ?? prod.preco_base ?? 0)
+          : (prod.preco_base ?? 0);
         resultados.push({
           tipo: 'Produto',
           titulo: prod.nome,
-          sub: `${Number(prod.preco_base || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} · Ver detalhes`,
+          sub: `${Number(precoExibido).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} · Ver detalhes`,
           rota: `/produto/${prod.id}`,
           icone: '👕',
           imagem: prod.imagem_url,

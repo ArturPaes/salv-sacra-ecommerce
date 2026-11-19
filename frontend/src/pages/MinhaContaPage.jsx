@@ -12,6 +12,7 @@ import CardBrandIcon, { detectarBandeira } from '../components/CardBrandIcon';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PasswordStrengthMeter, { IconEye, PasswordConfirmMatch, avaliarSenha } from '../components/PasswordStrengthMeter';
 import { imprimirReciboPedido } from '../utils/imprimirRecibo';
+import { reenviarValidacao } from '../services/authService';
 import {
   alterarSenha,
   atualizarEndereco,
@@ -31,6 +32,7 @@ import {
   obterResumoConta,
   removerCartao,
   removerEndereco,
+  solicitarTrocaEmail,
 } from '../services/contaService';
 import { listarCuponsDisponiveis } from '../services/cupomService';
 import '../styles/auth.css';
@@ -177,6 +179,48 @@ const primeiroErro = (err) => {
   const errs = err.response?.data?.errors;
   if (errs) return Object.values(errs)[0]?.[0];
   return err.response?.data?.message ?? 'Ocorreu um erro. Tente novamente.';
+};
+
+const formatarCpfInput = (v) => {
+  const nums = String(v || '').replace(/\D/g, '').slice(0, 11);
+  if (nums.length <= 3) return nums;
+  if (nums.length <= 6) return `${nums.slice(0, 3)}.${nums.slice(3)}`;
+  if (nums.length <= 9) return `${nums.slice(0, 3)}.${nums.slice(3, 6)}.${nums.slice(6)}`;
+  return `${nums.slice(0, 3)}.${nums.slice(3, 6)}.${nums.slice(6, 9)}-${nums.slice(9)}`;
+};
+
+const formatarTelefoneInput = (v) => {
+  const nums = String(v || '').replace(/\D/g, '').slice(0, 11);
+  if (nums.length === 0) return '';
+  if (nums.length <= 2) return `(${nums}`;
+  if (nums.length <= 6) return `(${nums.slice(0, 2)}) ${nums.slice(2)}`;
+  if (nums.length <= 10) return `(${nums.slice(0, 2)}) ${nums.slice(2, 6)}-${nums.slice(6)}`;
+  return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
+};
+
+// Algoritmo oficial da Receita Federal (Módulo 11) para validação de CPF
+const validarCpfAlgoritmo = (cpf) => {
+  const limpo = String(cpf || '').replace(/\D/g, '');
+  if (limpo.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(limpo)) return false;
+
+  let soma = 0;
+  for (let i = 0; i < 9; i++) {
+    soma += parseInt(limpo.charAt(i), 10) * (10 - i);
+  }
+  let resto = 11 - (soma % 11);
+  const digito1 = resto >= 10 ? 0 : resto;
+  if (digito1 !== parseInt(limpo.charAt(9), 10)) return false;
+
+  soma = 0;
+  for (let i = 0; i < 10; i++) {
+    soma += parseInt(limpo.charAt(i), 10) * (11 - i);
+  }
+  resto = 11 - (soma % 11);
+  const digito2 = resto >= 10 ? 0 : resto;
+  if (digito2 !== parseInt(limpo.charAt(10), 10)) return false;
+
+  return true;
 };
 
 /* ───────────────────────── Resumo ───────────────────────── */
@@ -563,19 +607,26 @@ function Pedidos({
     if (!pedido?.itens?.length) return;
     const listaFormatada = pedido.itens.map((it) => {
       const prod = it.variacao?.produto || it.produto;
+      const gal0 = Array.isArray(prod?.imagens) && prod.imagens[0]
+        ? (typeof prod.imagens[0] === 'object' && prod.imagens[0] !== null ? prod.imagens[0].url : prod.imagens[0])
+        : '';
       const fotoProd =
         (Array.isArray(prod?.imagens_vitrine) && prod.imagens_vitrine[0]) ||
-        (Array.isArray(prod?.imagens) && prod.imagens[0]) ||
+        gal0 ||
         prod?.imagem_url ||
         '';
+      const modVar = it.variacao?.modelo || (prod?.modelo === 'Oversized' ? 'Oversized' : 'Regular Fit');
+      const precoVar = modVar.toLowerCase().includes('over')
+        ? Number(prod?.preco_oversized ?? prod?.preco_base ?? it.preco_unitario ?? it.preco ?? 0)
+        : Number(prod?.preco_base ?? it.preco_unitario ?? it.preco ?? 0);
 
       return {
         produtoId: it.variacao?.produto_id || it.produto_id || prod?.id,
         variacaoId: it.variacao_produto_id || it.variacao?.id,
         nome: prod?.nome || 'Camiseta Salv Sacra',
-        preco: Number(it.preco_unitario || it.preco || prod?.preco_base || 0),
+        preco: precoVar,
         imagem: fotoProd,
-        modelo: prod?.modelo || 'Regular Fit',
+        modelo: modVar,
         tamanho: it.variacao?.tamanho || 'M',
         cor: it.variacao?.cor || 'Padrão',
         quantidade: Number(it.quantidade) || 1,
@@ -3307,24 +3358,71 @@ function Pedidos({
 
 /* ───────────────────── Informações pessoais ───────────────────── */
 function DadosPessoais({ user, onSalvo, onExcluirConta, excluindoConta }) {
+  const { isDemoMode, atualizarStatusDemo } = useDemo();
   const [form, setForm] = useState({
     name: user.name ?? '',
     email: user.email ?? '',
-    telefone: user.telefone ?? '',
-    cpf: user.cpf ?? '',
+    telefone: formatarTelefoneInput(user.telefone ?? ''),
+    cpf: formatarCpfInput(user.cpf ?? ''),
     data_nascimento: user.data_nascimento ?? '',
   });
   const [msg, setMsg] = useState({ tipo: '', texto: '' });
   const [salvando, setSalvando] = useState(false);
 
-  const change = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  // Sub-tela dedicada para alteração de e-mail com verificação
+  const [telaAlterarEmail, setTelaAlterarEmail] = useState(false);
+  const [novoEmail, setNovoEmail] = useState('');
+  const [erroTrocaEmail, setErroTrocaEmail] = useState('');
+  const [sucessoTrocaEmail, setSucessoTrocaEmail] = useState('');
+  const [enviandoTrocaEmail, setEnviandoTrocaEmail] = useState(false);
+  const [reenviandoPendente, setReenviandoPendente] = useState(false);
+  const [msgReenvioPendente, setMsgReenvioPendente] = useState('');
+
+  useEffect(() => {
+    setForm((f) => ({
+      ...f,
+      name: user.name ?? f.name,
+      email: user.email ?? f.email,
+      telefone: user.telefone ? formatarTelefoneInput(user.telefone) : f.telefone,
+      cpf: user.cpf ? formatarCpfInput(user.cpf) : f.cpf,
+      data_nascimento: user.data_nascimento ?? f.data_nascimento,
+    }));
+  }, [user]);
+
+  const cpfDigitos = (form.cpf || '').replace(/\D/g, '');
+  const cpfErroInline =
+    cpfDigitos.length > 0 && (cpfDigitos.length < 11 || !validarCpfAlgoritmo(cpfDigitos))
+      ? 'CPF inválido. Informe os 11 dígitos válidos.'
+      : '';
+
+  const change = (e) => {
+    const { name, value } = e.target;
+    if (name === 'cpf') {
+      setForm((f) => ({ ...f, cpf: formatarCpfInput(value) }));
+      return;
+    }
+    if (name === 'telefone') {
+      setForm((f) => ({ ...f, telefone: formatarTelefoneInput(value) }));
+      return;
+    }
+    setForm((f) => ({ ...f, [name]: value }));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setMsg({ tipo: '', texto: '' });
+    if (cpfDigitos.length > 0 && !validarCpfAlgoritmo(cpfDigitos)) {
+      setMsg({ tipo: 'erro', texto: 'Informe um CPF válido (11 dígitos com dígitos verificadores válidos).' });
+      return;
+    }
     setSalvando(true);
     try {
-      const { data } = await atualizarPerfil(form);
+      const { data } = await atualizarPerfil({
+        name: form.name,
+        telefone: form.telefone,
+        cpf: cpfDigitos || null,
+        data_nascimento: form.data_nascimento || null,
+      });
       onSalvo(data.user);
       setMsg({ tipo: 'ok', texto: data.message });
     } catch (err) {
@@ -3333,6 +3431,171 @@ function DadosPessoais({ user, onSalvo, onExcluirConta, excluindoConta }) {
       setSalvando(false);
     }
   };
+
+  const handleAbrirTelaEmail = () => {
+    setNovoEmail('');
+    setErroTrocaEmail('');
+    setSucessoTrocaEmail('');
+    setMsgReenvioPendente('');
+    setTelaAlterarEmail(true);
+  };
+
+  const handleSolicitarTrocaEmail = async (e) => {
+    e.preventDefault();
+    setErroTrocaEmail('');
+    setSucessoTrocaEmail('');
+    const emailLimpo = novoEmail.trim();
+    if (!emailLimpo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
+      setErroTrocaEmail('Informe um endereço de e-mail válido.');
+      return;
+    }
+    if (emailLimpo.toLowerCase() === (user.email || '').toLowerCase()) {
+      setErroTrocaEmail('O novo e-mail deve ser diferente do seu e-mail atual.');
+      return;
+    }
+
+    setEnviandoTrocaEmail(true);
+    try {
+      const { data } = await solicitarTrocaEmail({ novo_email: emailLimpo });
+      if (data.user) {
+        onSalvo(data.user);
+      }
+      if (data.demo_auto_verified || data.auto_verified || isDemoMode) {
+        if (atualizarStatusDemo) {
+          await atualizarStatusDemo();
+        }
+        setTelaAlterarEmail(false);
+        setMsg({
+          tipo: 'ok',
+          texto: data.message || `Seu e-mail foi atualizado e validado automaticamente para ${emailLimpo}.`,
+        });
+      } else {
+        setSucessoTrocaEmail(
+          data.message ||
+            `Enviamos um link de confirmação para ${emailLimpo}. Enquanto o novo e-mail não for validado, ${user.email} continua ativo.`
+        );
+      }
+    } catch (err) {
+      setErroTrocaEmail(primeiroErro(err));
+    } finally {
+      setEnviandoTrocaEmail(false);
+    }
+  };
+
+  const handleReenviarEmailPendente = async (emailDestino) => {
+    const alvo = emailDestino || user.pending_email;
+    if (!alvo) return;
+    setReenviandoPendente(true);
+    setMsgReenvioPendente('');
+    try {
+      const { data } = await reenviarValidacao({ email: alvo });
+      setMsgReenvioPendente(data.message || 'Novo e-mail de verificação enviado.');
+    } catch (err) {
+      setMsgReenvioPendente(primeiroErro(err));
+    } finally {
+      setReenviandoPendente(false);
+    }
+  };
+
+  if (telaAlterarEmail) {
+    return (
+      <>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="conta-btn-sec"
+            onClick={() => {
+              setTelaAlterarEmail(false);
+              setErroTrocaEmail('');
+              setSucessoTrocaEmail('');
+            }}
+          >
+            ← Voltar
+          </button>
+          <h2 className="conta-section-title" style={{ margin: 0 }}>Alterar endereço de e-mail</h2>
+        </div>
+
+        <div className="conta-box" style={{ maxWidth: '520px' }}>
+          <div style={{ marginBottom: '16px', padding: '12px 14px', background: '#f8f8f6', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+            <span style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '3px' }}>
+              E-mail atualmente ativo
+            </span>
+            <strong style={{ fontSize: '14px', color: '#111' }}>{user.email}</strong>
+          </div>
+
+          {sucessoTrocaEmail ? (
+            <div>
+              <p className="conta-ok" style={{ marginBottom: '14px' }}>{sucessoTrocaEmail}</p>
+              <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.5, marginBottom: '16px' }}>
+                Acesse a caixa de entrada de <strong>{user.pending_email || novoEmail}</strong> e clique no link de validação. Caso não confirme, seu e-mail atual (<strong>{user.email}</strong>) permanecerá ativo normalmente.
+              </p>
+              {msgReenvioPendente && (
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#15803d', marginBottom: '12px' }}>
+                  {msgReenvioPendente}
+                </p>
+              )}
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="conta-btn-sec"
+                  disabled={reenviandoPendente}
+                  onClick={() => handleReenviarEmailPendente(user.pending_email || novoEmail)}
+                >
+                  {reenviandoPendente ? 'Reenviando...' : 'Reenviar verificação'}
+                </button>
+                <button
+                  type="button"
+                  className="auth-btn"
+                  style={{ width: 'auto', padding: '10px 20px' }}
+                  onClick={() => setTelaAlterarEmail(false)}
+                >
+                  Voltar para Informações pessoais
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form className="auth-form conta-form" onSubmit={handleSolicitarTrocaEmail}>
+              {erroTrocaEmail && <p className="auth-error">{erroTrocaEmail}</p>}
+              <div className="auth-field">
+                <label htmlFor="c-novo-email">Novo endereço de e-mail</label>
+                <input
+                  id="c-novo-email"
+                  type="email"
+                  value={novoEmail}
+                  onChange={(e) => setNovoEmail(e.target.value)}
+                  placeholder="seu.novo@email.com"
+                  required
+                  autoFocus
+                />
+              </div>
+              <p style={{ fontSize: '12.5px', color: '#555', margin: '0 0 14px', lineHeight: 1.5 }}>
+                {isDemoMode
+                  ? 'No Ambiente Demo, a validação do novo e-mail é automática ao confirmar esta solicitação.'
+                  : `Enviaremos um e-mail de verificação para o novo endereço. Caso você não valide o novo e-mail, ${user.email} continuará ativo.`}
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button type="submit" className="auth-btn" disabled={enviandoTrocaEmail} style={{ flex: '1 1 200px' }}>
+                  {enviandoTrocaEmail
+                    ? 'Processando...'
+                    : isDemoMode
+                      ? 'Confirmar e atualizar e-mail'
+                      : 'Enviar verificação para o novo e-mail'}
+                </button>
+                <button
+                  type="button"
+                  className="conta-btn-sec"
+                  onClick={() => setTelaAlterarEmail(false)}
+                  disabled={enviandoTrocaEmail}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -3361,17 +3624,102 @@ function DadosPessoais({ user, onSalvo, onExcluirConta, excluindoConta }) {
               {user.email_verified_at ? '✓ E-mail verificado' : 'E-mail não verificado'}
             </span>
           </div>
-          <input id="c-email" type="email" name="email" value={form.email} onChange={change} required />
+          <input
+            id="c-email"
+            type="email"
+            name="email"
+            value={user.email ?? form.email}
+            readOnly
+            style={{ backgroundColor: '#f5f5f4', color: '#444', cursor: 'default' }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleAbrirTelaEmail}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                color: '#8a6620',
+                fontSize: '13px',
+                fontWeight: 700,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+              }}
+            >
+              Alterar e-mail
+            </button>
+          </div>
+          {user.pending_email && (
+            <div
+              style={{
+                marginTop: '8px',
+                padding: '10px 12px',
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: '8px',
+                fontSize: '12.5px',
+                color: '#92400e',
+                lineHeight: 1.45,
+              }}
+            >
+              <div>
+                Troca pendente para <strong>{user.pending_email}</strong>. Valide pelo link enviado para este novo endereço; caso contrário, <strong>{user.email}</strong> continua ativo.
+              </div>
+              <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  disabled={reenviandoPendente}
+                  onClick={() => handleReenviarEmailPendente(user.pending_email)}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #d97706',
+                    borderRadius: '5px',
+                    padding: '4px 10px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#92400e',
+                    cursor: reenviandoPendente ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {reenviandoPendente ? 'Reenviando...' : 'Reenviar verificação'}
+                </button>
+                {msgReenvioPendente && (
+                  <span style={{ fontWeight: 600, color: '#15803d' }}>{msgReenvioPendente}</span>
+                )}
+              </div>
+            </div>
+          )}
           <AlertaValidacaoEmail user={user} compact />
         </div>
         <div className="conta-grid-2">
           <div className="auth-field">
             <label htmlFor="c-tel">Telefone</label>
-            <input id="c-tel" name="telefone" placeholder="(48) 99999-9999" value={form.telefone} onChange={change} />
+            <input
+              id="c-tel"
+              name="telefone"
+              placeholder="(48) 99999-9999"
+              maxLength={15}
+              value={form.telefone}
+              onChange={change}
+            />
           </div>
           <div className="auth-field">
             <label htmlFor="c-cpf">CPF</label>
-            <input id="c-cpf" name="cpf" placeholder="000.000.000-00" value={form.cpf} onChange={change} />
+            <input
+              id="c-cpf"
+              name="cpf"
+              placeholder="000.000.000-00"
+              maxLength={14}
+              inputMode="numeric"
+              value={form.cpf}
+              onChange={change}
+            />
+            {cpfErroInline && (
+              <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
+                {cpfErroInline}
+              </span>
+            )}
           </div>
         </div>
         <div className="auth-field">
@@ -3672,8 +4020,8 @@ function FormasPagamento({ cartoes, recarregar, carregando }) {
     e.preventDefault();
     setErro('');
     const cpfLimpo = (form.cpf || '').replace(/\D/g, '');
-    if (cpfLimpo.length !== 11) {
-      setErro('Informe um CPF válido com 11 dígitos para o titular do cartão.');
+    if (!validarCpfAlgoritmo(cpfLimpo)) {
+      setErro('Informe um CPF válido (11 dígitos com dígitos verificadores válidos) para o titular do cartão.');
       return;
     }
 
@@ -4126,7 +4474,7 @@ function Favoritos({ favoritos, onRemover, carregando }) {
                       {prod.nome}
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: 800, color: '#222' }}>
-                      {moeda(prod.preco_base)}
+                      {moeda(String(prod.modelo || '').toLowerCase() === 'oversized' ? (prod.preco_oversized ?? prod.preco_base) : prod.preco_base)}
                     </div>
                   </div>
                 </Link>

@@ -1053,3 +1053,115 @@
     display: table-header-group !important;
   }
 }
+
+/* ── ProdutosList: card deslocado à direita + estrela à esquerda ── */
+.admin-produtos-wrapper {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.admin-produtos-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: transparent;
+}
+
+.admin-produtos-table thead {
+  background: transparent;
+  border-bottom: none;
+}
+
+.admin-produtos-table th.admin-star-col,
+.admin-produtos-table td.admin-star-col {
+  width: 44px;
+  min-width: 44px;
+  padding: 0 10px 0 0 !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.admin-produtos-table thead th:not(.admin-star-col) {
+  background-color: #f7f7f7;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1.5px solid #e0e0e0;
+}
+
+.admin-produtos-table thead th:nth-child(2) {
+  border-left: 1px solid #e0e0e0;
+  border-top-left-radius: 8px;
+}
+
+.admin-produtos-table thead th:last-child {
+  border-right: 1px solid #e0e0e0;
+  border-top-right-radius: 8px;
+}
+
+.admin-produtos-table tbody td:not(.admin-star-col) {
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.admin-produtos-table tbody tr:hover td:not(.admin-star-col) {
+  background-color: #fafafa;
+}
+
+.admin-produtos-table tbody td:nth-child(2) {
+  border-left: 1px solid #e0e0e0;
+}
+
+.admin-produtos-table tbody td:last-child {
+  border-right: 1px solid #e0e0e0;
+}
+
+.admin-produtos-table tbody tr:last-child td:not(.admin-star-col) {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-produtos-table tbody tr:last-child td:nth-child(2) {
+  border-bottom-left-radius: 8px;
+}
+
+.admin-produtos-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
+
+.admin-destaque-star-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  padding: 0;
+}
+
+.admin-destaque-star-btn:hover:not(:disabled) {
+  transform: scale(1.15);
+  background-color: rgba(250, 204, 21, 0.12);
+}
+
+.admin-destaque-star-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.admin-destaque-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+}

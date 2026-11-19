@@ -44,7 +44,7 @@ class DemoSandboxService
         'frete_gratis_minimo',
     ];
 
-    protected const DEMO_OVERRIDES_VERSION = 2;
+    protected const DEMO_OVERRIDES_VERSION = 5;
 
     protected static ?string $currentSessionId = null;
     protected static ?bool $activatedAsNewInRequest = null;
@@ -539,8 +539,50 @@ class DemoSandboxService
                 }
             }
 
+            if ($demoSchema->hasTable('users')) {
+                if (! $demoSchema->hasColumn('users', 'pending_email')) {
+                    $demoSchema->table('users', function ($table) {
+                        $table->string('pending_email')->nullable()->after('email');
+                    });
+                }
+                if (! $demoSchema->hasColumn('users', 'pending_email_token')) {
+                    $demoSchema->table('users', function ($table) {
+                        $table->string('pending_email_token')->nullable()->after('pending_email');
+                    });
+                }
+            }
+
             if (! $demoSchema->hasTable('produtos')) {
                 return;
+            }
+
+            if (! $demoSchema->hasColumn('produtos', 'preco_oversized')) {
+                $demoSchema->table('produtos', function ($table) {
+                    $table->decimal('preco_oversized', 10, 2)->nullable()->default(90.00)->after('preco_base');
+                });
+            }
+            if (! $demoSchema->hasColumn('produtos', 'destaque')) {
+                $demoSchema->table('produtos', function ($table) {
+                    $table->boolean('destaque')->default(false)->after('disponivel');
+                });
+            }
+
+            // Garante os preços padrão Regular Fit (R$ 80,00) e Oversized (R$ 90,00) em sessões Demo antigas
+            $demoDb->table('produtos')
+                ->where(function ($q) {
+                    $q->whereNull('preco_oversized')
+                      ->orWhereIn('preco_base', [0.01, 1.00, 70.00, 79.90]);
+                })
+                ->update([
+                    'preco_base'      => 80.00,
+                    'preco_oversized' => 90.00,
+                ]);
+
+            if ($demoDb->table('produtos')->where('destaque', true)->count() === 0) {
+                $idsIniciais = $demoDb->table('produtos')->orderBy('id')->limit(8)->pluck('id')->all();
+                if (! empty($idsIniciais)) {
+                    $demoDb->table('produtos')->whereIn('id', $idsIniciais)->update(['destaque' => true]);
+                }
             }
 
             $pacem = $demoDb->table('produtos')

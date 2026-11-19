@@ -36,7 +36,8 @@ const IconPlus = () => (
 const EMPTY_FORM = {
   nome: '',
   descricao: '',
-  preco_base: '',
+  preco_base: '80.00',
+  preco_oversized: '90.00',
   imagem_url: '',
   disponivel: true,
   colecao: '',
@@ -93,15 +94,16 @@ export default function ProdutoForm() {
     try {
       const { data } = await getProduto(id);
       setForm({
-        nome:         data.nome         ?? '',
-        descricao:    data.descricao    ?? '',
-        preco_base:   data.preco_base   ?? '',
-        imagem_url:   data.imagem_url   ?? '',
-        disponivel:   data.disponivel   ?? true,
-        colecao:      data.colecao      ?? '',
-        modelo:       data.modelo       ?? '',
-        categoria_id: data.categoria_id ?? '',
-        devocao_id:   data.devocao_id   ?? '',
+        nome:            data.nome            ?? '',
+        descricao:       data.descricao       ?? '',
+        preco_base:      data.preco_base      ?? '80.00',
+        preco_oversized: data.preco_oversized ?? '90.00',
+        imagem_url:      data.imagem_url      ?? '',
+        disponivel:      data.disponivel      ?? true,
+        colecao:         data.colecao         ?? '',
+        modelo:          data.modelo          ?? '',
+        categoria_id:    data.categoria_id    ?? '',
+        devocao_id:      data.devocao_id      ?? '',
       });
 
       // Carrega lista de imagens da galeria lateral (Aba 2)
@@ -400,8 +402,12 @@ export default function ProdutoForm() {
     const errs = {};
     if (!form.nome || !form.nome.trim()) errs.nome = 'O nome é obrigatório.';
     if (!form.preco_base && form.preco_base !== 0)
-                                         errs.preco_base = 'O preço é obrigatório.';
-    if (Number(form.preco_base) < 0)    errs.preco_base = 'O preço não pode ser negativo.';
+                                         errs.preco_base = 'O preço Regular Fit é obrigatório.';
+    if (Number(form.preco_base) < 0)    errs.preco_base = 'O preço Regular Fit não pode ser negativo.';
+    if (!form.preco_oversized && form.preco_oversized !== 0)
+                                         errs.preco_oversized = 'O preço Oversized é obrigatório.';
+    if (Number(form.preco_oversized) < 0)
+                                         errs.preco_oversized = 'O preço Oversized não pode ser negativo.';
 
     // Valida cada URL/caminho de imagem preenchida (suporta string ou objeto { url, cor })
     imagens.forEach((item, i) => {
@@ -467,8 +473,9 @@ export default function ProdutoForm() {
       imagens:         imagensValidas,
       imagens_vitrine: vitrineValidas,
       cores_config:    coresConfigValidas,
-      preco_base:      form.preco_base   !== '' ? Number(form.preco_base)   : '',
-      categoria_id:    form.categoria_id !== '' ? Number(form.categoria_id) : null,
+      preco_base:      form.preco_base      !== '' ? Number(form.preco_base)      : '',
+      preco_oversized: form.preco_oversized !== '' ? Number(form.preco_oversized) : 90,
+      categoria_id:    form.categoria_id    !== '' ? Number(form.categoria_id)    : null,
       devocao_id:      form.devocao_id   !== '' ? Number(form.devocao_id)   : null,
       variacoes: variacoes.map((v) => ({
         modelo:
@@ -570,10 +577,10 @@ export default function ProdutoForm() {
             />
           </div>
 
-          {/* Preço | Coleção */}
+          {/* Preço Base (Regular Fit) | Preço Base (Oversized) */}
           <div className="admin-grid admin-grid-2" style={{ marginBottom: '16px' }}>
             <div className="admin-field">
-              <label htmlFor="preco_base">Preço Base (R$) *</label>
+              <label htmlFor="preco_base">Preço Base (REGULAR FIT) (R$) *</label>
               <input
                 id="preco_base"
                 name="preco_base"
@@ -582,30 +589,46 @@ export default function ProdutoForm() {
                 min="0"
                 value={form.preco_base}
                 onChange={handleChange}
-                placeholder="0,00"
+                placeholder="80,00"
               />
               {errors.preco_base && <span className="admin-field-error">{errors.preco_base}</span>}
             </div>
 
             <div className="admin-field">
-              <label htmlFor="colecao">Coleção</label>
-              <select
-                id="colecao"
-                name="colecao"
-                value={form.colecao}
+              <label htmlFor="preco_oversized">Preço Base (OVERSIZED) (R$) *</label>
+              <input
+                id="preco_oversized"
+                name="preco_oversized"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.preco_oversized}
                 onChange={handleChange}
-              >
-                <option value="">— Selecione uma coleção —</option>
-                {colecoes.map((c) => (
-                  <option key={c.id || c.nome} value={c.nome}>
-                    {c.nome}
-                  </option>
-                ))}
-                {form.colecao && !colecoes.some((c) => c.nome?.toLowerCase() === form.colecao.toLowerCase()) && (
-                  <option value={form.colecao}>{form.colecao}</option>
-                )}
-              </select>
+                placeholder="90,00"
+              />
+              {errors.preco_oversized && <span className="admin-field-error">{errors.preco_oversized}</span>}
             </div>
+          </div>
+
+          {/* Coleção */}
+          <div className="admin-field" style={{ marginBottom: '16px' }}>
+            <label htmlFor="colecao">Coleção</label>
+            <select
+              id="colecao"
+              name="colecao"
+              value={form.colecao}
+              onChange={handleChange}
+            >
+              <option value="">— Selecione uma coleção —</option>
+              {colecoes.map((c) => (
+                <option key={c.id || c.nome} value={c.nome}>
+                  {c.nome}
+                </option>
+              ))}
+              {form.colecao && !colecoes.some((c) => c.nome?.toLowerCase() === form.colecao.toLowerCase()) && (
+                <option value={form.colecao}>{form.colecao}</option>
+              )}
+            </select>
           </div>
 
           {/* ════ Fotos do Produto (2 Abas Separadas) ════ */}

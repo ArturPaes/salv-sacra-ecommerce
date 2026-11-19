@@ -15,6 +15,8 @@ use Laravel\Sanctum\HasApiTokens;
 #[Fillable([
     'name',
     'email',
+    'pending_email',
+    'pending_email_token',
     'email_verified_at',
     'password',
     'papel',
@@ -25,7 +27,7 @@ use Laravel\Sanctum\HasApiTokens;
     'cpf',
     'data_nascimento',
 ])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'pending_email_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { verificarEmail, reenviarValidacao } from '../services/authService';
 import MainLayout from '../layouts/MainLayout';
@@ -10,7 +10,7 @@ export default function VerificarEmailPage() {
   const token = searchParams.get('token');
   const email = searchParams.get('email');
 
-  const { isAuthenticated, setSession } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, setSession } = useAuth();
   const navigate = useNavigate();
 
   const breadcrumbs = [
@@ -21,6 +21,7 @@ export default function VerificarEmailPage() {
 
   const [status, setStatus] = useState('processando'); // 'processando' | 'sucesso' | 'erro'
   const [mensagem, setMensagem] = useState('');
+  const [ehTrocaEmail, setEhTrocaEmail] = useState(false);
   const [reenviando, setReenviando] = useState(false);
   const [msgReenvio, setMsgReenvio] = useState('');
   const executadoRef = useRef(false);
@@ -38,6 +39,7 @@ export default function VerificarEmailPage() {
     verificarEmail({ email, token })
       .then((res) => {
         setStatus('sucesso');
+        setEhTrocaEmail(Boolean(res.data.troca_email));
         setMensagem(res.data.message || 'E-mail validado com sucesso! Sua conta está ativa.');
         if (res.data.token && res.data.user) {
           setSession(res.data.token, res.data.user);
@@ -48,6 +50,11 @@ export default function VerificarEmailPage() {
         setMensagem(err.response?.data?.message || 'Não foi possível validar seu e-mail. O link pode ter expirado.');
       });
   }, [token, email, setSession]);
+
+  if ((!token || !email) && authLoading) return null;
+  if ((!token || !email) && isAuthenticated && (user?.email_verified_at || user?.papel === 'admin')) {
+    return <Navigate to={user?.papel === 'admin' ? '/admin' : '/minha-conta'} replace />;
+  }
 
   const handleReenviar = async () => {
     if (!email) return;
@@ -79,7 +86,7 @@ export default function VerificarEmailPage() {
           {status === 'sucesso' && (
             <>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
-              <h2>Conta ativada com sucesso!</h2>
+              <h2>{ehTrocaEmail ? 'Novo e-mail validado com sucesso!' : 'Conta ativada com sucesso!'}</h2>
               <p style={{ color: '#444', margin: '14px 0 24px' }}>{mensagem}</p>
               <button
                 type="button"
@@ -91,7 +98,7 @@ export default function VerificarEmailPage() {
                     sessionStorage.removeItem('salv_redirect_after_auth');
                     navigate(redirectTarget);
                   } else {
-                    navigate('/minha-conta');
+                    navigate(user?.papel === 'admin' ? '/admin' : '/minha-conta');
                   }
                 }}
               >

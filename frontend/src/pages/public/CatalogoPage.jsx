@@ -33,22 +33,27 @@ function deduplicarCores(lista) {
 }
 
 // Subcomponente de Card do Produto padronizado com a vitrine Home
-function CatalogoItemCard({ prod }) {
+function CatalogoItemCard({ prod, precoAtivo }) {
   const [hovered, setHovered] = useState(false);
   const [fotoIdx, setFotoIdx] = useState(0);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const touchDeltaX = useRef(0);
+  const swipedRef = useRef(false);
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useWishlist();
   const navigate = useNavigate();
   const favoritado = isFavorite(prod.id);
 
-  const preco = prod.preco_base
-    ? Number(prod.preco_base).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const valorPreco = precoAtivo ?? (String(prod.modelo || '').toLowerCase() === 'oversized' ? (prod.preco_oversized ?? prod.preco_base) : prod.preco_base);
+  const preco = valorPreco
+    ? Number(valorPreco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     : null;
 
   const vitrine = Array.isArray(prod.imagens_vitrine) && prod.imagens_vitrine.length > 0
     ? prod.imagens_vitrine.filter(Boolean)
     : Array.isArray(prod.imagens) && prod.imagens.length > 0
-    ? prod.imagens.filter(Boolean)
+    ? prod.imagens.map((img) => (typeof img === 'object' && img !== null ? img.url : img)).filter(Boolean)
     : [];
 
   const coresConfig = Array.isArray(prod.cores_config) ? prod.cores_config : [];
@@ -97,6 +102,40 @@ function CatalogoItemCard({ prod }) {
     }
   };
 
+  const handleTouchStartFoto = (e) => {
+    swipedRef.current = false;
+    if (listaFotos.length <= 1 || !e.touches?.[0]) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchDeltaX.current = 0;
+  };
+
+  const handleTouchMoveFoto = (e) => {
+    if (touchStartX.current === null || !e.touches?.[0]) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      touchDeltaX.current = dx;
+    }
+  };
+
+  const handleTouchEndFoto = () => {
+    if (touchStartX.current === null || listaFotos.length <= 1) {
+      touchStartX.current = null;
+      return;
+    }
+    const dx = touchDeltaX.current;
+    touchStartX.current = null;
+    touchDeltaX.current = 0;
+    if (Math.abs(dx) < 35) return;
+    swipedRef.current = true;
+    if (dx < 0) {
+      setFotoIdx((prev) => (prev + 1) % listaFotos.length);
+    } else {
+      setFotoIdx((prev) => (prev - 1 + listaFotos.length) % listaFotos.length);
+    }
+  };
+
   const coresVariacoesRaw = deduplicarCores((prod.variacoes || []).map((v) => v.cor));
   const coresConfigList = deduplicarCores(
     [...coresConfig]
@@ -126,8 +165,20 @@ function CatalogoItemCard({ prod }) {
       aria-label={prod.nome}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={(e) => {
+        if (swipedRef.current) {
+          e.preventDefault();
+          swipedRef.current = false;
+        }
+      }}
     >
-      <div className="catalogo-product-img-wrap">
+      <div
+        className="catalogo-product-img-wrap"
+        style={listaFotos.length > 1 ? { touchAction: 'pan-y' } : undefined}
+        onTouchStart={handleTouchStartFoto}
+        onTouchMove={handleTouchMoveFoto}
+        onTouchEnd={handleTouchEndFoto}
+      >
         <button
           type="button"
           onClick={handleToggleFavorite}
@@ -464,11 +515,25 @@ export default function CatalogoPage({ modoFixo = null }) {
     setModeloSelecionado((prev) => (prev === item ? '' : item));
   };
 
+  const obterPrecoProduto = (prod) => {
+    const filtroModelo = (modeloSelecionado || '').toLowerCase();
+    const filtroColecao = (colecaoParam || '').toLowerCase();
+    const isFilterOver = filtroModelo.includes('over') || filtroColecao.includes('over');
+    const isFilterRegular = filtroModelo.includes('regular') || filtroColecao.includes('regular');
+    if (isFilterOver && !isFilterRegular) {
+      return Number(prod.preco_oversized ?? prod.preco_base ?? 90);
+    }
+    if (String(prod.modelo || '').toLowerCase() === 'oversized') {
+      return Number(prod.preco_oversized ?? prod.preco_base ?? 90);
+    }
+    return Number(prod.preco_base ?? 80);
+  };
+
   // Filtragem e ordenação local
   const produtosFiltrados = produtos
     .filter((prod) => {
       // Filtro de preço
-      const preco = Number(prod.preco_base || 0);
+      const preco = obterPrecoProduto(prod);
       if (precoMin && preco < Number(precoMin)) return false;
       if (precoMax && preco > Number(precoMax)) return false;
 
@@ -517,10 +582,10 @@ export default function CatalogoPage({ modoFixo = null }) {
     })
     .sort((a, b) => {
       if (ordenacao === 'Preço: menor ao maior') {
-        return Number(a.preco_base) - Number(b.preco_base);
+        return obterPrecoProduto(a) - obterPrecoProduto(b);
       }
       if (ordenacao === 'Preço: maior ao menor') {
-        return Number(b.preco_base) - Number(a.preco_base);
+        return obterPrecoProduto(b) - obterPrecoProduto(a);
       }
       if (ordenacao === 'A - Z') {
         return (a.nome || '').localeCompare(b.nome || '');
@@ -807,7 +872,7 @@ export default function CatalogoPage({ modoFixo = null }) {
                     <>
                       <div className="catalogo-products-grid">
                         {produtosPaginados.map((prod) => (
-                          <CatalogoItemCard key={prod.id} prod={prod} />
+                          <CatalogoItemCard key={prod.id} prod={prod} precoAtivo={obterPrecoProduto(prod)} />
                         ))}
                       </div>
 

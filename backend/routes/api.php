@@ -126,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('vales-compra',              [\App\Http\Controllers\CupomController::class, 'meusVales']);
         Route::get('avaliacoes',                [\App\Http\Controllers\ContaController::class, 'avaliacoes']);
         Route::post('enviar-verificacao-email', [\App\Http\Controllers\ContaController::class, 'enviarVerificacaoEmail']);
+        Route::post('solicitar-troca-email',    [\App\Http\Controllers\ContaController::class, 'solicitarTrocaEmail']);
         Route::delete('excluir',                [\App\Http\Controllers\ContaController::class, 'excluirConta']);
     });
 
@@ -137,10 +138,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('admin')->group(function () {
 
         // ── UC03 — Gestão de Produtos (criar, editar, excluir) ────────────
-        Route::post('produtos',              [ProdutoController::class, 'store']);
-        Route::put('produtos/{produto}',     [ProdutoController::class, 'update']);
-        Route::patch('produtos/{produto}',   [ProdutoController::class, 'update']);
-        Route::delete('produtos/{produto}',  [ProdutoController::class, 'destroy']);
+        Route::post('produtos',                      [ProdutoController::class, 'store']);
+        Route::put('produtos/{produto}',             [ProdutoController::class, 'update']);
+        Route::patch('produtos/{produto}',           [ProdutoController::class, 'update']);
+        Route::patch('produtos/{produto}/destaque',  [ProdutoController::class, 'toggleDestaque']);
+        Route::delete('produtos/{produto}',          [ProdutoController::class, 'destroy']);
 
         // ── Gestão de Categorias (CRUD completo) ──────────────────────────
         Route::apiResource('categorias', CategoriaController::class)

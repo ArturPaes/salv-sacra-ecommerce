@@ -7,7 +7,11 @@
 /* ── 1. HERO BANNER ─────────────────────────────────────────── */
 .hero-banner {
   position: relative;
-  height: 400px;
+  width: 100%;
+  aspect-ratio: 1920 / 547;
+  height: auto;
+  min-height: 360px;
+  max-height: 720px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,6 +21,7 @@
   background-position: center;
   background-repeat: no-repeat;
   background-color: #f2f2f2;
+  touch-action: pan-y;
 }
 
 .hero-banner--escuro { background-color: #000; }
@@ -28,7 +33,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 14px;
+  gap: clamp(10px, 1vw, 18px);
   animation: heroFade 0.6s ease;
 }
 
@@ -38,14 +43,14 @@
 }
 
 .hero-tag {
-  font-size: 15px;
+  font-size: clamp(13px, 1.05vw, 18px);
   font-weight: 400;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .hero-title {
-  font-size: 56px;
+  font-size: clamp(40px, 4vw, 72px);
   font-weight: 500;
   letter-spacing: -0.5px;
   line-height: 1.05;
@@ -56,8 +61,8 @@
   margin-top: 8px;
   display: inline-flex;
   align-items: center;
-  padding: 12px 32px;
-  font-size: 11px;
+  padding: clamp(10px, 0.9vw, 15px) clamp(26px, 2.2vw, 40px);
+  font-size: clamp(11px, 0.8vw, 13px);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -89,8 +94,8 @@
   background: transparent;
   border: 1px solid currentColor;
   border-radius: 50%;
-  width: 38px;
-  height: 38px;
+  width: clamp(36px, 2.8vw, 48px);
+  height: clamp(36px, 2.8vw, 48px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -509,7 +514,9 @@
 
 @media (max-width: 768px) {
   .hero-banner {
+    aspect-ratio: auto;
     min-height: 290px;
+    max-height: none;
     height: auto;
     padding: 36px 48px 44px;
     background-image: var(--hero-bg-mobile, var(--hero-bg-desktop));
@@ -653,28 +660,33 @@
   }
 
   .home-section .carousel-track,
-  .home-section .carousel-skeleton {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .home-section .carousel-skeleton,
+  .pdp-similar-products-section .carousel-track {
+    display: flex;
     gap: 12px;
-    overflow: visible;
-    padding: 4px 0 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    padding: 4px 2px 12px;
   }
 
   .home-section .produto-card,
   .home-section .skeleton-card {
-    flex: none;
-    width: 100%;
-    max-width: 100%;
+    flex: 0 0 calc((100% - 12px) / 2);
+    width: calc((100% - 12px) / 2);
+    max-width: calc((100% - 12px) / 2);
     min-width: 0;
     border-radius: 14px;
   }
 
-  .home-section .produto-card--ver-mais {
-    grid-column: 1 / -1;
+  .home-section .produto-card--ver-mais,
+  .pdp-similar-products-section .produto-card--ver-mais {
+    flex: 0 0 calc((100% - 12px) / 2);
+    width: calc((100% - 12px) / 2);
+    max-width: calc((100% - 12px) / 2);
     min-width: 0 !important;
-    width: 100%;
-    padding: 18px 14px !important;
+    padding: 18px 12px !important;
   }
 
   .produto-card,
@@ -730,9 +742,12 @@
 }
 
 @media (max-width: 359px) {
-  .home-section .carousel-track,
-  .home-section .carousel-skeleton {
-    grid-template-columns: 1fr;
+  .home-section .produto-card,
+  .home-section .skeleton-card,
+  .home-section .produto-card--ver-mais {
+    flex: 0 0 82%;
+    width: 82%;
+    max-width: 82%;
   }
 }
 

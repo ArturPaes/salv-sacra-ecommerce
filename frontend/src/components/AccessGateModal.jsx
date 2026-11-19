@@ -159,10 +159,10 @@ export default function AccessGateModal() {
             src={logoImg}
             alt="Salv Sacra"
             style={{
-              height: '58px',
+              height: 'clamp(88px, 11vw, 116px)',
               width: 'auto',
               objectFit: 'contain',
-              margin: '0 auto 14px',
+              margin: '0 auto 16px',
               display: 'block',
             }}
           />

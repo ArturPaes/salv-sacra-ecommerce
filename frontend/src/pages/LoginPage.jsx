@@ -70,8 +70,33 @@ export default function LoginPage() {
   };
 
   // ── render ───────────────────────────────────────────────
-  if (!authLoading && isAuthenticated && user?.papel === 'admin') {
-    return <Navigate to="/admin" replace />;
+  if (authLoading) return null;
+
+  if (isAuthenticated) {
+    if (user?.papel === 'admin') {
+      const destinoAdmin =
+        location.state?.from && typeof location.state.from === 'string' && location.state.from.startsWith('/admin')
+          ? location.state.from
+          : searchParams.get('redirect')?.startsWith('/admin')
+            ? searchParams.get('redirect')
+            : '/admin';
+      return <Navigate to={destinoAdmin} replace />;
+    }
+
+    const explicitRedirect = location.state?.from || searchParams.get('redirect');
+    const isAuthRoute = (p) =>
+      ['/login', '/register', '/cadastro', '/esqueci-senha', '/redefinir-senha', '/verificar-email'].some((r) =>
+        p.startsWith(r)
+      );
+    const destinoCliente =
+      explicitRedirect &&
+      typeof explicitRedirect === 'string' &&
+      explicitRedirect.startsWith('/') &&
+      !explicitRedirect.startsWith('/admin') &&
+      !isAuthRoute(explicitRedirect)
+        ? explicitRedirect
+        : '/minha-conta';
+    return <Navigate to={destinoCliente} replace />;
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
@@ -24,20 +24,29 @@ export function deduplicarCores(lista) {
 export default function ProdutoCard({ produto }) {
   const [hovered, setHovered] = useState(false);
   const [fotoIdx, setFotoIdx] = useState(0);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const touchDeltaX = useRef(0);
+  const carouselStartScroll = useRef(0);
+  const swipedRef = useRef(false);
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useWishlist();
   const navigate = useNavigate();
   const favoritado = isFavorite(produto.id);
 
-  const preco = produto.preco_base
-    ? Number(produto.preco_base).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const isOnlyOversized = String(produto.modelo || '').toLowerCase() === 'oversized';
+  const valorPreco = isOnlyOversized
+    ? Number(produto.preco_oversized ?? produto.preco_base)
+    : Number(produto.preco_base);
+  const preco = valorPreco
+    ? valorPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     : null;
 
   // Vitrine e cores unificadas
   const vitrine = Array.isArray(produto.imagens_vitrine) && produto.imagens_vitrine.length > 0
     ? produto.imagens_vitrine.filter(Boolean)
     : Array.isArray(produto.imagens) && produto.imagens.length > 0
-    ? produto.imagens.filter(Boolean)
+    ? produto.imagens.map((img) => (typeof img === 'object' && img !== null ? img.url : img)).filter(Boolean)
     : [];
 
   const coresConfig = Array.isArray(produto.cores_config) ? produto.cores_config : [];
@@ -83,6 +92,44 @@ export default function ProdutoCard({ produto }) {
     }
   };
 
+  const handleTouchStartFoto = (e) => {
+    swipedRef.current = false;
+    if (listaFotos.length <= 1 || !e.touches?.[0]) return;
+    const track = e.currentTarget.closest('.carousel-track');
+    carouselStartScroll.current = track ? track.scrollLeft : 0;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchDeltaX.current = 0;
+  };
+
+  const handleTouchMoveFoto = (e) => {
+    if (touchStartX.current === null || !e.touches?.[0]) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      touchDeltaX.current = dx;
+    }
+  };
+
+  const handleTouchEndFoto = (e) => {
+    if (touchStartX.current === null || listaFotos.length <= 1) {
+      touchStartX.current = null;
+      return;
+    }
+    const track = e.currentTarget.closest('.carousel-track');
+    const trackRolou = track && Math.abs(track.scrollLeft - carouselStartScroll.current) > 8;
+    const dx = touchDeltaX.current;
+    touchStartX.current = null;
+    touchDeltaX.current = 0;
+    if (trackRolou || Math.abs(dx) < 35) return;
+    swipedRef.current = true;
+    if (dx < 0) {
+      setFotoIdx((prev) => (prev + 1) % listaFotos.length);
+    } else {
+      setFotoIdx((prev) => (prev - 1 + listaFotos.length) % listaFotos.length);
+    }
+  };
+
   // Cores dinâmicas cadastradas nas variações do produto (rigorosamente deduplicadas sem repetição)
   const coresVariacoesRaw = deduplicarCores((produto.variacoes || []).map((v) => v.cor));
   const coresConfigList = deduplicarCores(
@@ -113,8 +160,19 @@ export default function ProdutoCard({ produto }) {
       aria-label={produto.nome}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={(e) => {
+        if (swipedRef.current) {
+          e.preventDefault();
+          swipedRef.current = false;
+        }
+      }}
     >
-      <div className="produto-card-img">
+      <div
+        className="produto-card-img"
+        onTouchStart={handleTouchStartFoto}
+        onTouchMove={handleTouchMoveFoto}
+        onTouchEnd={handleTouchEndFoto}
+      >
         <button
           type="button"
           onClick={handleToggleFavorite}
