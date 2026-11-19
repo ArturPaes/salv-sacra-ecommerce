@@ -214,6 +214,7 @@ export default function AdminLayout() {
       { id: 'pagamento', titulo: 'Configurações: Pagamentos & PIX', sub: 'Mercado Pago, chaves PIX e parcelamento', rota: '/admin/config?aba=pagamento', termos: ['pagamento', 'pix', 'cartao', 'mercado pago', 'chave pix', 'parcelas', 'juros'] },
       { id: 'cupons', titulo: 'Configurações: Cupons de Desconto', sub: 'Criar e gerenciar cupons promocionais', rota: '/admin/config?aba=cupons', termos: ['cupom', 'cupons', 'desconto', 'promocao'] },
       { id: 'contato', titulo: 'Configurações: Atendimento & Contato', sub: 'WhatsApp, telefone, e-mail e redes', rota: '/admin/config?aba=contato', termos: ['contato', 'whatsapp', 'email', 'telefone', 'endereco', 'instagram', 'atendimento', 'suporte'] },
+      { id: 'seguranca', titulo: 'Configurações: Segurança & Senha', sub: 'Alterar senha de acesso do administrador', rota: '/admin/config?aba=seguranca', termos: ['senha', 'seguranca', 'segurança', 'alterar senha', 'acesso', 'admin'] },
     ];
 
     abasConfig.forEach((aba) => {
@@ -863,7 +864,12 @@ export default function AdminLayout() {
             </div>
 
             {/* Perfil */}
-            <div className="al-user">
+            <div
+              className="al-user"
+              onClick={() => navigate('/admin/config?aba=seguranca')}
+              style={{ cursor: 'pointer' }}
+              title="Segurança e alteração de senha"
+            >
               <div className="al-user-info">
                 <span className="al-user-name">{user?.name ?? 'Usuário'}</span>
                 <span className="al-user-email">{user?.email ?? ''}</span>

@@ -154,7 +154,7 @@
   border-right: 1px solid #d8d8d8;
   flex: 1;
   min-width: 200px;
-  max-width: 300px;
+  max-width: max(300px, 22vw);
 }
 
 .benefit-item:last-child {
@@ -185,7 +185,7 @@
 
 /* ── 3. SEÇÕES (Destaques / Vem por aí) ─────────────────────── */
 .home-section {
-  max-width: 1200px;
+  max-width: max(1200px, 86vw);
   margin: 0 auto;
   padding: 40px 24px 20px;
 }

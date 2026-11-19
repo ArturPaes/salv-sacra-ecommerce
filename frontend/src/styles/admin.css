@@ -5,9 +5,9 @@
 
 /* ── Page wrapper ───────────────────────────────────────── */
 .admin-page {
-  max-width: 1100px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 36px 28px 80px;
   width: 100%;
 }
 
@@ -254,9 +254,10 @@
    FORMULÁRIO ADMIN
    ============================================================ */
 .admin-form-page {
-  max-width: 780px;
+  max-width: max(780px, 68%);
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 36px 28px 80px;
+  width: 100%;
 }
 
 .admin-form-back {

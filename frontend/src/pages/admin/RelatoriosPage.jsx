@@ -96,7 +96,7 @@ export default function RelatoriosPage() {
   const pedidos = dados?.pedidos || [];
 
   return (
-    <div className="admin-page" style={{ maxWidth: '1200px' }}>
+    <div className="admin-page">
       {/* ── Cabeçalho Exclusivo para Impressão / PDF ── */}
       <div className="print-only" style={{ marginBottom: '24px', borderBottom: '2px solid #111', paddingBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

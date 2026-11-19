@@ -272,7 +272,7 @@ export default function EstoqueList() {
   };
 
   return (
-    <div className="admin-page" style={{ maxWidth: '1200px' }}>
+    <div className="admin-page">
       {/* ── Topo do Painel de Estoque ── */}
       <div className="admin-header">
         <div>

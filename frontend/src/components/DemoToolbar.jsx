@@ -242,16 +242,16 @@ export default function DemoToolbar() {
             bottom: minimizado ? '60px' : '82px',
             ...(isCartOpen ? { left: '16px' } : { right: '16px' }),
             zIndex: 1120,
-            background: '#ffffff',
-            color: '#1e1e1e',
-            border: '1px solid #d6d3cd',
-            borderLeft: '3px solid #1e1e1e',
+            background: '#1e1e1e',
+            color: '#f5f5f4',
+            border: '1px solid #3f3f46',
+            borderLeft: '3px solid #c4953a',
             borderRadius: '6px',
             padding: '9px 14px',
             fontSize: '12.5px',
             fontWeight: 600,
             fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.28)',
           }}
         >
           {toastMsg}
@@ -281,9 +281,9 @@ export default function DemoToolbar() {
               atualizarStatusDemo();
             }}
             style={{
-              background: '#faf9f6',
-              color: '#1e1e1e',
-              border: '1px solid #d6d3cd',
+              background: '#1e1e1e',
+              color: '#f5f5f4',
+              border: '1px solid #3f3f46',
               borderRadius: '6px',
               padding: '8px 14px',
               fontSize: '12px',
@@ -291,7 +291,7 @@ export default function DemoToolbar() {
               fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
               letterSpacing: '0.02em',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.28)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
@@ -300,8 +300,8 @@ export default function DemoToolbar() {
           >
             <IconLayers />
             <span>Modo Demo</span>
-            <span style={{ color: '#d6d3cd', fontWeight: 400 }}>|</span>
-            <span style={{ color: '#6b5b45', fontWeight: 700 }}>
+            <span style={{ color: '#52525b', fontWeight: 400 }}>|</span>
+            <span style={{ color: '#c4953a', fontWeight: 700 }}>
               {ehAdminAtual ? 'Admin' : 'Cliente'}
             </span>
             <IconChevron up />
@@ -330,12 +330,12 @@ export default function DemoToolbar() {
               pointerEvents: 'auto',
               width: 'fit-content',
               maxWidth: '100%',
-              background: '#faf9f6',
-              color: '#1e1e1e',
-              border: '1px solid #d6d3cd',
+              background: '#1e1e1e',
+              color: '#f5f5f4',
+              border: '1px solid #3f3f46',
               borderRadius: '6px',
               padding: '10px 14px',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.32)',
               fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
               display: 'flex',
               flexDirection: 'column',
@@ -347,9 +347,9 @@ export default function DemoToolbar() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <span
                 style={{
-                  background: '#efede8',
-                  color: '#1e1e1e',
-                  border: '1px solid #d6d3cd',
+                  background: '#2c2c2c',
+                  color: '#e7e5e4',
+                  border: '1px solid #44403c',
                   fontSize: '10.5px',
                   fontWeight: 700,
                   padding: '3px 9px',
@@ -365,11 +365,11 @@ export default function DemoToolbar() {
                 <IconLayers />
                 Modo Demo · Sessão Isolada
               </span>
-              <span style={{ fontSize: '12px', color: '#57534e', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '12px', color: '#a8a29e', whiteSpace: 'nowrap' }}>
                 {user ? (
                   <>
                     Ativo:{' '}
-                    <strong style={{ color: '#1e1e1e', fontWeight: 700 }}>
+                    <strong style={{ color: '#ffffff', fontWeight: 700 }}>
                       {user.papel === 'admin' ? 'Admin' : 'Cliente'} · {user.name}
                     </strong>
                   </>
@@ -396,16 +396,16 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={handleVisaoCliente}
               style={{
-                background: !ehAdminAtual && user ? '#1e1e1e' : '#ffffff',
-                color: !ehAdminAtual && user ? '#ffffff' : '#3f3f46',
+                background: !ehAdminAtual && user ? '#c4953a' : '#2c2c2c',
+                color: !ehAdminAtual && user ? '#141414' : '#e4e4e7',
                 border:
                   !ehAdminAtual && user
-                    ? '1px solid #1e1e1e'
-                    : '1px solid #d6d3cd',
+                    ? '1px solid #d4af37'
+                    : '1px solid #44403c',
                 borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
-                fontWeight: 600,
+                fontWeight: !ehAdminAtual && user ? 700 : 600,
                 cursor: loadingAction ? 'wait' : 'pointer',
                 whiteSpace: 'nowrap',
                 display: 'inline-flex',
@@ -422,15 +422,15 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={handleVisaoAdmin}
               style={{
-                background: ehAdminAtual ? '#1e1e1e' : '#ffffff',
-                color: ehAdminAtual ? '#ffffff' : '#3f3f46',
+                background: ehAdminAtual ? '#c4953a' : '#2c2c2c',
+                color: ehAdminAtual ? '#141414' : '#e4e4e7',
                 border: ehAdminAtual
-                  ? '1px solid #1e1e1e'
-                  : '1px solid #d6d3cd',
+                  ? '1px solid #d4af37'
+                  : '1px solid #44403c',
                 borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
-                fontWeight: 600,
+                fontWeight: ehAdminAtual ? 700 : 600,
                 cursor: loadingAction ? 'wait' : 'pointer',
                 whiteSpace: 'nowrap',
                 display: 'inline-flex',
@@ -450,9 +450,9 @@ export default function DemoToolbar() {
                 onFocus={atualizarStatusDemo}
                 onChange={handleSelecionarUsuario}
                 style={{
-                  background: '#ffffff',
-                  color: '#1e1e1e',
-                  border: '1px solid #d6d3cd',
+                  background: '#2c2c2c',
+                  color: '#f5f5f4',
+                  border: '1px solid #44403c',
                   borderRadius: '5px',
                   padding: '6px 9px',
                   fontSize: '12px',
@@ -478,9 +478,9 @@ export default function DemoToolbar() {
                 setModalGuiaAberto(true);
               }}
               style={{
-                background: '#ffffff',
-                color: '#1e1e1e',
-                border: '1px solid #d6d3cd',
+                background: '#2c2c2c',
+                color: '#e4e4e7',
+                border: '1px solid #44403c',
                 borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
@@ -501,9 +501,9 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={() => setModalResetAberto(true)}
               style={{
-                background: '#ffffff',
-                color: '#991b1b',
-                border: '1px solid #e5c5c5',
+                background: '#2c2c2c',
+                color: '#fca5a5',
+                border: '1px solid #7f1d1d',
                 borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
@@ -524,9 +524,9 @@ export default function DemoToolbar() {
               disabled={loadingAction}
               onClick={abrirPortaoTrocaModo}
               style={{
-                background: '#ffffff',
-                color: '#3f3f46',
-                border: '1px solid #d6d3cd',
+                background: '#2c2c2c',
+                color: '#e4e4e7',
+                border: '1px solid #44403c',
                 borderRadius: '5px',
                 padding: '6px 11px',
                 fontSize: '12px',
@@ -548,9 +548,9 @@ export default function DemoToolbar() {
               aria-label="Minimizar barra Demo"
               title="Recolher barra do Modo Demo"
               style={{
-                background: '#efede8',
-                color: '#3f3f46',
-                border: '1px solid #d6d3cd',
+                background: '#2c2c2c',
+                color: '#d4d4d8',
+                border: '1px solid #44403c',
                 borderRadius: '5px',
                 padding: '6px 9px',
                 fontSize: '12px',

@@ -10,7 +10,7 @@
 }
 
 .catalogo-container {
-  max-width: 1200px;
+  max-width: max(1200px, 86vw);
   margin: 0 auto;
   padding: 0 24px;
 }

@@ -267,13 +267,27 @@ export default function ProdutoDetalhe() {
 
   const imagemExibida = fotoPrincipal || galeriaFotos[0]?.url || fotosCores[0] || produto?.imagem_url || '';
 
-  const fotosSwipe = Array.from(
-    new Set([
-      ...galeriaFotos.map((g) => g.url),
-      ...fotosCores,
-      produto?.imagem_url,
-    ].filter(Boolean))
-  );
+  const fotosSwipe = galeriaFotos.map((g) => g.url).filter(Boolean);
+
+  const navegarFotoPrincipal = (direcao) => {
+    if (fotosSwipe.length <= 1) return;
+    const idxAtual = fotosSwipe.indexOf(imagemExibida);
+    let novoIdx;
+    if (idxAtual === -1) {
+      novoIdx = direcao > 0 ? 0 : fotosSwipe.length - 1;
+    } else {
+      novoIdx = direcao > 0
+        ? (idxAtual + 1) % fotosSwipe.length
+        : (idxAtual - 1 + fotosSwipe.length) % fotosSwipe.length;
+    }
+    const novaUrl = fotosSwipe[novoIdx];
+    setFotoPrincipal(novaUrl);
+    const matchGal = galeriaFotos[novoIdx];
+    if (matchGal?.cor) {
+      const corExib = coresExibicao.find((c) => c.toLowerCase() === matchGal.cor.toLowerCase()) || matchGal.cor;
+      setCorSelecionada(corExib);
+    }
+  };
 
   const handlePdpSwipeStart = (e) => {
     if (fotosSwipe.length <= 1 || !e.touches?.[0]) return;
@@ -300,14 +314,7 @@ export default function ProdutoDetalhe() {
     pdpSwipeStartX.current = null;
     pdpSwipeDeltaX.current = 0;
     if (Math.abs(dx) < 35) return;
-    const idxAtual = Math.max(0, fotosSwipe.indexOf(imagemExibida));
-    const novoIdx = dx < 0
-      ? (idxAtual + 1) % fotosSwipe.length
-      : (idxAtual - 1 + fotosSwipe.length) % fotosSwipe.length;
-    const novaUrl = fotosSwipe[novoIdx];
-    setFotoPrincipal(novaUrl);
-    const matchGal = galeriaFotos.find((g) => g.url === novaUrl && g.cor);
-    if (matchGal?.cor) setCorSelecionada(matchGal.cor);
+    navegarFotoPrincipal(dx < 0 ? 1 : -1);
   };
 
   const aplicarDadosFrete = useCallback((data, cepFormatado) => {
@@ -375,9 +382,9 @@ export default function ProdutoDetalhe() {
           ? prod.imagens_vitrine.filter(Boolean)
           : (primeiraGaleria ? [primeiraGaleria] : []);
 
-        // Foto primária correspondente à cor primária
-        const fotoPrimaria = cfgPrimaria?.imagem_url
-          || primeiraGaleria
+        // Foto primária correspondente à 1ª miniatura da galeria lateral (ou fallback da cor/vitrine)
+        const fotoPrimaria = primeiraGaleria
+          || cfgPrimaria?.imagem_url
           || vitrineInicial[0]
           || prod.imagem_url
           || '';
@@ -822,6 +829,41 @@ export default function ProdutoDetalhe() {
               onTouchMove={handlePdpSwipeMove}
               onTouchEnd={handlePdpSwipeEnd}
             >
+              {fotosSwipe.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="pdp-main-img-arrow pdp-main-img-arrow--prev"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.currentTarget.blur();
+                      navegarFotoPrincipal(-1);
+                    }}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                    aria-label="Foto anterior"
+                    title="Foto anterior"
+                  >
+                    <IconChevronLeft />
+                  </button>
+                  <button
+                    type="button"
+                    className="pdp-main-img-arrow pdp-main-img-arrow--next"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.currentTarget.blur();
+                      navegarFotoPrincipal(1);
+                    }}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                    aria-label="Próxima foto"
+                    title="Próxima foto"
+                  >
+                    <IconChevronRight />
+                  </button>
+                </>
+              )}
+
               {imagemExibida ? (
                 <img
                   src={imagemExibida}

@@ -253,6 +253,12 @@ class ContaController extends Controller
 
         $user->update(['password' => $request->password]);
 
+        // Revoga outras sessões/tokens ativos mantendo apenas o token atual logado
+        $currentToken = $user->currentAccessToken();
+        if ($currentToken && isset($currentToken->id)) {
+            $user->tokens()->where('id', '!=', $currentToken->id)->delete();
+        }
+
         return response()->json(['message' => 'Senha alterada com sucesso.']);
     }
 

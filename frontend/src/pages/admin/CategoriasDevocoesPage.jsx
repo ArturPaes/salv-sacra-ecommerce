@@ -113,7 +113,7 @@ export default function CategoriasDevocoesPage() {
   const td = { padding: '14px 20px', borderBottom: '1px solid #f1f5f9' };
 
   return (
-    <div className="admin-page" style={{ maxWidth: '900px' }}>
+    <div className="admin-page">
       <div className="admin-header" style={{ marginBottom: '24px' }}>
         <div>
           <h1 className="admin-title">Categorias</h1>

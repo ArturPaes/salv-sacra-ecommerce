@@ -3,6 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { getConfiguracoesAdmin, updateConfiguracoesAdmin } from '../../services/configuracaoService';
 import { uploadArquivoImagem } from '../../services/uploadService';
 import { useDemo } from '../../contexts/DemoContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { alterarSenha } from '../../services/contaService';
+import PasswordStrengthMeter, { IconEye, PasswordConfirmMatch, avaliarSenha } from '../../components/PasswordStrengthMeter';
 import api from '../../services/api';
 import bannerSaoJose from '../../assets/banner-sao-jose.jpg';
 import bannerDesatadora from '../../assets/banner-desatadora.jpg';
@@ -48,6 +51,7 @@ const FALLBACK_BANNER_IMGS = [bannerSaoJose, bannerDesatadora, bannerPorVoce];
 
 export default function ConfiguracoesPage() {
   const { isDemoMode } = useDemo();
+  const { user } = useAuth();
   const [form, setForm] = useState({
     // Loja
     nome_loja: '',
@@ -90,8 +94,22 @@ export default function ConfiguracoesPage() {
   const [salvando, setSalvando] = useState(false);
   const [feedback, setFeedback] = useState({ tipo: '', texto: '' });
 
+  // Estado do formulário de alteração de senha do Administrador
+  const [senhaForm, setSenhaForm] = useState({
+    senha_atual: '',
+    password: '',
+    password_confirmation: '',
+  });
+  const [showSenha, setShowSenha] = useState({
+    atual: false,
+    nova: false,
+    conf: false,
+  });
+  const [salvandoSenha, setSalvandoSenha] = useState(false);
+  const [msgSenha, setMsgSenha] = useState({ tipo: '', texto: '' });
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const abasValidas = ['loja', 'carrossel', 'frete', 'pagamento', 'cupons', 'contato'];
+  const abasValidas = ['loja', 'carrossel', 'frete', 'pagamento', 'cupons', 'contato', 'seguranca'];
   const [abaAtiva, setAbaAtiva] = useState(() => {
     const p = new URLSearchParams(window.location.search).get('aba');
     return p && abasValidas.includes(p) ? p : 'loja';
@@ -212,8 +230,39 @@ export default function ConfiguracoesPage() {
     }
   };
 
+  const handleAlterarSenhaAdmin = async (e) => {
+    e.preventDefault();
+    setMsgSenha({ tipo: '', texto: '' });
+
+    if (!avaliarSenha(senhaForm.password).isValid) {
+      setMsgSenha({ tipo: 'erro', texto: 'A nova senha deve atender a todos os requisitos mínimos de segurança.' });
+      return;
+    }
+
+    if (senhaForm.password !== senhaForm.password_confirmation) {
+      setMsgSenha({ tipo: 'erro', texto: 'A confirmação da nova senha não confere.' });
+      return;
+    }
+
+    setSalvandoSenha(true);
+    try {
+      const { data } = await alterarSenha(senhaForm);
+      setSenhaForm({ senha_atual: '', password: '', password_confirmation: '' });
+      setMsgSenha({ tipo: 'sucesso', texto: data?.message || 'Senha alterada com sucesso.' });
+    } catch (err) {
+      const errs = err?.response?.data?.errors;
+      const primeiro = errs ? Object.values(errs)[0]?.[0] : null;
+      setMsgSenha({
+        tipo: 'erro',
+        texto: primeiro || err?.response?.data?.message || 'Não foi possível alterar a senha.',
+      });
+    } finally {
+      setSalvandoSenha(false);
+    }
+  };
+
   return (
-    <div className="admin-page" style={{ maxWidth: '1000px' }}>
+    <div className="admin-page">
       {/* ── Topo do Painel de Configurações ── */}
       <div className="admin-header" style={{ marginBottom: '24px' }}>
         <div>
@@ -223,14 +272,16 @@ export default function ConfiguracoesPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={loading || salvando}
-          className="admin-btn admin-btn-primary"
-        >
-          {salvando ? 'Salvando...' : 'Salvar Alterações'}
-        </button>
+        {abaAtiva !== 'cupons' && abaAtiva !== 'seguranca' && (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading || salvando}
+            className="admin-btn admin-btn-primary"
+          >
+            {salvando ? 'Salvando...' : 'Salvar Alterações'}
+          </button>
+        )}
       </div>
 
       {isDemoMode && (
@@ -290,6 +341,7 @@ export default function ConfiguracoesPage() {
           { id: 'pagamento', label: 'Pagamentos & PIX' },
           { id: 'cupons', label: 'Cupons de Desconto' },
           { id: 'contato', label: 'Atendimento & Contato' },
+          { id: 'seguranca', label: 'Segurança & Senha' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -320,6 +372,154 @@ export default function ConfiguracoesPage() {
       ) : abaAtiva === 'cupons' ? (
         <div className="admin-config-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           <CuponsAdmin />
+        </div>
+      ) : abaAtiva === 'seguranca' ? (
+        <div className="admin-config-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+          <div style={{ maxWidth: '540px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1e1e1e', margin: '0 0 6px' }}>
+              Segurança da Conta Administradora
+            </h2>
+            <p style={{ fontSize: '13.5px', color: '#64748b', margin: '0 0 20px', lineHeight: 1.55 }}>
+              Altere a senha de acesso ao painel administrativo. Ao salvar, outras sessões autenticadas em outros dispositivos serão desconectadas automaticamente.
+            </p>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '14px 16px',
+                marginBottom: '22px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Administrador Logado
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e1e1e', marginTop: '2px' }}>
+                  {user?.name || 'Administrador'}
+                </div>
+                <div style={{ fontSize: '13px', color: '#475569' }}>
+                  {user?.email || ''}
+                </div>
+              </div>
+              {isDemoMode && (
+                <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                  Isolado nesta Sessão Demo
+                </span>
+              )}
+            </div>
+
+            {msgSenha.texto && (
+              <div
+                style={{
+                  padding: '12px 15px',
+                  borderRadius: '8px',
+                  marginBottom: '18px',
+                  fontWeight: 600,
+                  fontSize: '13.5px',
+                  background: msgSenha.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
+                  color: msgSenha.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
+                  border: `1px solid ${msgSenha.tipo === 'sucesso' ? '#bbf7d0' : '#fecaca'}`,
+                }}
+              >
+                {msgSenha.texto}
+              </div>
+            )}
+
+            <form onSubmit={handleAlterarSenhaAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label htmlFor="admin-senha-atual" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
+                  Senha atual *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="admin-senha-atual"
+                    type={showSenha.atual ? 'text' : 'password'}
+                    value={senhaForm.senha_atual}
+                    onChange={(e) => setSenhaForm((f) => ({ ...f, senha_atual: e.target.value }))}
+                    required
+                    style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showSenha.atual ? 'Ocultar senha atual' : 'Mostrar senha atual'}
+                    onClick={() => setShowSenha((s) => ({ ...s, atual: !s.atual }))}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
+                  >
+                    <IconEye open={showSenha.atual} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="admin-nova-senha" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
+                  Nova senha *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="admin-nova-senha"
+                    type={showSenha.nova ? 'text' : 'password'}
+                    value={senhaForm.password}
+                    onChange={(e) => setSenhaForm((f) => ({ ...f, password: e.target.value }))}
+                    required
+                    placeholder="Mínimo de 8 caracteres"
+                    style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showSenha.nova ? 'Ocultar nova senha' : 'Mostrar nova senha'}
+                    onClick={() => setShowSenha((s) => ({ ...s, nova: !s.nova }))}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
+                  >
+                    <IconEye open={showSenha.nova} />
+                  </button>
+                </div>
+                <PasswordStrengthMeter password={senhaForm.password} />
+              </div>
+
+              <div>
+                <label htmlFor="admin-conf-senha" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
+                  Confirmar nova senha *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="admin-conf-senha"
+                    type={showSenha.conf ? 'text' : 'password'}
+                    value={senhaForm.password_confirmation}
+                    onChange={(e) => setSenhaForm((f) => ({ ...f, password_confirmation: e.target.value }))}
+                    required
+                    placeholder="Repita a nova senha"
+                    style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showSenha.conf ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                    onClick={() => setShowSenha((s) => ({ ...s, conf: !s.conf }))}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
+                  >
+                    <IconEye open={showSenha.conf} />
+                  </button>
+                </div>
+                <PasswordConfirmMatch password={senhaForm.password} confirmation={senhaForm.password_confirmation} />
+              </div>
+
+              <div style={{ paddingTop: '6px' }}>
+                <button
+                  type="submit"
+                  disabled={salvandoSenha}
+                  className="admin-btn admin-btn-primary"
+                >
+                  {salvandoSenha ? 'Atualizando senha...' : 'Alterar Senha do Admin'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="admin-config-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>

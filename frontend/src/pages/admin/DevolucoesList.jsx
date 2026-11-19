@@ -266,7 +266,7 @@ export default function DevolucoesList() {
   const concluidas = devolucoes.filter((d) => d.status === 'Concluida').length;
 
   return (
-    <div className="admin-page" style={{ maxWidth: '1200px' }}>
+    <div className="admin-page">
       <div className="admin-header" style={{ marginBottom: '24px' }}>
         <div>
           <h1 className="admin-title">Devoluções & Logística Reversa</h1>
