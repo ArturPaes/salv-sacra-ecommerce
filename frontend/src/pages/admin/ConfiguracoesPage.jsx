@@ -375,157 +375,184 @@ export default function ConfiguracoesPage() {
         </div>
       ) : abaAtiva === 'seguranca' ? (
         <div className="admin-config-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-          <div style={{ maxWidth: '540px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1e1e1e', margin: '0 0 6px' }}>
-              Segurança da Conta Administradora
-            </h2>
-            <p style={{ fontSize: '13.5px', color: '#64748b', margin: '0 0 20px', lineHeight: 1.55 }}>
-              Altere a senha de acesso ao painel administrativo. Ao salvar, outras sessões autenticadas em outros dispositivos serão desconectadas automaticamente.
-            </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '32px', alignItems: 'start' }}>
+            {/* Coluna Esquerda: Formulário de Alteração de Senha */}
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1e1e1e', margin: '0 0 6px' }}>
+                Segurança da Conta Administradora
+              </h2>
+              <p style={{ fontSize: '13.5px', color: '#64748b', margin: '0 0 20px', lineHeight: 1.55 }}>
+                Altere a senha de acesso ao painel administrativo. Ao salvar, outras sessões autenticadas em outros dispositivos serão desconectadas automaticamente.
+              </p>
 
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '14px 16px',
-                marginBottom: '22px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '12px',
-                flexWrap: 'wrap',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Administrador Logado
+              {msgSenha.texto && (
+                <div
+                  style={{
+                    padding: '12px 15px',
+                    borderRadius: '8px',
+                    marginBottom: '18px',
+                    fontWeight: 600,
+                    fontSize: '13.5px',
+                    background: msgSenha.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
+                    color: msgSenha.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
+                    border: `1px solid ${msgSenha.tipo === 'sucesso' ? '#bbf7d0' : '#fecaca'}`,
+                  }}
+                >
+                  {msgSenha.texto}
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e1e1e', marginTop: '2px' }}>
-                  {user?.name || 'Administrador'}
-                </div>
-                <div style={{ fontSize: '13px', color: '#475569' }}>
-                  {user?.email || ''}
-                </div>
-              </div>
-              {isDemoMode && (
-                <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
-                  Isolado nesta Sessão Demo
-                </span>
               )}
+
+              <form onSubmit={handleAlterarSenhaAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label htmlFor="admin-senha-atual" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
+                    Senha atual *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="admin-senha-atual"
+                      type={showSenha.atual ? 'text' : 'password'}
+                      value={senhaForm.senha_atual}
+                      onChange={(e) => setSenhaForm((f) => ({ ...f, senha_atual: e.target.value }))}
+                      required
+                      style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showSenha.atual ? 'Ocultar senha atual' : 'Mostrar senha atual'}
+                      onClick={() => setShowSenha((s) => ({ ...s, atual: !s.atual }))}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
+                    >
+                      <IconEye open={showSenha.atual} />
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="admin-nova-senha" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
+                    Nova senha *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="admin-nova-senha"
+                      type={showSenha.nova ? 'text' : 'password'}
+                      value={senhaForm.password}
+                      onChange={(e) => setSenhaForm((f) => ({ ...f, password: e.target.value }))}
+                      required
+                      placeholder="Mínimo de 8 caracteres"
+                      style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showSenha.nova ? 'Ocultar nova senha' : 'Mostrar nova senha'}
+                      onClick={() => setShowSenha((s) => ({ ...s, nova: !s.nova }))}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
+                    >
+                      <IconEye open={showSenha.nova} />
+                    </button>
+                  </div>
+                  <PasswordStrengthMeter password={senhaForm.password} />
+                </div>
+
+                <div>
+                  <label htmlFor="admin-conf-senha" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
+                    Confirmar nova senha *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="admin-conf-senha"
+                      type={showSenha.conf ? 'text' : 'password'}
+                      value={senhaForm.password_confirmation}
+                      onChange={(e) => setSenhaForm((f) => ({ ...f, password_confirmation: e.target.value }))}
+                      required
+                      placeholder="Repita a nova senha"
+                      style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showSenha.conf ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                      onClick={() => setShowSenha((s) => ({ ...s, conf: !s.conf }))}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
+                    >
+                      <IconEye open={showSenha.conf} />
+                    </button>
+                  </div>
+                  <PasswordConfirmMatch password={senhaForm.password} confirmation={senhaForm.password_confirmation} />
+                </div>
+
+                <div style={{ paddingTop: '6px' }}>
+                  <button
+                    type="submit"
+                    disabled={salvandoSenha}
+                    className="admin-btn admin-btn-primary"
+                  >
+                    {salvandoSenha ? 'Atualizando senha...' : 'Alterar Senha do Admin'}
+                  </button>
+                </div>
+              </form>
             </div>
 
-            {msgSenha.texto && (
+            {/* Coluna Direita: Resumo da Conta Administradora e Proteções Ativas */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div
                 style={{
-                  padding: '12px 15px',
-                  borderRadius: '8px',
-                  marginBottom: '18px',
-                  fontWeight: 600,
-                  fontSize: '13.5px',
-                  background: msgSenha.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
-                  color: msgSenha.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
-                  border: `1px solid ${msgSenha.tipo === 'sucesso' ? '#bbf7d0' : '#fecaca'}`,
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '18px 20px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '12px',
+                  flexWrap: 'wrap',
                 }}
               >
-                {msgSenha.texto}
-              </div>
-            )}
-
-            <form onSubmit={handleAlterarSenhaAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label htmlFor="admin-senha-atual" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
-                  Senha atual *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="admin-senha-atual"
-                    type={showSenha.atual ? 'text' : 'password'}
-                    value={senhaForm.senha_atual}
-                    onChange={(e) => setSenhaForm((f) => ({ ...f, senha_atual: e.target.value }))}
-                    required
-                    style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
-                  />
-                  <button
-                    type="button"
-                    aria-label={showSenha.atual ? 'Ocultar senha atual' : 'Mostrar senha atual'}
-                    onClick={() => setShowSenha((s) => ({ ...s, atual: !s.atual }))}
-                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
-                  >
-                    <IconEye open={showSenha.atual} />
-                  </button>
+                <div>
+                  <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Administrador Logado
+                  </div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e1e1e', marginTop: '4px' }}>
+                    {user?.name || 'Administrador'}
+                  </div>
+                  <div style={{ fontSize: '13.5px', color: '#475569', marginTop: '2px' }}>
+                    {user?.email || ''}
+                  </div>
                 </div>
+                {isDemoMode && (
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                    Isolado nesta Sessão Demo
+                  </span>
+                )}
               </div>
 
-              <div>
-                <label htmlFor="admin-nova-senha" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
-                  Nova senha *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="admin-nova-senha"
-                    type={showSenha.nova ? 'text' : 'password'}
-                    value={senhaForm.password}
-                    onChange={(e) => setSenhaForm((f) => ({ ...f, password: e.target.value }))}
-                    required
-                    placeholder="Mínimo de 8 caracteres"
-                    style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
-                  />
-                  <button
-                    type="button"
-                    aria-label={showSenha.nova ? 'Ocultar nova senha' : 'Mostrar nova senha'}
-                    onClick={() => setShowSenha((s) => ({ ...s, nova: !s.nova }))}
-                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
-                  >
-                    <IconEye open={showSenha.nova} />
-                  </button>
+              <div
+                style={{
+                  background: '#faf9f6',
+                  border: '1px solid #e5e2dc',
+                  borderRadius: '10px',
+                  padding: '18px 20px',
+                  color: '#44403c',
+                  fontSize: '13px',
+                  lineHeight: 1.6,
+                }}
+              >
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e1e1e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+                  Proteções Ativas na Troca de Senha
                 </div>
-                <PasswordStrengthMeter password={senhaForm.password} />
+                <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <li>Confirmação obrigatória da senha atual antes de qualquer alteração.</li>
+                  <li>Validação automática de força mínima (8+ caracteres, maiúscula, minúscula e número).</li>
+                  <li>Encerramento imediato de sessões ativas em outros navegadores/dispositivos após salvar.</li>
+                  <li>Independência entre o e-mail de login do administrador e o servidor SMTP de envio de e-mails da loja.</li>
+                </ul>
               </div>
-
-              <div>
-                <label htmlFor="admin-conf-senha" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '7px' }}>
-                  Confirmar nova senha *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="admin-conf-senha"
-                    type={showSenha.conf ? 'text' : 'password'}
-                    value={senhaForm.password_confirmation}
-                    onChange={(e) => setSenhaForm((f) => ({ ...f, password_confirmation: e.target.value }))}
-                    required
-                    placeholder="Repita a nova senha"
-                    style={{ width: '100%', padding: '11px 42px 11px 14px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', outline: 'none' }}
-                  />
-                  <button
-                    type="button"
-                    aria-label={showSenha.conf ? 'Ocultar confirmação' : 'Mostrar confirmação'}
-                    onClick={() => setShowSenha((s) => ({ ...s, conf: !s.conf }))}
-                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'inline-flex', width: '20px', height: '20px', padding: 0 }}
-                  >
-                    <IconEye open={showSenha.conf} />
-                  </button>
-                </div>
-                <PasswordConfirmMatch password={senhaForm.password} confirmation={senhaForm.password_confirmation} />
-              </div>
-
-              <div style={{ paddingTop: '6px' }}>
-                <button
-                  type="submit"
-                  disabled={salvandoSenha}
-                  className="admin-btn admin-btn-primary"
-                >
-                  {salvandoSenha ? 'Atualizando senha...' : 'Alterar Senha do Admin'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="admin-config-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eaeaea', padding: '32px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           {/* ════════ ABA 1: IDENTIDADE DA LOJA ════════ */}
           {abaAtiva === 'loja' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 700, color: '#333' }}>

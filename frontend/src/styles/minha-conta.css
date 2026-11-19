@@ -1,5 +1,5 @@
 .conta-page {
-  max-width: max(1000px, 74vw);
+  max-width: var(--container-account, min(86vw, 1260px));
   margin: 0 auto;
   padding: 32px 24px 64px;
   width: 100%;

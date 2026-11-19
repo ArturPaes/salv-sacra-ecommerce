@@ -135,7 +135,7 @@ export default function DemoToolbar() {
       navigator.clipboard.writeText(valor);
       setCopiadoChave(chave);
       setTimeout(() => setCopiadoChave(''), 2000);
-    } catch {}
+    } catch { }
   };
 
   const usuariosAtivos = (demoUsers || []).filter((u) => !u.deleted_at);
@@ -315,7 +315,7 @@ export default function DemoToolbar() {
             position: 'fixed',
             bottom: '12px',
             left: '12px',
-            right: isCartOpen ? '428px' : '12px',
+            right: isCartOpen ? 'calc(var(--cart-drawer-w, 500px) + 16px)' : '12px',
             zIndex: 1100,
             display: 'flex',
             justifyContent: isCartOpen ? 'flex-start' : 'center',
@@ -391,178 +391,178 @@ export default function DemoToolbar() {
                 overflowX: 'auto',
               }}
             >
-            <button
-              type="button"
-              disabled={loadingAction}
-              onClick={handleVisaoCliente}
-              style={{
-                background: !ehAdminAtual && user ? '#c4953a' : '#2c2c2c',
-                color: !ehAdminAtual && user ? '#141414' : '#e4e4e7',
-                border:
-                  !ehAdminAtual && user
+              <button
+                type="button"
+                disabled={loadingAction}
+                onClick={handleVisaoCliente}
+                style={{
+                  background: !ehAdminAtual && user ? '#c4953a' : '#2c2c2c',
+                  color: !ehAdminAtual && user ? '#141414' : '#e4e4e7',
+                  border:
+                    !ehAdminAtual && user
+                      ? '1px solid #d4af37'
+                      : '1px solid #44403c',
+                  borderRadius: '5px',
+                  padding: '6px 11px',
+                  fontSize: '12px',
+                  fontWeight: !ehAdminAtual && user ? 700 : 600,
+                  cursor: loadingAction ? 'wait' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <IconUser />
+                Visão Cliente
+              </button>
+
+              <button
+                type="button"
+                disabled={loadingAction}
+                onClick={handleVisaoAdmin}
+                style={{
+                  background: ehAdminAtual ? '#c4953a' : '#2c2c2c',
+                  color: ehAdminAtual ? '#141414' : '#e4e4e7',
+                  border: ehAdminAtual
                     ? '1px solid #d4af37'
                     : '1px solid #44403c',
-                borderRadius: '5px',
-                padding: '6px 11px',
-                fontSize: '12px',
-                fontWeight: !ehAdminAtual && user ? 700 : 600,
-                cursor: loadingAction ? 'wait' : 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <IconUser />
-              Visão Cliente
-            </button>
+                  borderRadius: '5px',
+                  padding: '6px 11px',
+                  fontSize: '12px',
+                  fontWeight: ehAdminAtual ? 700 : 600,
+                  cursor: loadingAction ? 'wait' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <IconSliders />
+                Painel Admin
+              </button>
 
-            <button
-              type="button"
-              disabled={loadingAction}
-              onClick={handleVisaoAdmin}
-              style={{
-                background: ehAdminAtual ? '#c4953a' : '#2c2c2c',
-                color: ehAdminAtual ? '#141414' : '#e4e4e7',
-                border: ehAdminAtual
-                  ? '1px solid #d4af37'
-                  : '1px solid #44403c',
-                borderRadius: '5px',
-                padding: '6px 11px',
-                fontSize: '12px',
-                fontWeight: ehAdminAtual ? 700 : 600,
-                cursor: loadingAction ? 'wait' : 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <IconSliders />
-              Painel Admin
-            </button>
+              {usuariosAtivos.length > 0 && (
+                <select
+                  aria-label="Selecionar conta da sessão Demo"
+                  value={user?.id || ''}
+                  disabled={loadingAction}
+                  onFocus={atualizarStatusDemo}
+                  onChange={handleSelecionarUsuario}
+                  style={{
+                    background: '#2c2c2c',
+                    color: '#f5f5f4',
+                    border: '1px solid #44403c',
+                    borderRadius: '5px',
+                    padding: '6px 9px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    maxWidth: '220px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {!user && <option value="">Selecionar conta da sessão...</option>}
+                  {usuariosAtivos.map((u) => (
+                    <option key={u.id} value={u.id} disabled={Boolean(u.bloqueado)}>
+                      [{u.papel === 'admin' ? 'Admin' : 'Cliente'}] #{u.id} {u.name}
+                      {u.bloqueado ? ' (Bloqueada)' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
 
-            {usuariosAtivos.length > 0 && (
-              <select
-                aria-label="Selecionar conta da sessão Demo"
-                value={user?.id || ''}
-                disabled={loadingAction}
-                onFocus={atualizarStatusDemo}
-                onChange={handleSelecionarUsuario}
+              <button
+                type="button"
+                onClick={() => {
+                  atualizarStatusDemo();
+                  setModalGuiaAberto(true);
+                }}
                 style={{
                   background: '#2c2c2c',
-                  color: '#f5f5f4',
+                  color: '#e4e4e7',
+                  border: '1px solid #44403c',
+                  borderRadius: '5px',
+                  padding: '6px 11px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <IconTag />
+                Guia &amp; Cupons
+              </button>
+
+              <button
+                type="button"
+                disabled={loadingAction}
+                onClick={() => setModalResetAberto(true)}
+                style={{
+                  background: '#2c2c2c',
+                  color: '#fca5a5',
+                  border: '1px solid #7f1d1d',
+                  borderRadius: '5px',
+                  padding: '6px 11px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: loadingAction ? 'wait' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <IconRefresh />
+                Resetar Demo
+              </button>
+
+              <button
+                type="button"
+                disabled={loadingAction}
+                onClick={abrirPortaoTrocaModo}
+                style={{
+                  background: '#2c2c2c',
+                  color: '#e4e4e7',
+                  border: '1px solid #44403c',
+                  borderRadius: '5px',
+                  padding: '6px 11px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <IconSwitch />
+                Trocar Modo
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMinimizado(true)}
+                aria-label="Minimizar barra Demo"
+                title="Recolher barra do Modo Demo"
+                style={{
+                  background: '#2c2c2c',
+                  color: '#d4d4d8',
                   border: '1px solid #44403c',
                   borderRadius: '5px',
                   padding: '6px 9px',
                   fontSize: '12px',
-                  fontWeight: 500,
-                  maxWidth: '220px',
+                  fontWeight: 600,
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                {!user && <option value="">Selecionar conta da sessão...</option>}
-                {usuariosAtivos.map((u) => (
-                  <option key={u.id} value={u.id} disabled={Boolean(u.bloqueado)}>
-                    [{u.papel === 'admin' ? 'Admin' : 'Cliente'}] #{u.id} {u.name}
-                    {u.bloqueado ? ' (Bloqueada)' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                atualizarStatusDemo();
-                setModalGuiaAberto(true);
-              }}
-              style={{
-                background: '#2c2c2c',
-                color: '#e4e4e7',
-                border: '1px solid #44403c',
-                borderRadius: '5px',
-                padding: '6px 11px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <IconTag />
-              Guia &amp; Cupons
-            </button>
-
-            <button
-              type="button"
-              disabled={loadingAction}
-              onClick={() => setModalResetAberto(true)}
-              style={{
-                background: '#2c2c2c',
-                color: '#fca5a5',
-                border: '1px solid #7f1d1d',
-                borderRadius: '5px',
-                padding: '6px 11px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: loadingAction ? 'wait' : 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <IconRefresh />
-              Resetar Demo
-            </button>
-
-            <button
-              type="button"
-              disabled={loadingAction}
-              onClick={abrirPortaoTrocaModo}
-              style={{
-                background: '#2c2c2c',
-                color: '#e4e4e7',
-                border: '1px solid #44403c',
-                borderRadius: '5px',
-                padding: '6px 11px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <IconSwitch />
-              Trocar Modo
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMinimizado(true)}
-              aria-label="Minimizar barra Demo"
-              title="Recolher barra do Modo Demo"
-              style={{
-                background: '#2c2c2c',
-                color: '#d4d4d8',
-                border: '1px solid #44403c',
-                borderRadius: '5px',
-                padding: '6px 9px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <IconChevron />
-            </button>
+                <IconChevron />
+              </button>
             </div>
           </div>
         </div>
@@ -649,8 +649,8 @@ export default function DemoToolbar() {
                 const saldoStr =
                   item.codigo === 'VALE50' && cupomSessao?.saldo_atual !== undefined
                     ? ` (Saldo atual na sessão: R$ ${Number(cupomSessao.saldo_atual)
-                        .toFixed(2)
-                        .replace('.', ',')})`
+                      .toFixed(2)
+                      .replace('.', ',')})`
                     : '';
 
                 return (

@@ -185,7 +185,7 @@
 
 /* ── 3. SEÇÕES (Destaques / Vem por aí) ─────────────────────── */
 .home-section {
-  max-width: max(1200px, 86vw);
+  max-width: var(--container-store, min(92vw, 1680px));
   margin: 0 auto;
   padding: 40px 24px 20px;
 }
@@ -503,6 +503,15 @@
 }
 
 /* ── 8. RESPONSIVO ───────────────────────────────────────────── */
+@media (min-width: 1520px) {
+  .produto-card,
+  .skeleton-card {
+    flex: 0 0 calc((100% - 80px) / 5);
+    width: calc((100% - 80px) / 5);
+    max-width: calc((100% - 80px) / 5);
+  }
+}
+
 @media (max-width: 991px) and (min-width: 641px) {
   .produto-card,
   .skeleton-card {

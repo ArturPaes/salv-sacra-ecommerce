@@ -5,6 +5,14 @@
   padding: 0;
 }
 
+:root {
+  --container-wide: min(94vw, 1820px);
+  --container-store: min(92vw, 1680px);
+  --container-editorial: min(92vw, 1380px);
+  --container-account: min(86vw, 1260px);
+  --cart-drawer-w: clamp(440px, 28vw, 540px);
+}
+
 html {
   font-family: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
   font-size: 16px;
@@ -14,6 +22,12 @@ html {
   max-width: 100%;
   overflow-x: hidden;
   overflow-x: clip;
+}
+
+@media (min-width: 1441px) {
+  html {
+    font-size: clamp(16px, 0.72vw + 5.6px, 18.5px);
+  }
 }
 
 body {
