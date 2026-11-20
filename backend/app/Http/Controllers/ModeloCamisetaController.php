@@ -97,6 +97,17 @@ class ModeloCamisetaController extends Controller
     public function destroy($id): JsonResponse
     {
         $modelo = ModeloCamiseta::findOrFail($id);
+
+        $produtosCount = $this->contarProdutosPorModelo($modelo->nome);
+
+        if ($produtosCount > 0) {
+            $plural = $produtosCount === 1 ? 'produto vinculado' : 'produtos vinculados';
+
+            return response()->json([
+                'message' => "Não é possível excluir o modelo de camiseta \"{$modelo->nome}\" porque há {$produtosCount} {$plural} a ele. Altere ou exclua os produtos vinculados antes de remover este item.",
+            ], 409);
+        }
+
         $modelo->delete();
 
         return response()->json(['message' => 'Modelo de camiseta excluído com sucesso.']);

@@ -36,6 +36,8 @@ function deduplicarCores(lista) {
 function CatalogoItemCard({ prod, precoAtivo }) {
   const [hovered, setHovered] = useState(false);
   const [fotoIdx, setFotoIdx] = useState(0);
+  const [setaCardAtiva, setSetaCardAtiva] = useState(null);
+  const setaCardTimerRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const touchDeltaX = useRef(0);
@@ -44,6 +46,12 @@ function CatalogoItemCard({ prod, precoAtivo }) {
   const { isFavorite, toggleFavorite } = useWishlist();
   const navigate = useNavigate();
   const favoritado = isFavorite(prod.id);
+
+  useEffect(() => {
+    return () => {
+      if (setaCardTimerRef.current) clearTimeout(setaCardTimerRef.current);
+    };
+  }, []);
 
   const valorPreco = precoAtivo ?? (String(prod.modelo || '').toLowerCase() === 'oversized' ? (prod.preco_oversized ?? prod.preco_base) : prod.preco_base);
   const preco = valorPreco
@@ -60,19 +68,24 @@ function CatalogoItemCard({ prod, precoAtivo }) {
 
   // Lista unificada de todas as fotos de vitrine / cores
   const listaFotos = (() => {
-    if (coresConfig.length > 0) {
-      const fotosDeCores = coresConfig
-        .map((c) => c.imagem_url)
-        .filter(Boolean);
-      if (fotosDeCores.length > 0) return fotosDeCores;
-    }
-    if (vitrine.length > 0) return vitrine;
+    const fotosDeCores = Array.from(new Set(coresConfig.map((c) => c.imagem_url).filter(Boolean)));
+    const vitrineImgs = Array.from(new Set(vitrine.filter(Boolean)));
+    if (fotosDeCores.length > 1) return fotosDeCores;
+    if (vitrineImgs.length > 1) return vitrineImgs;
+    if (fotosDeCores.length > 0) return fotosDeCores;
+    if (vitrineImgs.length > 0) return vitrineImgs;
     return prod.imagem_url ? [prod.imagem_url] : [];
   })();
 
   const fotoExibida = listaFotos[fotoIdx] || listaFotos[0] || prod.imagem_url || '';
 
+  const isDesktopHoverPointer = () =>
+    typeof window === 'undefined' ||
+    !window.matchMedia ||
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
   const handleMouseEnter = () => {
+    if (!isDesktopHoverPointer()) return;
     setHovered(true);
     if (listaFotos.length > 1) {
       setFotoIdx(1);
@@ -82,6 +95,7 @@ function CatalogoItemCard({ prod, precoAtivo }) {
   };
 
   const handleMouseLeave = () => {
+    if (!isDesktopHoverPointer()) return;
     setHovered(false);
     setFotoIdx(0);
   };
@@ -89,6 +103,10 @@ function CatalogoItemCard({ prod, precoAtivo }) {
   const handlePrevFoto = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    e.currentTarget.blur();
+    if (setaCardTimerRef.current) clearTimeout(setaCardTimerRef.current);
+    setSetaCardAtiva('prev');
+    setaCardTimerRef.current = setTimeout(() => setSetaCardAtiva(null), 180);
     if (listaFotos.length > 1) {
       setFotoIdx((prev) => (prev - 1 + listaFotos.length) % listaFotos.length);
     }
@@ -97,6 +115,10 @@ function CatalogoItemCard({ prod, precoAtivo }) {
   const handleNextFoto = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    e.currentTarget.blur();
+    if (setaCardTimerRef.current) clearTimeout(setaCardTimerRef.current);
+    setSetaCardAtiva('next');
+    setaCardTimerRef.current = setTimeout(() => setSetaCardAtiva(null), 180);
     if (listaFotos.length > 1) {
       setFotoIdx((prev) => (prev + 1) % listaFotos.length);
     }
@@ -191,13 +213,13 @@ function CatalogoItemCard({ prod, precoAtivo }) {
           </svg>
         </button>
 
-        {/* Setas para navegar nas cores/fotos quando há mais de 2 fotos/cores */}
+        {/* Setas para navegar nas cores/fotos no desktop (hover) */}
         {hovered && listaFotos.length > 2 && (
           <>
             <button
               type="button"
               onClick={handlePrevFoto}
-              className="card-nav-arrow card-nav-arrow-left"
+              className="card-nav-arrow card-nav-arrow--desktop card-nav-arrow-left"
               title="Foto/Cor anterior"
               aria-label="Foto/Cor anterior"
             >
@@ -206,11 +228,43 @@ function CatalogoItemCard({ prod, precoAtivo }) {
             <button
               type="button"
               onClick={handleNextFoto}
-              className="card-nav-arrow card-nav-arrow-right"
+              className="card-nav-arrow card-nav-arrow--desktop card-nav-arrow-right"
               title="Próxima foto/cor"
               aria-label="Próxima foto/cor"
             >
               ›
+            </button>
+          </>
+        )}
+
+        {/* Setas minimalistas para navegar entre fotos no mobile */}
+        {listaFotos.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrevFoto}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className={`card-nav-arrow-mobile card-nav-arrow-mobile-left ${setaCardAtiva === 'prev' ? 'is-pressed' : ''}`}
+              title="Foto/Cor anterior"
+              aria-label="Foto/Cor anterior"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleNextFoto}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className={`card-nav-arrow-mobile card-nav-arrow-mobile-right ${setaCardAtiva === 'next' ? 'is-pressed' : ''}`}
+              title="Próxima foto/cor"
+              aria-label="Próxima foto/cor"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
           </>
         )}

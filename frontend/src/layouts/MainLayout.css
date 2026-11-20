@@ -253,12 +253,12 @@
 }
 
 .footer-columns {
-  max-width: var(--container-store, min(92vw, 1680px));
+  max-width: min(92vw, 1400px);
   margin: 0 auto;
-  padding: 48px 24px 32px;
+  padding: 26px 24px 18px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 32px;
+  gap: 24px;
 }
 
 .footer-col h4 {
@@ -267,7 +267,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #1e1e1e;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .footer-col--social {
@@ -279,7 +279,7 @@
 
 .footer-col--social h4 {
   text-align: center;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .footer-col a,
@@ -288,7 +288,7 @@
   font-size: 13px;
   color: #c4953a;
   text-decoration: none;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   line-height: 1.5;
 }
 
@@ -302,7 +302,7 @@
   gap: 8px;
   color: #333;
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .footer-col .contact-item svg {
@@ -353,13 +353,13 @@
 
 /* ---- Pagamentos ---- */
 .footer-payment {
-  max-width: var(--container-store, min(92vw, 1680px));
+  max-width: min(92vw, 1400px);
   margin: 0 auto;
-  padding: 24px;
+  padding: 14px 24px;
   border-top: 1px solid #d0d0d0;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -406,7 +406,7 @@
 /* ---- Copyright ---- */
 .footer-copyright {
   background-color: #1e1e1e;
-  padding: 14px 24px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -488,8 +488,8 @@
 
   .footer-columns {
     grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    padding: 36px 16px 24px;
+    gap: 18px;
+    padding: 24px 16px 16px;
   }
 
   .footer-col .contact-item {
@@ -558,12 +558,12 @@
   }
 
   .footer-payment {
-    padding: 18px 14px;
-    gap: 14px;
+    padding: 12px 14px;
+    gap: 12px;
   }
 
   .footer-copyright {
-    padding: 14px 16px;
+    padding: 12px 16px;
     text-align: center;
     justify-content: center;
   }

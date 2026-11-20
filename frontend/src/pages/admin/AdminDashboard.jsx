@@ -38,7 +38,7 @@ const IconAlertTriangle = () => (
 /**
  * Gera o caminho da curva suave SVG (Bézier Spline) e da área sombreada dinamicamente a partir dos pontos calculados.
  */
-function calcularCaminhosCurva(pontos, alturaBase = 300) {
+function calcularCaminhosCurva(pontos, alturaBase = 320, alturaTopo = 60) {
   if (!pontos || pontos.length === 0) return { linhaPath: '', areaPath: '' };
   if (pontos.length === 1) {
     return {
@@ -47,6 +47,7 @@ function calcularCaminhosCurva(pontos, alturaBase = 300) {
     };
   }
 
+  const clampY = (y) => Math.max(alturaTopo, Math.min(alturaBase, y));
   let d = `M ${pontos[0].x},${pontos[0].y}`;
 
   for (let i = 0; i < pontos.length - 1; i++) {
@@ -56,10 +57,15 @@ function calcularCaminhosCurva(pontos, alturaBase = 300) {
     const p3 = pontos[i + 2] || p2;
 
     const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    let cp1y = clampY(p1.y + (p2.y - p0.y) / 6);
 
     const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    let cp2y = clampY(p2.y - (p3.y - p1.y) / 6);
+
+    if (p1.y === alturaBase && p2.y === alturaBase) {
+      cp1y = alturaBase;
+      cp2y = alturaBase;
+    }
 
     d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x},${p2.y}`;
   }
@@ -73,6 +79,7 @@ function calcularCaminhosCurva(pontos, alturaBase = 300) {
 
 export default function AdminDashboard() {
   const [periodo, setPeriodo] = useState('7dias'); // '7dias' ou '30dias'
+  const [pontoSelecionado, setPontoSelecionado] = useState(null);
 
   // Inicializa lendo do cache para evitar "piscar" dados anteriores
   const [data, setData] = useState(() => {
@@ -133,6 +140,14 @@ export default function AdminDashboard() {
   const formatBRL = (val) =>
     Number(val ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
+  const formatBRLPreciso = (val) =>
+    Number(val ?? 0).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   // ── Seleciona a série de dados instantaneamente a partir do estado na memória ──
   const vendas = data?.graficos?.[periodo] || (periodo === '30dias' ? data?.grafico_vendas : data?.grafico_vendas) || [];
   const valores = vendas.map((v) => Number(v.valor || 0));
@@ -155,16 +170,16 @@ export default function AdminDashboard() {
 
   // 5 linhas horizontais de referência calculadas proporcionalmente
   const linhasY = [
-    { label: formatBRL(maxGrafico), y: 40, val: maxGrafico },
-    { label: formatBRL(maxGrafico * 0.75), y: 105, val: maxGrafico * 0.75 },
-    { label: formatBRL(maxGrafico * 0.5), y: 170, val: maxGrafico * 0.5 },
-    { label: formatBRL(maxGrafico * 0.25), y: 235, val: maxGrafico * 0.25 },
-    { label: 'R$ 0', y: 300, val: 0 },
+    { label: formatBRL(maxGrafico), y: 60, val: maxGrafico },
+    { label: formatBRL(maxGrafico * 0.75), y: 125, val: maxGrafico * 0.75 },
+    { label: formatBRL(maxGrafico * 0.5), y: 190, val: maxGrafico * 0.5 },
+    { label: formatBRL(maxGrafico * 0.25), y: 255, val: maxGrafico * 0.25 },
+    { label: 'R$ 0', y: 320, val: 0 },
   ];
 
   // Mapeia os pontos X e Y exatos de cada dia
-  const yTopo = 40;
-  const yBase = 300;
+  const yTopo = 60;
+  const yBase = 320;
   const xInicio = 80;
   const xFim = 880;
   const stepX = (xFim - xInicio) / Math.max(vendas.length - 1, 1);
@@ -173,10 +188,11 @@ export default function AdminDashboard() {
     const x = xInicio + i * stepX;
     const proporcao = maxGrafico > 0 ? (v.valor || 0) / maxGrafico : 0;
     const y = yBase - proporcao * (yBase - yTopo);
-    return { x, y, dia: v.dia, data_fmt: v.data_fmt, valor: v.valor };
+    return { x, y, dia: v.dia, data_fmt: v.data_fmt, valor: Number(v.valor || 0) };
   });
 
-  const { linhaPath, areaPath } = calcularCaminhosCurva(pontos, yBase);
+  const { linhaPath, areaPath } = calcularCaminhosCurva(pontos, yBase, yTopo);
+  const pontoAtivo = pontoSelecionado !== null && pontos[pontoSelecionado] ? pontos[pontoSelecionado] : null;
 
   return (
     <div className="admin-page">
@@ -268,7 +284,9 @@ export default function AdminDashboard() {
           <div>
             <h2 className="admin-dash-chart-title">Tendência de Vendas</h2>
             <p className="admin-dash-chart-subtitle">
-              {periodo === '30dias' ? 'Histórico dos últimos 30 dias' : 'Vendas realizadas nos últimos 7 dias'}
+              {periodo === '30dias'
+                ? 'Histórico dos últimos 30 dias · Clique nos pontos para ver o valor'
+                : 'Vendas realizadas nos últimos 7 dias · Clique nos pontos para ver o valor'}
             </p>
           </div>
 
@@ -276,7 +294,10 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', gap: '6px', background: '#f4f4f5', padding: '3px', borderRadius: '6px' }}>
             <button
               type="button"
-              onClick={() => setPeriodo('7dias')}
+              onClick={() => {
+                setPeriodo('7dias');
+                setPontoSelecionado(null);
+              }}
               style={{
                 border: 'none',
                 padding: '6px 12px',
@@ -293,7 +314,10 @@ export default function AdminDashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setPeriodo('30dias')}
+              onClick={() => {
+                setPeriodo('30dias');
+                setPontoSelecionado(null);
+              }}
               style={{
                 border: 'none',
                 padding: '6px 12px',
@@ -312,7 +336,12 @@ export default function AdminDashboard() {
         </div>
 
         <div className="admin-dash-svg-container">
-          <svg viewBox="0 0 920 360" width="100%" height="100%" style={{ overflow: 'visible' }}>
+          <svg
+            viewBox="0 0 920 385"
+            width="100%"
+            style={{ overflow: 'visible' }}
+            onClick={() => setPontoSelecionado(null)}
+          >
             <defs>
               <linearGradient id="yellowAreaGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#f7dc6f" stopOpacity="0.45" />
@@ -357,29 +386,47 @@ export default function AdminDashboard() {
               />
             )}
 
-            {/* Pontos interativos com tooltip nativo e dias da semana */}
+            {/* Pontos clicáveis para exibir o valor exato e dias da semana */}
             {pontos.map((p, idx) => {
-              // No modo de 30 dias exibe os rótulos de forma espaçada
               const exibirRotulo = periodo === '7dias' || idx % 5 === 0 || idx === pontos.length - 1;
+              const selecionado = pontoSelecionado === idx;
+              const temVenda = p.valor > 0;
               return (
                 <g key={idx}>
-                  {p.valor > 0 && (
-                    <>
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r="5"
-                        fill="#eab308"
-                        stroke="#fff"
-                        strokeWidth="2.5"
-                      />
-                      <title>{`${p.dia} (${p.data_fmt}): ${formatBRL(p.valor)}`}</title>
-                    </>
-                  )}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={selecionado ? (temVenda ? 7.5 : 6) : (temVenda ? 6 : 3.5)}
+                    fill={temVenda || selecionado ? '#eab308' : '#d4d4d8'}
+                    stroke={selecionado ? '#1e1e1e' : '#fff'}
+                    strokeWidth={temVenda || selecionado ? 2.5 : 1.5}
+                  />
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r="16"
+                    fill="transparent"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${p.dia} (${p.data_fmt}): ${formatBRLPreciso(p.valor)}`}
+                    style={{ cursor: 'pointer', outline: 'none' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPontoSelecionado((prev) => (prev === idx ? null : idx));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setPontoSelecionado((prev) => (prev === idx ? null : idx));
+                      }
+                    }}
+                  >
+                    <title>{`${p.dia} (${p.data_fmt}): ${formatBRLPreciso(p.valor)}`}</title>
+                  </circle>
                   {exibirRotulo && (
                     <text
                       x={p.x}
-                      y="335"
+                      y="356"
                       textAnchor="middle"
                       fill="#71717a"
                       fontSize="12"
@@ -391,6 +438,64 @@ export default function AdminDashboard() {
                 </g>
               );
             })}
+
+            {/* Popover fixado ao clicar na bolinha */}
+            {pontoAtivo && (() => {
+              const boxW = 148;
+              const boxH = 48;
+              const boxX = Math.max(72, Math.min(900 - boxW, pontoAtivo.x - boxW / 2));
+              const abrirEmbaixo = pontoAtivo.y - boxH - 16 < 6;
+              const boxY = abrirEmbaixo ? pontoAtivo.y + 16 : pontoAtivo.y - boxH - 14;
+              const arrowBaseY = abrirEmbaixo ? boxY : boxY + boxH;
+              const arrowTipY = abrirEmbaixo ? boxY - 7 : boxY + boxH + 7;
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  <line
+                    x1={pontoAtivo.x}
+                    y1={pontoAtivo.y}
+                    x2={pontoAtivo.x}
+                    y2={yBase}
+                    stroke="#eab308"
+                    strokeWidth="1.2"
+                    strokeDasharray="3 3"
+                  />
+                  <rect
+                    x={boxX}
+                    y={boxY}
+                    width={boxW}
+                    height={boxH}
+                    rx="8"
+                    fill="#1e1e1e"
+                    stroke="#d4af37"
+                    strokeWidth="1"
+                  />
+                  <polygon
+                    points={`${pontoAtivo.x - 6},${arrowBaseY} ${pontoAtivo.x + 6},${arrowBaseY} ${pontoAtivo.x},${arrowTipY}`}
+                    fill="#1e1e1e"
+                  />
+                  <text
+                    x={boxX + boxW / 2}
+                    y={boxY + 18}
+                    textAnchor="middle"
+                    fill="#d4af37"
+                    fontSize="11"
+                    fontWeight="600"
+                  >
+                    {`${pontoAtivo.dia} · ${pontoAtivo.data_fmt}`}
+                  </text>
+                  <text
+                    x={boxX + boxW / 2}
+                    y={boxY + 37}
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontSize="13.5"
+                    fontWeight="700"
+                  >
+                    {formatBRLPreciso(pontoAtivo.valor)}
+                  </text>
+                </g>
+              );
+            })()}
           </svg>
         </div>
       </div>

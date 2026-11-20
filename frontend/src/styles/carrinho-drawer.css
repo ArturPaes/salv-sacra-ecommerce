@@ -120,8 +120,8 @@
 }
 
 .cart-item-thumb {
-  width: clamp(60px, 3.8vw, 72px);
-  height: clamp(72px, 4.6vw, 88px);
+  width: 76px;
+  height: 96px;
   border-radius: 6px;
   background: #fff;
   overflow: hidden;
@@ -136,6 +136,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
+  image-rendering: auto;
+  backface-visibility: hidden;
 }
 
 .cart-item-info {
@@ -492,6 +495,11 @@
 }
 
 @media (max-width: 480px) {
+  .cart-item-thumb {
+    width: 68px;
+    height: 86px;
+  }
+
   .cart-drawer {
     width: 100vw;
     max-width: 100vw;

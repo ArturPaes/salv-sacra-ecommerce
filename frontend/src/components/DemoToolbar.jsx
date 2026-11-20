@@ -785,12 +785,11 @@ export default function DemoToolbar() {
                 <strong style={{ color: '#1e1e1e', display: 'block', marginBottom: '4px' }}>
                   Na Visão Cliente:
                 </strong>
-                • Adicionar camisetas ao carrinho e testar <code>PROMO10</code> +{' '}
-                <code>VALE50</code>.<br />• Finalizar compra via PIX e clicar em{' '}
-                <strong>Simular Pagamento Aprovado Agora</strong>.<br />• Criar uma conta própria em{' '}
-                <strong>Cadastre-se</strong> (sem reCAPTCHA / com ativação automática) e alternar
-                para ela no seletor.<br />• Cancelar um pedido pago ou solicitar devolução/troca em{' '}
-                <strong>Minha Conta</strong>.
+                • Acesse <strong>Camisetas</strong>, use um filtro e abra uma camiseta da vitrine.<br />
+                • Alterne entre <strong>Regular Fit</strong> e <strong>Oversized</strong> para conferir o preço, escolha cor e tamanho disponíveis e adicione ao carrinho.<br />
+                • No carrinho lateral, simule o frete com um CEP, teste o seletor de cupom e clique em <strong>Iniciar Compra</strong>.<br />
+                • Na entrega, avance para o pagamento e conclua o pedido (no Cartão, use <strong>Preencher Cartão de Teste</strong>; no PIX, clique em <strong>[DEMO] Simular Pagamento Aprovado Agora</strong>).<br />
+                • Após confirmar o pagamento, clique em <strong>Acompanhar Meu Pedido</strong> e abra o pedido para ver a linha do tempo.
               </div>
               <div
                 style={{
@@ -803,11 +802,10 @@ export default function DemoToolbar() {
                 <strong style={{ color: '#1e1e1e', display: 'block', marginBottom: '4px' }}>
                   No Painel Admin:
                 </strong>
-                • Visualizar seus pedidos criados em <strong>Pedidos e Pagamentos</strong>.<br />•
-                Gerar etiqueta Melhor Envio simulada e avançar rastreio até <strong>Entregue</strong>
-                .<br />• Abrir <strong>Clientes</strong>, conceder um novo vale-compra ou testar o
-                bloqueio de uma conta.<br />• Editar produtos, estoque ou cupons sabendo que o site
-                real permanece 100% intacto.
+                • Alterne para a <strong>Visão Admin</strong> pela barra Demo e confira os indicadores financeiros e alertas de estoque baixo no Dashboard.<br />
+                • Em <strong>Gestão de Estoque</strong>, aumente a quantidade dos itens críticos até saírem desse estado.<br />
+                • Em <strong>Pedidos</strong>, localize o pedido recém-criado e clique em <strong>Gerenciar Entrega</strong>.<br />
+                • Informe um código qualquer em <strong>Código de Rastreio</strong>, clique em <strong>Salvar Rastreio</strong> e altere o status para <strong>Entregue</strong>.
               </div>
             </div>
           </div>

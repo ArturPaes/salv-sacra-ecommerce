@@ -460,6 +460,12 @@ class ContaController extends Controller
     {
         $user = $request->user();
 
+        if (\App\Services\DemoSandboxService::isDemo() && strtolower(trim((string) $user->email)) === 'cliente@demo.salvsacra.com') {
+            return response()->json([
+                'message' => 'A conta padrão Cliente Demo não pode ser excluída. Se quiser testar a exclusão de conta, cadastre um novo cliente.',
+            ], 422);
+        }
+
         \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
             // 1. Remove dados sensíveis de pagamento e sessões ativas
             $user->cartoes()->delete();

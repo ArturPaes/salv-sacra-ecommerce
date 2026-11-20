@@ -87,6 +87,19 @@ class ColecaoController extends Controller
     public function destroy($id): JsonResponse
     {
         $colecao = Colecao::findOrFail($id);
+
+        $produtosCount = Produto::where('colecao', 'ilike', "%{$colecao->nome}%")
+            ->orWhere('modelo', 'ilike', "%{$colecao->nome}%")
+            ->count();
+
+        if ($produtosCount > 0) {
+            $plural = $produtosCount === 1 ? 'produto vinculado' : 'produtos vinculados';
+
+            return response()->json([
+                'message' => "Não é possível excluir a coleção \"{$colecao->nome}\" porque há {$produtosCount} {$plural} a ela. Altere ou exclua os produtos vinculados antes de remover este item.",
+            ], 409);
+        }
+
         $colecao->delete();
 
         return response()->json(['message' => 'Coleção excluída com sucesso.']);

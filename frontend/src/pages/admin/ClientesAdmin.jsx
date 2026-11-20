@@ -32,7 +32,7 @@ const formatEnderecoResumo = (end) => {
 };
 
 export default function ClientesAdmin() {
-  const { isDemoMode } = useDemo();
+  const { isDemoMode, atualizarStatusDemo } = useDemo();
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
@@ -117,6 +117,9 @@ export default function ClientesAdmin() {
       }
       setSucesso(data?.message || `Cliente #${clienteParaExcluir.id} excluído com sucesso.`);
       setClienteParaExcluir(null);
+      if (isDemoMode && atualizarStatusDemo) {
+        atualizarStatusDemo();
+      }
       setTimeout(() => setSucesso(''), 5000);
     } catch (err) {
       setErro(err.response?.data?.message || 'Não foi possível excluir o cliente.');
@@ -314,8 +317,8 @@ export default function ClientesAdmin() {
         </button>
       </div>
 
-      {erro && <div className="admin-alert admin-alert-error">{erro}</div>}
-      {sucesso && <div className="admin-alert admin-alert-success">{sucesso}</div>}
+      {erro && <div className="admin-error">{erro}</div>}
+      {sucesso && <div className="admin-success">{sucesso}</div>}
 
       {/* Barra de Pesquisa, Filtros e Ordenação */}
       <div className="admin-filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', marginBottom: '18px' }}>
@@ -524,26 +527,36 @@ export default function ClientesAdmin() {
                           </button>
                         )}
                         {(() => {
-                          const totalAtivos = clientes.filter((item) => !item.bloqueado).length;
-                          const bloqueadoNaDemo = isDemoMode && (clientes.length <= 1 || (!c.bloqueado && totalAtivos <= 1));
+                          const ehClienteDemoPadrao =
+                            isDemoMode &&
+                            String(c.email || '').trim().toLowerCase() === 'cliente@demo.salvsacra.com';
                           return (
                             <button
                               type="button"
                               className="admin-btn admin-btn-sm"
-                              disabled={bloqueadoNaDemo}
                               style={{
-                                background: bloqueadoNaDemo ? '#f1f5f9' : '#fee2e2',
-                                color: bloqueadoNaDemo ? '#94a3b8' : '#b91c1c',
-                                border: `1px solid ${bloqueadoNaDemo ? '#cbd5e1' : '#fecaca'}`,
+                                background: ehClienteDemoPadrao ? '#f1f5f9' : '#fee2e2',
+                                color: ehClienteDemoPadrao ? '#94a3b8' : '#b91c1c',
+                                border: `1px solid ${ehClienteDemoPadrao ? '#cbd5e1' : '#fecaca'}`,
                                 fontWeight: 700,
-                                cursor: bloqueadoNaDemo ? 'not-allowed' : 'pointer',
+                                cursor: 'pointer',
                               }}
                               title={
-                                bloqueadoNaDemo
-                                  ? 'No Modo Demo é necessário manter ao menos uma conta de cliente ativa disponível.'
+                                ehClienteDemoPadrao
+                                  ? 'A conta padrão Cliente Demo não pode ser excluída.'
                                   : 'Excluir cliente'
                               }
-                              onClick={() => !bloqueadoNaDemo && setClienteParaExcluir(c)}
+                              onClick={() => {
+                                if (ehClienteDemoPadrao) {
+                                  setSucesso('');
+                                  setErro(
+                                    'A conta padrão Cliente Demo não pode ser excluída. Se quiser testar a exclusão de conta, cadastre um novo cliente.'
+                                  );
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  return;
+                                }
+                                setClienteParaExcluir(c);
+                              }}
                             >
                               Excluir
                             </button>

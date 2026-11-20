@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   listarTaxonomia,
   criarTaxonomia,
@@ -24,12 +24,23 @@ export default function CategoriasDevocoesPage() {
   const [editandoNome, setEditandoNome] = useState('');
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState({ tipo: '', texto: '' });
+  const feedbackTimerRef = useRef(null);
 
   const cfg = ABAS.find((a) => a.kind === aba);
 
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
+
   const mostrar = (tipo, texto) => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
     setFeedback({ tipo, texto });
-    setTimeout(() => setFeedback({ tipo: '', texto: '' }), 4000);
+    feedbackTimerRef.current = setTimeout(
+      () => setFeedback({ tipo: '', texto: '' }),
+      tipo === 'erro' ? 7000 : 3500
+    );
   };
 
   const erroApi = (err, padrao) =>
@@ -96,6 +107,24 @@ export default function CategoriasDevocoesPage() {
   };
 
   const handleExcluir = async (item) => {
+    const qtd = Number(item.produtos_count || 0);
+    if (qtd > 0) {
+      const rotulos = {
+        categorias: { artigo: 'a categoria', pronome: 'ela' },
+        devocaos: { artigo: 'a devoção', pronome: 'ela' },
+        colecoes: { artigo: 'a coleção', pronome: 'ela' },
+        modelos: { artigo: 'o modelo de camiseta', pronome: 'ele' },
+      };
+      const { artigo, pronome } = rotulos[aba] || { artigo: 'o item', pronome: 'ele' };
+      const plural = qtd === 1 ? 'produto vinculado' : 'produtos vinculados';
+      mostrar(
+        'erro',
+        `Não é possível excluir ${artigo} "${item.nome}" porque há ${qtd} ${plural} a ${pronome}. Altere ou exclua os produtos vinculados antes de remover este item.`
+      );
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (!window.confirm(`Excluir "${item.nome}"?`)) return;
     setBusy(true);
     try {
@@ -104,6 +133,7 @@ export default function CategoriasDevocoesPage() {
       await carregar();
     } catch (err) {
       mostrar('erro', erroApi(err, 'Erro ao excluir.'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setBusy(false);
     }
@@ -131,6 +161,7 @@ export default function CategoriasDevocoesPage() {
           borderBottom: '2px solid #e5e7eb',
           marginBottom: '24px',
           overflowX: 'auto',
+          overflowY: 'hidden',
           whiteSpace: 'nowrap',
           WebkitOverflowScrolling: 'touch',
         }}
@@ -141,10 +172,10 @@ export default function CategoriasDevocoesPage() {
             type="button"
             onClick={() => setAba(a.kind)}
             style={{
-              padding: '12px 20px',
+              padding: '14px 22px',
               border: 'none',
               background: 'transparent',
-              fontSize: '14px',
+              fontSize: '16.5px',
               fontWeight: 700,
               color: aba === a.kind ? '#111' : '#64748b',
               borderBottom: aba === a.kind ? '2px solid #111' : '2px solid transparent',
@@ -158,17 +189,41 @@ export default function CategoriasDevocoesPage() {
       </div>
 
       {feedback.texto && (
-        <div style={{
-          padding: '12px 16px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          fontWeight: 600,
-          fontSize: '14px',
-          background: feedback.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
-          color: feedback.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
-          border: `1px solid ${feedback.tipo === 'sucesso' ? '#bbf7d0' : '#fecaca'}`,
-        }}>
-          {feedback.texto}
+        <div
+          role={feedback.tipo === 'erro' ? 'alert' : 'status'}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontWeight: 600,
+            fontSize: '14px',
+            background: feedback.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
+            color: feedback.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
+            border: `1px solid ${feedback.tipo === 'sucesso' ? '#bbf7d0' : '#fecaca'}`,
+          }}
+        >
+          <span>{feedback.texto}</span>
+          <button
+            type="button"
+            onClick={() => setFeedback({ tipo: '', texto: '' })}
+            aria-label="Fechar aviso"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              fontSize: '18px',
+              lineHeight: 1,
+              cursor: 'pointer',
+              padding: '0 2px',
+              flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -287,10 +342,11 @@ export default function CategoriasDevocoesPage() {
                             </button>
                             <button
                               type="button"
-                              disabled={busy || item.produtos_count > 0}
+                              disabled={busy}
                               onClick={() => handleExcluir(item)}
                               className="admin-btn admin-btn-danger admin-btn-sm"
-                              title={item.produtos_count > 0 ? 'Há produtos vinculados' : 'Excluir'}
+                              style={item.produtos_count > 0 ? { opacity: 0.65, cursor: 'pointer' } : undefined}
+                              title={item.produtos_count > 0 ? 'Há produtos vinculados (clique para ver o motivo)' : 'Excluir'}
                             >
                               Excluir
                             </button>

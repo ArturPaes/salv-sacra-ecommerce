@@ -10,6 +10,9 @@ import api from '../../services/api';
 import bannerSaoJose from '../../assets/banner-sao-jose.jpg';
 import bannerDesatadora from '../../assets/banner-desatadora.jpg';
 import bannerPorVoce from '../../assets/banner-por-voce.jpg';
+import bannerSaoJoseMobile from '../../assets/banner-sao-jose-mobile.jpg';
+import bannerDesatadoraMobile from '../../assets/banner-desatadora-mobile.jpg';
+import bannerPorVoceMobile from '../../assets/banner-por-voce-mobile.jpg';
 import '../../styles/admin.css';
 import CuponsAdmin from './CuponsAdmin';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -48,6 +51,7 @@ const DEFAULT_CARROSSEL_SLIDES = [
 ];
 
 const FALLBACK_BANNER_IMGS = [bannerSaoJose, bannerDesatadora, bannerPorVoce];
+const FALLBACK_BANNER_MOBILE_IMGS = [bannerSaoJoseMobile, bannerDesatadoraMobile, bannerPorVoceMobile];
 
 export default function ConfiguracoesPage() {
   const { isDemoMode } = useDemo();
@@ -801,7 +805,7 @@ export default function ConfiguracoesPage() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>
-                      Parcelamento Máximo sem Juros (Cartão de Crédito)
+                      Parcelamento Máximo sem Juros
                     </label>
                     <select
                       name="cartao_parcelas_max"
@@ -940,6 +944,7 @@ export default function ConfiguracoesPage() {
 
               {slidesCarrossel.map((slide, idx) => {
                 const previewImg = slide.image?.trim() || FALLBACK_BANNER_IMGS[idx % FALLBACK_BANNER_IMGS.length];
+                const previewImgMobile = slide.image_mobile?.trim() || FALLBACK_BANNER_MOBILE_IMGS[idx] || '';
                 return (
                   <div
                     key={slide.id || idx}
@@ -948,16 +953,14 @@ export default function ConfiguracoesPage() {
                       borderRadius: '10px',
                       padding: '20px',
                       background: '#fafafa',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                      gap: '20px',
-                      alignItems: 'start',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '18px',
                     }}
                   >
                     {/* Cabeçalho do Card de Carrossel */}
                     <div
                       style={{
-                        gridColumn: '1 / -1',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -988,64 +991,65 @@ export default function ConfiguracoesPage() {
                       </button>
                     </div>
 
-                    {/* Preview da Foto */}
-                    <div>
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '125px',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          background: '#e5e7eb',
-                          border: '1px solid #d1d5db',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          position: 'relative',
-                        }}
-                      >
-                        <img
-                          src={previewImg}
-                          alt={`Slide ${idx + 1} Desktop`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        <span style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.68)', color: '#fff', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
-                          Desktop
-                        </span>
-                      </div>
-
-                      {slide.image_mobile?.trim() && (
-                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div
-                            style={{
-                              width: '72px',
-                              height: '90px',
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              background: '#e5e7eb',
-                              border: '1px solid #d1d5db',
-                              flexShrink: 0,
-                              position: 'relative',
-                            }}
-                          >
-                            <img
-                              src={slide.image_mobile.trim()}
-                              alt={`Slide ${idx + 1} Mobile`}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                            <span style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.72)', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>
-                              Mobile
-                            </span>
-                          </div>
-                          <span style={{ fontSize: '11px', color: '#475569', lineHeight: 1.4 }}>
-                            Imagem específica para celulares ativa (até 768px).
+                    <div className="admin-carousel-slide-body">
+                      {/* Preview da Foto (Coluna Esquerda) */}
+                      <div>
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '155px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            background: '#e5e7eb',
+                            border: '1px solid #d1d5db',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                          }}
+                        >
+                          <img
+                            src={previewImg}
+                            alt={`Slide ${idx + 1} Desktop`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <span style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.68)', color: '#fff', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
+                            Desktop
                           </span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Campos do Slide */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {previewImgMobile && (
+                          <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div
+                              style={{
+                                width: '72px',
+                                height: '90px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                background: '#e5e7eb',
+                                border: '1px solid #d1d5db',
+                                flexShrink: 0,
+                                position: 'relative',
+                              }}
+                            >
+                              <img
+                                src={previewImgMobile}
+                                alt={`Slide ${idx + 1} Mobile`}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                              <span style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.72)', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>
+                                Mobile
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>
+                              Imagem específica para celulares ativa (até 768px).
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Campos do Slide (Coluna Direita) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#333', marginBottom: '6px' }}>
                           Foto do Banner (Desktop)
@@ -1254,6 +1258,7 @@ export default function ConfiguracoesPage() {
                       </div>
                     </div>
                   </div>
+                </div>
                 );
               })}
             </div>

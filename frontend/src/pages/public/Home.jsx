@@ -6,8 +6,12 @@ import '../../styles/home.css';
 import bannerSaoJose from '../../assets/banner-sao-jose.jpg';
 import bannerDesatadora from '../../assets/banner-desatadora.jpg';
 import bannerPorVoce from '../../assets/banner-por-voce.jpg';
+import bannerSaoJoseMobile from '../../assets/banner-sao-jose-mobile.jpg';
+import bannerDesatadoraMobile from '../../assets/banner-desatadora-mobile.jpg';
+import bannerPorVoceMobile from '../../assets/banner-por-voce-mobile.jpg';
 
 const FALLBACK_BANNER_IMGS = [bannerSaoJose, bannerDesatadora, bannerPorVoce];
+const FALLBACK_BANNER_MOBILE_IMGS = [bannerSaoJoseMobile, bannerDesatadoraMobile, bannerPorVoceMobile];
 
 // ── Ícones inline ──────────────────────────────────────────────────────────────
 const IconTruck = () => (
@@ -55,6 +59,7 @@ const BANNER_SLIDES = [
     title: 'São José',
     cta:   'Saiba mais',
     image: bannerSaoJose,
+    image_mobile: bannerSaoJoseMobile,
     tema:  'claro',
     link:  '/produtos?categoria=camisetas',
   },
@@ -64,6 +69,7 @@ const BANNER_SLIDES = [
     title: 'Desatadora',
     cta:   'Saiba mais',
     image: bannerDesatadora,
+    image_mobile: bannerDesatadoraMobile,
     tema:  'escuro',
     link:  '/produtos?categoria=camisetas',
   },
@@ -73,6 +79,7 @@ const BANNER_SLIDES = [
     title: 'Por Você',
     cta:   'Saiba mais',
     image: bannerPorVoce,
+    image_mobile: bannerPorVoceMobile,
     tema:  'claro',
     link:  '/produtos?categoria=camisetas',
   },
@@ -321,7 +328,7 @@ export default function Home() {
                 cta: s.cta || 'Saiba mais',
                 tema: s.tema || 'claro',
                 image: (s.image && String(s.image).trim()) ? String(s.image).trim() : FALLBACK_BANNER_IMGS[idx % FALLBACK_BANNER_IMGS.length],
-                image_mobile: (s.image_mobile && String(s.image_mobile).trim()) ? String(s.image_mobile).trim() : '',
+                image_mobile: (s.image_mobile && String(s.image_mobile).trim()) ? String(s.image_mobile).trim() : (FALLBACK_BANNER_MOBILE_IMGS[idx] || ''),
                 link: s.produto_id ? `/produto/${s.produto_id}` : (s.link || '/produtos?categoria=camisetas'),
               }));
               setSlidesBanner(normalizados);

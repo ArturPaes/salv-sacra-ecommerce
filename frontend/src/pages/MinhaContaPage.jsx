@@ -4891,6 +4891,7 @@ export default function MinhaContaPage() {
   const [configsLoja, setConfigsLoja] = useState({});
   const [excluindoConta, setExcluindoConta] = useState(false);
   const [modalExcluirConta, setModalExcluirConta] = useState(false);
+  const [modalAviso, setModalAviso] = useState({ aberto: false, titulo: '', mensagem: '', icon: '!' });
 
   // Se o link do e-mail veio para outra conta e a conta atual não bate, desloga para que o usuário logue na conta correta
   useEffect(() => {
@@ -5045,6 +5046,16 @@ export default function MinhaContaPage() {
   };
 
   const abrirConfirmacaoExclusao = () => {
+    if (String(user?.email || '').trim().toLowerCase() === 'cliente@demo.salvsacra.com') {
+      setModalAviso({
+        aberto: true,
+        titulo: 'Conta protegida no Modo Demo',
+        mensagem:
+          'A conta padrão Cliente Demo não pode ser excluída. Se quiser testar a exclusão de conta, cadastre um novo cliente.',
+        icon: '!',
+      });
+      return;
+    }
     setModalExcluirConta(true);
   };
 
@@ -5270,6 +5281,78 @@ export default function MinhaContaPage() {
                   {excluindoConta ? 'Excluindo...' : 'Sim, excluir minha conta'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de aviso (ex.: conta protegida no Modo Demo ou erro ao excluir) */}
+        {modalAviso.aberto && (
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.55)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1250,
+              padding: '20px',
+            }}
+            onClick={() => setModalAviso({ aberto: false, titulo: '', mensagem: '', icon: '!' })}
+          >
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: '12px',
+                padding: '28px',
+                maxWidth: '440px',
+                width: '100%',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.25)',
+                textAlign: 'center',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: '#fee2e2',
+                  color: '#b91c1c',
+                  fontSize: '20px',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 14px',
+                }}
+              >
+                {modalAviso.icon || '!'}
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e1e1e', margin: '0 0 10px 0' }}>
+                {modalAviso.titulo || 'Aviso'}
+              </h3>
+              <p style={{ fontSize: '14px', color: '#444', lineHeight: 1.6, margin: '0 0 22px 0' }}>
+                {modalAviso.mensagem}
+              </p>
+              <button
+                type="button"
+                onClick={() => setModalAviso({ aberto: false, titulo: '', mensagem: '', icon: '!' })}
+                style={{
+                  background: '#1e1e1e',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 24px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Entendi
+              </button>
             </div>
           </div>
         )}

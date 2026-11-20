@@ -492,7 +492,7 @@ class DemoSandboxTest extends TestCase
         $this->assertFileExists($arquivoRecente);
     }
 
-    public function test_06_multiplas_avaliacoes_por_produto_edicao_e_protecao_ultima_conta_cliente(): void
+    public function test_06_multiplas_avaliacoes_por_produto_edicao_e_exclusao_ultimo_cliente(): void
     {
         $produto = Produto::with('variacoes')->first();
         if (! $produto || $produto->variacoes->isEmpty()) {
@@ -506,36 +506,7 @@ class DemoSandboxTest extends TestCase
         $clienteId = (int) $init->json('contas_padrao.cliente.id');
         $adminToken = $init->json('tokens.admin');
 
-        // 1. Não permite excluir a única conta de cliente ativa da sessão Demo
-        $this->withHeaders([
-            'X-Demo-Session' => $sid,
-            'Authorization'  => "Bearer {$adminToken}",
-        ])->deleteJson("/api/admin/clientes/{$clienteId}")
-            ->assertStatus(422);
-
-        // 2. Cria segundo cliente -> permite excluir o segundo, mas continua bloqueando excluir o último restante
-        $reg2 = $this->withHeaders(['X-Demo-Session' => $sid])
-            ->postJson('/api/auth/register', [
-                'name'                  => 'Cliente Extra Demo',
-                'email'                 => 'extra.demo@test.com',
-                'password'              => 'Senha1234',
-                'password_confirmation' => 'Senha1234',
-            ])->assertStatus(201);
-        $cliente2Id = (int) $reg2->json('user.id');
-
-        $this->withHeaders([
-            'X-Demo-Session' => $sid,
-            'Authorization'  => "Bearer {$adminToken}",
-        ])->deleteJson("/api/admin/clientes/{$cliente2Id}")
-            ->assertStatus(200);
-
-        $this->withHeaders([
-            'X-Demo-Session' => $sid,
-            'Authorization'  => "Bearer {$adminToken}",
-        ])->deleteJson("/api/admin/clientes/{$clienteId}")
-            ->assertStatus(422);
-
-        // 3. Compra + Entrega + Múltiplas avaliações para o mesmo produto pelo mesmo cliente + Edição + Exclusão individual
+        // 1. Compra + Entrega + Múltiplas avaliações para o mesmo produto pelo mesmo cliente + Edição + Exclusão individual
         if ($variacao->estoque < 2) {
             $this->withHeaders([
                 'X-Demo-Session' => $sid,
@@ -625,6 +596,34 @@ class DemoSandboxTest extends TestCase
         ])->getJson('/api/conta/avaliacoes')->assertStatus(200);
         $this->assertCount(1, $minhasDepois->json());
         $this->assertSame($av2Id, $minhasDepois->json('0.id'));
+
+        // 2. Exclusão de cliente extra e do último cliente restante pelo administrador (sem bloqueio)
+        $reg2 = $this->withHeaders(['X-Demo-Session' => $sid])
+            ->postJson('/api/auth/register', [
+                'name'                  => 'Cliente Extra Demo',
+                'email'                 => 'extra.demo@test.com',
+                'password'              => 'Senha1234',
+                'password_confirmation' => 'Senha1234',
+            ])->assertStatus(201);
+        $cliente2Id = (int) $reg2->json('user.id');
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->deleteJson("/api/admin/clientes/{$cliente2Id}")
+            ->assertStatus(200);
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$adminToken}",
+        ])->deleteJson("/api/admin/clientes/{$clienteId}")
+            ->assertStatus(422);
+
+        $this->withHeaders([
+            'X-Demo-Session' => $sid,
+            'Authorization'  => "Bearer {$clienteToken}",
+        ])->deleteJson('/api/conta/excluir')
+            ->assertStatus(422);
     }
 
     public function test_07_politica_de_senha_forte_e_bloqueio_login_senha_antiga_fraca(): void

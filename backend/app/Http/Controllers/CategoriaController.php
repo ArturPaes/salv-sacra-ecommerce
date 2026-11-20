@@ -65,8 +65,11 @@ class CategoriaController extends Controller
         $categoria = Categoria::withCount('produtos')->findOrFail($id);
 
         if ($categoria->produtos_count > 0) {
+            $qtd = $categoria->produtos_count;
+            $plural = $qtd === 1 ? 'produto vinculado' : 'produtos vinculados';
+
             return response()->json([
-                'message' => "Não é possível excluir: existem {$categoria->produtos_count} produto(s) nesta categoria.",
+                'message' => "Não é possível excluir a categoria \"{$categoria->nome}\" porque há {$qtd} {$plural} a ela. Altere ou exclua os produtos vinculados antes de remover este item.",
             ], 409);
         }
 

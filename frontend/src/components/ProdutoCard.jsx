@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
@@ -24,6 +24,8 @@ export function deduplicarCores(lista) {
 export default function ProdutoCard({ produto }) {
   const [hovered, setHovered] = useState(false);
   const [fotoIdx, setFotoIdx] = useState(0);
+  const [setaCardAtiva, setSetaCardAtiva] = useState(null);
+  const setaCardTimerRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const touchDeltaX = useRef(0);
@@ -33,6 +35,12 @@ export default function ProdutoCard({ produto }) {
   const { isFavorite, toggleFavorite } = useWishlist();
   const navigate = useNavigate();
   const favoritado = isFavorite(produto.id);
+
+  useEffect(() => {
+    return () => {
+      if (setaCardTimerRef.current) clearTimeout(setaCardTimerRef.current);
+    };
+  }, []);
 
   const isOnlyOversized = String(produto.modelo || '').toLowerCase() === 'oversized';
   const valorPreco = isOnlyOversized
@@ -52,17 +60,24 @@ export default function ProdutoCard({ produto }) {
   const coresConfig = Array.isArray(produto.cores_config) ? produto.cores_config : [];
 
   const listaFotos = (() => {
-    if (coresConfig.length > 0) {
-      const fotosDeCores = coresConfig.map((c) => c.imagem_url).filter(Boolean);
-      if (fotosDeCores.length > 0) return fotosDeCores;
-    }
-    if (vitrine.length > 0) return vitrine;
+    const fotosDeCores = Array.from(new Set(coresConfig.map((c) => c.imagem_url).filter(Boolean)));
+    const vitrineImgs = Array.from(new Set(vitrine.filter(Boolean)));
+    if (fotosDeCores.length > 1) return fotosDeCores;
+    if (vitrineImgs.length > 1) return vitrineImgs;
+    if (fotosDeCores.length > 0) return fotosDeCores;
+    if (vitrineImgs.length > 0) return vitrineImgs;
     return produto.imagem_url ? [produto.imagem_url] : [];
   })();
 
   const fotoExibida = listaFotos[fotoIdx] || listaFotos[0] || produto.imagem_url || '';
 
+  const isDesktopHoverPointer = () =>
+    typeof window === 'undefined' ||
+    !window.matchMedia ||
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
   const handleMouseEnter = () => {
+    if (!isDesktopHoverPointer()) return;
     setHovered(true);
     if (listaFotos.length > 1) {
       setFotoIdx(1);
@@ -72,6 +87,7 @@ export default function ProdutoCard({ produto }) {
   };
 
   const handleMouseLeave = () => {
+    if (!isDesktopHoverPointer()) return;
     setHovered(false);
     setFotoIdx(0);
   };
@@ -79,6 +95,10 @@ export default function ProdutoCard({ produto }) {
   const handlePrevFoto = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    e.currentTarget.blur();
+    if (setaCardTimerRef.current) clearTimeout(setaCardTimerRef.current);
+    setSetaCardAtiva('prev');
+    setaCardTimerRef.current = setTimeout(() => setSetaCardAtiva(null), 180);
     if (listaFotos.length > 1) {
       setFotoIdx((prev) => (prev - 1 + listaFotos.length) % listaFotos.length);
     }
@@ -87,6 +107,10 @@ export default function ProdutoCard({ produto }) {
   const handleNextFoto = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    e.currentTarget.blur();
+    if (setaCardTimerRef.current) clearTimeout(setaCardTimerRef.current);
+    setSetaCardAtiva('next');
+    setaCardTimerRef.current = setTimeout(() => setSetaCardAtiva(null), 180);
     if (listaFotos.length > 1) {
       setFotoIdx((prev) => (prev + 1) % listaFotos.length);
     }
@@ -185,13 +209,13 @@ export default function ProdutoCard({ produto }) {
           </svg>
         </button>
 
-        {/* Setas para navegar nas cores/fotos quando há mais de 2 fotos/cores */}
+        {/* Setas para navegar nas cores/fotos no desktop (hover) */}
         {hovered && listaFotos.length > 2 && (
           <>
             <button
               type="button"
               onClick={handlePrevFoto}
-              className="card-nav-arrow card-nav-arrow-left"
+              className="card-nav-arrow card-nav-arrow--desktop card-nav-arrow-left"
               title="Foto/Cor anterior"
               aria-label="Foto/Cor anterior"
             >
@@ -200,11 +224,43 @@ export default function ProdutoCard({ produto }) {
             <button
               type="button"
               onClick={handleNextFoto}
-              className="card-nav-arrow card-nav-arrow-right"
+              className="card-nav-arrow card-nav-arrow--desktop card-nav-arrow-right"
               title="Próxima foto/cor"
               aria-label="Próxima foto/cor"
             >
               ›
+            </button>
+          </>
+        )}
+
+        {/* Setas minimalistas para navegar entre fotos no mobile */}
+        {listaFotos.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrevFoto}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className={`card-nav-arrow-mobile card-nav-arrow-mobile-left ${setaCardAtiva === 'prev' ? 'is-pressed' : ''}`}
+              title="Foto/Cor anterior"
+              aria-label="Foto/Cor anterior"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleNextFoto}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className={`card-nav-arrow-mobile card-nav-arrow-mobile-right ${setaCardAtiva === 'next' ? 'is-pressed' : ''}`}
+              title="Próxima foto/cor"
+              aria-label="Próxima foto/cor"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
           </>
         )}

@@ -147,6 +147,14 @@ export default function ProdutoDetalhe() {
   const [corSelecionada, setCorSelecionada] = useState('');
   const [quantidade, setQuantidade] = useState(1);
   const [fotoPrincipal, setFotoPrincipal] = useState('');
+  const [setaAtiva, setSetaAtiva] = useState(null);
+  const setaTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (setaTimerRef.current) clearTimeout(setaTimerRef.current);
+    };
+  }, []);
 
   // Frete
   const [cep, setCep] = useState(globalCep || '');
@@ -287,6 +295,13 @@ export default function ProdutoDetalhe() {
       const corExib = coresExibicao.find((c) => c.toLowerCase() === matchGal.cor.toLowerCase()) || matchGal.cor;
       setCorSelecionada(corExib);
     }
+  };
+
+  const acionarSetaFoto = (dir) => {
+    if (setaTimerRef.current) clearTimeout(setaTimerRef.current);
+    setSetaAtiva(dir < 0 ? 'prev' : 'next');
+    setaTimerRef.current = setTimeout(() => setSetaAtiva(null), 180);
+    navegarFotoPrincipal(dir);
   };
 
   const handlePdpSwipeStart = (e) => {
@@ -816,7 +831,7 @@ export default function ProdutoDetalhe() {
                     }}
                     title={cor ? `Ver foto da cor ${cor}` : `Ângulo ${idx + 1}`}
                   >
-                    <img src={url} alt={`Ângulo ${idx + 1}`} />
+                    <img src={url} alt={`Ângulo ${idx + 1}`} decoding="async" />
                   </button>
                 );
               })}
@@ -833,11 +848,11 @@ export default function ProdutoDetalhe() {
                 <>
                   <button
                     type="button"
-                    className="pdp-main-img-arrow pdp-main-img-arrow--prev"
+                    className={`pdp-main-img-arrow pdp-main-img-arrow--prev ${setaAtiva === 'prev' ? 'is-pressed' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       e.currentTarget.blur();
-                      navegarFotoPrincipal(-1);
+                      acionarSetaFoto(-1);
                     }}
                     onTouchStart={(e) => e.stopPropagation()}
                     onTouchEnd={(e) => e.stopPropagation()}
@@ -848,11 +863,11 @@ export default function ProdutoDetalhe() {
                   </button>
                   <button
                     type="button"
-                    className="pdp-main-img-arrow pdp-main-img-arrow--next"
+                    className={`pdp-main-img-arrow pdp-main-img-arrow--next ${setaAtiva === 'next' ? 'is-pressed' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       e.currentTarget.blur();
-                      navegarFotoPrincipal(1);
+                      acionarSetaFoto(1);
                     }}
                     onTouchStart={(e) => e.stopPropagation()}
                     onTouchEnd={(e) => e.stopPropagation()}
@@ -989,7 +1004,7 @@ export default function ProdutoDetalhe() {
                       title={cor}
                     >
                       {imgMin ? (
-                        <img src={imgMin} alt={cor} />
+                        <img src={imgMin} alt={cor} decoding="async" />
                       ) : (
                         <span style={{ fontSize: '10px' }}>{cor}</span>
                       )}

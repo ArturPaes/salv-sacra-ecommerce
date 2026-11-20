@@ -3,6 +3,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getMe, login as loginService, logout as logoutService, register as registerService } from '../services/authService';
 
 const TOKEN_KEY = 'sanctum_token';
+const CART_STORAGE_KEYS = [
+  '@SalvSacra:carrinho',
+  '@SalvSacra:cupom',
+  '@SalvSacra:vale_compra',
+  '@SalvSacra:cep',
+];
+
+const limparArmazenamentoCarrinho = () => {
+  try {
+    CART_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+  } catch {}
+};
 
 const AuthContext = createContext(null);
 
@@ -23,8 +35,10 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('minha_conta_resumo');
       localStorage.removeItem('minha_conta_pedidos');
     } catch {}
+    limparArmazenamentoCarrinho();
 
     setUser(null);
+    window.dispatchEvent(new Event('salv-auth-logout'));
     setBlockedNotice((prev) => prev || {
       message: detail?.message || 'Sua conta foi bloqueada pela administração.',
       motivo: detail?.motivo || '',
@@ -135,7 +149,9 @@ export function AuthProvider({ children }) {
       await logoutService();
     } finally {
       localStorage.removeItem(TOKEN_KEY);
+      limparArmazenamentoCarrinho();
       setUser(null);
+      window.dispatchEvent(new Event('salv-auth-logout'));
     }
   }, []);
 

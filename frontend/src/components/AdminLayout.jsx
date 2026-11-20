@@ -506,9 +506,10 @@ export default function AdminLayout() {
                   }
                 >
                   {icon}
-                  <span style={{ flex: 1 }}>{label}</span>
+                  <span className="al-nav-label">{label}</span>
                   {badgeCount > 0 && (
                     <span
+                      className="al-nav-badge"
                       style={{
                         background: '#dc2626',
                         color: '#fff',

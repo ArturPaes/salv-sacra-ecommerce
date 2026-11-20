@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
+import { useAuth } from './AuthContext';
 import { listarEnderecos } from '../services/contaService';
 import { listarCuponsDisponiveis, listarMeusVales } from '../services/cupomService';
 
@@ -23,6 +24,7 @@ const ehValeCompraObj = (b) => {
 const arredondar2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 export function CartProvider({ children }) {
+  const { user, loading: authLoading } = useAuth();
   const [items, setItems] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('@SalvSacra:carrinho') || '[]');
@@ -433,6 +435,39 @@ export function CartProvider({ children }) {
       localStorage.removeItem('@SalvSacra:vale_compra');
     } catch {}
   }, []);
+
+  const limparTudoAoDeslogar = useCallback(() => {
+    itemsRef.current = [];
+    try {
+      localStorage.removeItem('@SalvSacra:carrinho');
+      localStorage.removeItem('@SalvSacra:cupom');
+      localStorage.removeItem('@SalvSacra:vale_compra');
+      localStorage.removeItem('@SalvSacra:cep');
+    } catch {}
+    setItems([]);
+    setCupom(null);
+    setValeCompra(null);
+    setCep('');
+    setShippingOptions([]);
+    setSelectedShipping(null);
+    setCidadeDestino('');
+    setUfDestino('');
+    setIsCartOpen(false);
+    window.dispatchEvent(new Event('cartUpdated'));
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('salv-auth-logout', limparTudoAoDeslogar);
+    return () => window.removeEventListener('salv-auth-logout', limparTudoAoDeslogar);
+  }, [limparTudoAoDeslogar]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      if (itemsRef.current.length > 0 || cupom || valeCompra) {
+        limparTudoAoDeslogar();
+      }
+    }
+  }, [user, authLoading, cupom, valeCompra, limparTudoAoDeslogar]);
 
   // Sincroniza cupom e vale-compra com a base ativa (atualiza saldo_atual e limpa benefícios inválidos/esgotados)
   const sincronizarBeneficios = useCallback(async () => {

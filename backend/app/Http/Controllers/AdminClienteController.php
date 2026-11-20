@@ -242,26 +242,10 @@ class AdminClienteController extends Controller
             ], 422);
         }
 
-        if (DemoSandboxService::isDemo()) {
-            $baseQuery = User::where(function ($q) {
-                $q->whereNull('papel')->orWhere('papel', '!=', 'admin');
-            });
-
-            $totalClientes = (clone $baseQuery)->count();
-            if ($totalClientes <= 1) {
-                return response()->json([
-                    'message' => 'No Modo Demo não é permitido excluir a única conta de cliente disponível na sessão.',
-                ], 422);
-            }
-
-            if (!$cliente->bloqueado) {
-                $clientesAtivos = (clone $baseQuery)->where('bloqueado', false)->count();
-                if ($clientesAtivos <= 1) {
-                    return response()->json([
-                        'message' => 'No Modo Demo é necessário manter ao menos uma conta de cliente ativa disponível.',
-                    ], 422);
-                }
-            }
+        if (DemoSandboxService::isDemo() && strtolower(trim((string) $cliente->email)) === 'cliente@demo.salvsacra.com') {
+            return response()->json([
+                'message' => 'A conta padrão Cliente Demo não pode ser excluída. Se quiser testar a exclusão de conta, cadastre um novo cliente.',
+            ], 422);
         }
 
         $nomeOriginal = $cliente->name;

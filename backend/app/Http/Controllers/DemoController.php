@@ -109,11 +109,16 @@ class DemoController extends Controller
 
         $user = ! empty($validated['user_id'])
             ? User::find($validated['user_id'])
-            : User::where('papel', $validated['papel'])->orderBy('id')->first();
+            : (User::where('papel', $validated['papel'])->where('bloqueado', false)->orderBy('id')->first()
+                ?: User::where('papel', $validated['papel'])->orderBy('id')->first());
 
         if (! $user) {
+            $msg = ($validated['papel'] ?? null) === 'cliente'
+                ? 'Nenhuma conta de cliente disponível nesta sessão Demo. Cadastre um novo cliente ou resete a Demo.'
+                : 'Usuário não encontrado nesta sessão Demo.';
+
             return response()->json([
-                'message' => 'Usuário não encontrado nesta sessão Demo.',
+                'message' => $msg,
             ], 404);
         }
 

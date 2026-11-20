@@ -39,17 +39,21 @@ body {
   overflow-x: clip;
 }
 
-body.demo-mode-active .main-content,
 body.demo-mode-active .al-content,
 body.demo-mode-active .checkout-page {
   padding-bottom: 70px;
 }
 
 body.demo-mode-active .footer-copyright {
-  padding-bottom: 70px;
+  padding-bottom: 12px;
+  padding-right: 220px;
 }
 
 @media (max-width: 768px) {
+  body.demo-mode-active .footer-copyright {
+    padding-right: 16px;
+    padding-bottom: 56px;
+  }
   .demo-toolbar-pill-wrap.demo-toolbar-cart-open,
   .demo-toolbar-expanded-wrap.demo-toolbar-cart-open,
   .demo-toolbar-toast.demo-toolbar-cart-open {

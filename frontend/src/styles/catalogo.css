@@ -10,7 +10,7 @@
 }
 
 .catalogo-container {
-  max-width: var(--container-store, min(92vw, 1680px));
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -244,7 +244,7 @@
 /* ── 4. Grid de Produtos (Padronizado com a vitrine Home) ── */
 .catalogo-products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -432,6 +432,16 @@
 }
 
 /* ── Responsivo ── */
+@media (min-width: 1520px) {
+  .catalogo-container {
+    max-width: var(--container-store, min(92vw, 1600px));
+  }
+
+  .catalogo-products-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1024px) {
   .catalogo-products-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -583,4 +593,54 @@
 
 .card-nav-arrow-right {
   right: 8px;
+}
+
+/* Setas minimalistas para cards no mobile */
+.card-nav-arrow-mobile {
+  display: none;
+}
+
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .card-nav-arrow--desktop {
+    display: none !important;
+  }
+
+  .card-nav-arrow-mobile {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.78);
+    color: rgba(30, 30, 30, 0.78);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(2px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    z-index: 6;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    user-select: none;
+    transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  }
+
+  .card-nav-arrow-mobile-left {
+    left: 5px;
+  }
+
+  .card-nav-arrow-mobile-right {
+    right: 5px;
+  }
+
+  .card-nav-arrow-mobile.is-pressed {
+    background: #1e1e1e;
+    color: #ffffff;
+    border-color: #1e1e1e;
+    transform: translateY(-50%) scale(0.92);
+  }
 }

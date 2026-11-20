@@ -65,8 +65,11 @@ class DevocaoController extends Controller
         $devocao = Devocao::withCount('produtos')->findOrFail($id);
 
         if ($devocao->produtos_count > 0) {
+            $qtd = $devocao->produtos_count;
+            $plural = $qtd === 1 ? 'produto vinculado' : 'produtos vinculados';
+
             return response()->json([
-                'message' => "Não é possível excluir: existem {$devocao->produtos_count} produto(s) nesta devoção.",
+                'message' => "Não é possível excluir a devoção \"{$devocao->nome}\" porque há {$qtd} {$plural} a ela. Altere ou exclua os produtos vinculados antes de remover este item.",
             ], 409);
         }
 
