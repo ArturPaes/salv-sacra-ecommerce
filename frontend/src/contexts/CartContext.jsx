@@ -23,11 +23,28 @@ const ehValeCompraObj = (b) => {
 
 const arredondar2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
+const getUserCartKey = (userObj) => {
+  if (!userObj?.id) return null;
+  try {
+    const modo = sessionStorage.getItem('@SalvSacra:access_mode');
+    if (modo === 'demo') {
+      const sid = localStorage.getItem('@SalvSacra:demo_session_id') || 'demo';
+      return `@SalvSacra:carrinho:demo:${sid}:u:${userObj.id}`;
+    }
+  } catch {}
+  return `@SalvSacra:carrinho:real:u:${userObj.id}`;
+};
+
 export function CartProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
+  const cartKeyRef = useRef(getUserCartKey(user));
+  cartKeyRef.current = getUserCartKey(user);
+
   const [items, setItems] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('@SalvSacra:carrinho') || '[]');
+      const key = getUserCartKey(user);
+      if (!key) return [];
+      return JSON.parse(localStorage.getItem(key) || localStorage.getItem('@SalvSacra:carrinho') || '[]');
     } catch {
       return [];
     }
@@ -73,12 +90,16 @@ export function CartProvider({ children }) {
     }
   }, [cep]);
 
-  // Salvar no localStorage sempre que items mudar
+  // Salvar no localStorage sempre que items mudar (com escopo por usuário/modo)
   const salvarCarrinho = (novosItens) => {
     itemsRef.current = novosItens;
     setItems(novosItens);
     try {
-      localStorage.setItem('@SalvSacra:carrinho', JSON.stringify(novosItens));
+      const json = JSON.stringify(novosItens);
+      localStorage.setItem('@SalvSacra:carrinho', json);
+      if (cartKeyRef.current) {
+        localStorage.setItem(cartKeyRef.current, json);
+      }
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (e) {
       console.error('Erro ao salvar carrinho:', e);
@@ -254,6 +275,9 @@ export function CartProvider({ children }) {
     itemsRef.current = [];
     try {
       localStorage.removeItem('@SalvSacra:carrinho');
+      if (cartKeyRef.current) {
+        localStorage.removeItem(cartKeyRef.current);
+      }
     } catch {}
     setItems([]);
     window.dispatchEvent(new Event('cartUpdated'));
@@ -462,12 +486,32 @@ export function CartProvider({ children }) {
   }, [limparTudoAoDeslogar]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+
+    if (!user?.id) {
       if (itemsRef.current.length > 0 || cupom || valeCompra) {
         limparTudoAoDeslogar();
       }
+      return;
     }
-  }, [user, authLoading, cupom, valeCompra, limparTudoAoDeslogar]);
+
+    const userKey = getUserCartKey(user);
+    cartKeyRef.current = userKey;
+    try {
+      const salvos = JSON.parse((userKey && localStorage.getItem(userKey)) || '[]');
+      const lista = Array.isArray(salvos) ? salvos : [];
+      itemsRef.current = lista;
+      setItems(lista);
+      localStorage.setItem('@SalvSacra:carrinho', JSON.stringify(lista));
+      window.dispatchEvent(new Event('cartUpdated'));
+      if (lista.length > 0) {
+        validarEstoqueCarrinho(lista);
+      }
+    } catch {
+      itemsRef.current = [];
+      setItems([]);
+    }
+  }, [user?.id, authLoading, limparTudoAoDeslogar, validarEstoqueCarrinho]);
 
   // Sincroniza cupom e vale-compra com a base ativa (atualiza saldo_atual e limpa benefícios inválidos/esgotados)
   const sincronizarBeneficios = useCallback(async () => {
