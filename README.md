@@ -67,9 +67,23 @@ Projeto de e-commerce completo desenvolvido como **Trabalho de Conclusão de Cur
 
 ```text
 salv-sacra-ecommerce/
-├── backend/       # API REST em Laravel (controllers, models, migrations, testes)
-├── frontend/      # Aplicação SPA em React + Vite (páginas, componentes, estilos)
-├── postman/       # Coleções de requisições da API para testes no Postman / Newman
+├── backend/                  # API REST em Laravel
+│   ├── app/
+│   │   ├── Http/Controllers/ # Endpoints da loja, admin, checkout e demo
+│   │   ├── Models/           # Entidades do Eloquent ORM
+│   │   └── Services/         # Regras de negócio (Melhor Envio, Demo Sandbox, Notificações)
+│   ├── database/migrations/  # Estrutura e evolução do banco de dados
+│   ├── routes/api.php        # Definição das rotas públicas e protegidas
+│   └── tests/Feature/        # Testes automatizados (PHPUnit)
+├── frontend/                 # Aplicação SPA em React + Vite
+│   └── src/
+│       ├── components/       # Componentes reutilizáveis (CarrinhoDrawer, DemoToolbar, etc.)
+│       ├── contexts/         # Estados globais (Auth, Cart, Demo, Wishlist)
+│       ├── pages/
+│       │   ├── public/       # Vitrine, catálogo, produto e checkout
+│       │   └── admin/        # Dashboard, pedidos, estoque, cupons e relatórios
+│       └── services/         # Comunicação com a API via Axios
+├── postman/                  # Coleções de validação da API (Leitura e Demo)
 └── README.md
 ```
 
