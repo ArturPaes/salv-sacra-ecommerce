@@ -46,18 +46,20 @@ Projeto de e-commerce completo desenvolvido como **Trabalho de Conclusão de Cur
 - **CSS3** (layout responsivo para desktop, notebook e mobile)
 - **Google reCAPTCHA** (`react-google-recaptcha`)
 
-### Backend
+### Backend e Integrações
 - **PHP 8.4**
-- **Laravel 13** (API RESTful)
+- **Laravel 13** (API RESTful e Eloquent ORM)
 - **Laravel Sanctum 4** (autenticação via tokens)
-- **SQLite / MySQL** (persistência de dados)
+- **PostgreSQL** (persistência em produção) e **SQLite** (isolamento do modo demonstração e testes automatizados)
+- **Mercado Pago** (integração de pagamentos via Pix e Cartão de Crédito)
+- **Melhor Envio** (cálculo de frete e rastreamento)
 - **Resend** (envio de e-mails transacionais via HTTPS)
 - **PHPUnit 12** (testes automatizados)
 
 ### Infraestrutura e Ferramentas
 - **Cloudflare Pages** (hospedagem do frontend e DNS)
-- **Railway** (hospedagem da API Laravel)
-- **VS Code**, **Git / GitHub** e **Postman** (coleção disponível em `postman/`)
+- **Railway** (hospedagem da API Laravel e banco de dados PostgreSQL)
+- **VS Code**, **Git / GitHub** e **Postman** (coleções disponíveis em `postman/`)
 
 ---
 
@@ -67,12 +69,38 @@ Projeto de e-commerce completo desenvolvido como **Trabalho de Conclusão de Cur
 salv-sacra-ecommerce/
 ├── backend/       # API REST em Laravel (controllers, models, migrations, testes)
 ├── frontend/      # Aplicação SPA em React + Vite (páginas, componentes, estilos)
-├── postman/       # Coleção de requisições da API para testes no Postman
+├── postman/       # Coleções de requisições da API para testes no Postman / Newman
 └── README.md
 ```
 
 ---
 
-## Testes Automatizados
+## Como Executar Localmente
 
-A suíte de testes automatizados do backend (PHPUnit) cobre os principais fluxos da API e do modo demonstração, podendo ser executada em `backend/` via `php artisan test`.
+### 1. Backend (Laravel)
+
+```bash
+cd backend
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
+
+### 2. Frontend (React + Vite)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Testes Automatizados e Validação da API
+
+- **PHPUnit (Backend):** A suíte de testes automatizados cobre os principais fluxos da API e o isolamento do modo demonstração (`cd backend && php artisan test`).
+- **Postman / Newman:** A pasta `postman/` contém duas coleções de validação:
+  - `Salv_Sacra_Site_Real_Leitura.postman_collection.json`: testes seguros de leitura e proteção da loja oficial.
+  - `Salv_Sacra_Integracao_Demo.postman_collection.json`: suíte completa de integração de ponta a ponta no ambiente Demo (Sandbox).
