@@ -434,11 +434,20 @@
 /* ── Responsivo ── */
 @media (min-width: 1520px) {
   .catalogo-container {
-    max-width: var(--container-store, min(92vw, 1600px));
+    max-width: 1380px;
+    margin: 0 auto;
+  }
+
+  .catalogo-layout {
+    grid-template-columns: 210px minmax(0, 1040px);
+    justify-content: center;
+    gap: 40px;
   }
 
   .catalogo-products-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(220px, 245px));
+    justify-content: center;
+    gap: 20px;
   }
 }
 

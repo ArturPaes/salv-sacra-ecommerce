@@ -505,14 +505,15 @@
 /* ── 8. RESPONSIVO ───────────────────────────────────────────── */
 @media (min-width: 1520px) {
   .home-section {
-    max-width: var(--container-store, min(92vw, 1600px));
+    max-width: 1280px;
+    margin: 0 auto;
   }
 
   .produto-card,
   .skeleton-card {
-    flex: 0 0 calc((100% - 80px) / 5);
-    width: calc((100% - 80px) / 5);
-    max-width: calc((100% - 80px) / 5);
+    flex: 0 0 calc((100% - 60px) / 4);
+    width: calc((100% - 60px) / 4);
+    max-width: calc((100% - 60px) / 4);
   }
 }
 
