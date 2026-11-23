@@ -5,7 +5,7 @@
 - **Orientador:** Prof. Fernando Silvano Gonçalves
 - **Instituição:** Instituto Federal de Santa Catarina (IFSC) — Câmpus Tubarão
 - **Curso:** Tecnologia em Análise e Desenvolvimento de Sistemas
-- **Aplicação em produção:** [https://salvsacra.com.br](https://salvsacra.com.br)
+- **Endereço da Aplicação:** [https://salvsacra.com.br](https://salvsacra.com.br)
 
 ---
 
