@@ -84,6 +84,7 @@ salv-sacra-ecommerce/
 │       │   └── admin/        # Dashboard, pedidos, estoque, cupons e relatórios
 │       └── services/         # Comunicação com a API via Axios
 ├── postman/                  # Coleções de validação da API (Leitura e Demo)
+├── DOCUMENTACAO.md           # Documentação técnica e funcional completa
 └── README.md
 ```
 
